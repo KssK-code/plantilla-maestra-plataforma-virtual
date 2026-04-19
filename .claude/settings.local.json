@@ -1,0 +1,40 @@
+{
+  "permissions": {
+    "allow": [
+      "mcp__Claude_Preview__preview_start",
+      "Bash(curl -s -o /dev/null -w \"%{http_code}\" http://localhost:3000)",
+      "Bash(npm install:*)",
+      "Bash(find 'C:/Users/Kevin Serrano/' -name *CERTI* -o -name *certi*ivs*)",
+      "Bash(find /mnt -name LOGOIVS*)",
+      "Bash(find 'C:/Users/Kevin Serrano' -name LOGOIVS*)",
+      "mcp__39d3c278-96ed-428e-affa-894b9adcaf21__execute_sql",
+      "mcp__39d3c278-96ed-428e-affa-894b9adcaf21__list_projects",
+      "Bash(ls \"C:/Users/Kevin Serrano/ivs-virtual-plataforma/src/app/\\(dashboard\\)/\")",
+      "Bash(ls \"C:/Users/Kevin Serrano/ivs-virtual-plataforma/src/app/\\(dashboard\\)/admin/\")",
+      "Bash(cat \"C:/Users/Kevin Serrano/ivs-virtual-plataforma/src/app/\\(dashboard\\)/admin/layout.tsx\")",
+      "Bash(cat \"C:/Users/Kevin Serrano/ivs-virtual-plataforma/src/app/\\(dashboard\\)/admin/page.tsx\")",
+      "Bash(ls \"C:/Users/Kevin Serrano/ivs-virtual-plataforma/src/app/\\(dashboard\\)/admin/alumnos/\")",
+      "Bash(cat \"C:/Users/Kevin Serrano/ivs-virtual-plataforma/src/app/\\(dashboard\\)/admin/alumnos/page.tsx\")",
+      "Bash(cat \"C:/Users/Kevin Serrano/ivs-virtual-plataforma/src/app/\\(dashboard\\)/admin/alumnos/[id]/page.tsx\")",
+      "Bash(ls \"C:/Users/Kevin Serrano/ivs-virtual-plataforma/src/app/\\(dashboard\\)/admin/contenido/\")",
+      "Bash(ls \"C:/Users/Kevin Serrano/ivs-virtual-plataforma/src/app/\\(dashboard\\)/admin/reportes/\")",
+      "Bash(ls \"C:/Users/Kevin Serrano/ivs-virtual-plataforma/src/app/\\(dashboard\\)/admin/configuracion/\")",
+      "Bash(cat \"C:/Users/Kevin Serrano/ivs-virtual-plataforma/src/app/\\(dashboard\\)/admin/configuracion/page.tsx\")",
+      "Bash(cat \"C:/Users/Kevin Serrano/ivs-virtual-plataforma/src/app/\\(dashboard\\)/admin/reportes/page.tsx\")",
+      "Bash(ls \"C:/Users/Kevin Serrano/ivs-virtual-plataforma/src/app/\\(dashboard\\)/admin/contenido/[id]/\")",
+      "Bash(ls \"C:/Users/Kevin Serrano/ivs-virtual-plataforma/src/app/\\(dashboard\\)/admin/documentos/\")",
+      "Bash(mkdir -p \"C:/Users/Kevin Serrano/ivs-virtual-plataforma/src/app/api/admin/alumnos/[id]/notas\")",
+      "Bash(mkdir -p \"C:/Users/Kevin Serrano/ivs-virtual-plataforma/src/app/api/admin/documentos/[id]/verificar\")",
+      "Bash(mkdir -p \"C:/Users/Kevin Serrano/ivs-virtual-plataforma/src/app/api/admin/stats\")",
+      "Bash(mkdir -p \"C:/Users/Kevin Serrano/ivs-virtual-plataforma/src/scripts\")",
+      "Bash(cat \"/c/Users/Kevin Serrano/ivs-virtual-plataforma/src/app/\\(auth\\)/login/page.tsx\")",
+      "Bash(cat \"/c/Users/Kevin Serrano/ivs-virtual-plataforma/src/app/\\(dashboard\\)/admin/layout.tsx\")",
+      "Bash(cat \"/c/Users/Kevin Serrano/ivs-virtual-plataforma/src/app/\\(dashboard\\)/alumno/layout.tsx\")",
+      "Bash(ls \"/c/Users/Kevin Serrano/ivs-virtual-plataforma/.claude/worktrees/funny-hawking/src/app/\\(dashboard\\)/admin/\")",
+      "Bash(cat \"/c/Users/Kevin Serrano/ivs-virtual-plataforma/.claude/worktrees/funny-hawking/src/app/\\(dashboard\\)/admin/page.tsx\")",
+      "Bash(find /c/Users/Kevin Serrano/ivs-virtual-plataforma/.claude/worktrees/funny-hawking/src/app/api/alumno -type f -name *.tsx -o -name *.ts -o -name *.jsx -o -name *.js)",
+      "Bash(find /c/Users/Kevin Serrano/ivs-virtual-plataforma/.claude/worktrees/funny-hawking/src/app/api/admin -type f -name *.tsx -o -name *.ts)",
+      "Bash(find /c/Users/Kevin Serrano/ivs-virtual-plataforma/.claude/worktrees/funny-hawking/src/components/alumno -type f -name *.tsx -o -name *.ts)"
+    ]
+  }
+}
