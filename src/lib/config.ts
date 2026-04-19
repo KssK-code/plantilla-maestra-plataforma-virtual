@@ -1,21 +1,21 @@
 export const CONFIG = {
-  nombre: 'NOMBRE_CLIENTE',
-  nombreCompleto: 'NOMBRE COMPLETO DEL CLIENTE',
-  logo: '/logo-ceeva.png',
+  nombre: 'CJVB',
+  nombreCompleto: 'CJVB Académico',
+  logo: '/logo-cjvb.png',
   logoOscuro: '/logo-cliente-dark.png',
 
-  whatsapp: '0000000000',
-  whatsappUrl: 'https://wa.me/520000000000',
-  email: 'correo@cliente.com',
+  whatsapp: '2212312340',
+  whatsappUrl: 'https://wa.me/522212312340',
+  email: 'cjbvacademico@outlook.com',
 
-  dominio: 'cliente.online',
-  urlBase: 'https://cliente.online',
+  dominio: 'cjvbacademico.online',
+  urlBase: 'https://cjvbacademico.online',
 
   colores: {
-    primario: '#1B2F6E',
-    secundario: '#2E4BA3',
-    acento: '#C9A84C',
-    acentoClaro: '#E8C97A',
+    primario: '#1565C0',
+    secundario: '#0D47A1',
+    acento: '#1E88E5',
+    acentoClaro: '#BBDEFB',
     texto: '#1A1A2E',
     fondo: '#F8F9FF',
   },
@@ -23,7 +23,11 @@ export const CONFIG = {
   niveles: ['secundaria', 'preparatoria'] as const,
 
   precios: {
-    inscripcion: 399,
+    inscripcion: 599,
+    plan6mMensualidad: 1000,
+    plan3mMensualidad: 2000,
+    certificacionSecundaria: 4900,
+    certificacionPreparatoria: 5900,
     preparatoria_6meses_normal: 1000,
     preparatoria_6meses_sindicalizado: 1000,
     preparatoria_3meses_normal: 2000,
@@ -32,8 +36,8 @@ export const CONFIG = {
     secundaria_6meses_sindicalizado: 1000,
     secundaria_3meses_normal: 2000,
     secundaria_3meses_sindicalizado: 2000,
-    certificacion_preparatoria: 4750,
-    certificacion_secundaria: 4250,
+    certificacion_preparatoria: 5900,
+    certificacion_secundaria: 4900,
   },
 
   documentosRequeridos: {
@@ -54,20 +58,16 @@ export const CONFIG = {
   },
 
   landing: {
-    hero_titulo: 'Estudia desde casa, certifícate con la SEP',
-    hero_highlight: 'certifícate',
-    hero_subtitulo: 'Sin ir a la escuela. Sin perder tu trabajo. Con certificación oficial.',
-    hero_badges: [
-      '🏛️ Incorporado a la SEP',
-      '💻 100% en línea',
-      '📜 Certificación oficial',
-    ],
-    años_experiencia: '5',
+    hero_titulo: 'Obtén tu certificado oficial',
+    hero_highlight: 'desde casa',
+    hero_subtitulo: 'Estudia Secundaria o Preparatoria en línea con validez oficial SEP. Avanza a tu ritmo desde Puebla.',
+    hero_badges: ['SEP Oficial', 'Sin salir de casa', 'Puebla, México'],
+    años_experiencia: 5,
     convenios: [],
     respaldo_titulo: 'Respaldados por instituciones educativas de confianza',
     respaldo_badges: [],
-    certificacion_secundaria: 4250,
-    certificacion_preparatoria: 4750,
+    certificacion_secundaria: 4900,
+    certificacion_preparatoria: 5900,
     cct: '',
   },
 
