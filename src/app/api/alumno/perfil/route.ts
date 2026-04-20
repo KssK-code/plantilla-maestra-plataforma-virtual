@@ -39,7 +39,7 @@ export async function GET() {
 
       return NextResponse.json({
         id:                  a.id,
-        matricula:           a.matricula ?? 'IVS-0000',
+        matricula:           a.matricula ?? 'CJVB-0000',
         meses_desbloqueados: a.meses_desbloqueados ?? 0,
         inscripcion_pagada:  a.inscripcion_pagada ?? false,
         nivel:               a.nivel ?? null,
@@ -90,7 +90,7 @@ export async function GET() {
 
       return NextResponse.json({
         id:                  a.id,
-        matricula:           a.matricula ?? 'IVS-0000',
+        matricula:           a.matricula ?? 'CJVB-0000',
         meses_desbloqueados: a.meses_desbloqueados ?? 0,
         inscripcion_pagada:  a.inscripcion_pagada ?? false,
         nivel:               a.nivel ?? null,
@@ -121,7 +121,7 @@ export async function GET() {
 
     return NextResponse.json({
       id:                  user.id,
-      matricula:           'IVS-0000',
+      matricula:           'CJVB-0000',
       meses_desbloqueados: 0,
       inscripcion_pagada:  false,
       nivel:               null,

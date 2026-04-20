@@ -34,7 +34,7 @@ const CARD_STYLE = {
 const WA_NUMERO = '5256543225636'
 
 function waContactarUrl(nombre: string) {
-  const texto = `Hola ${nombre} 👋, soy de Control Escolar de IVS Virtual. Vi que te registraste y quería darte la bienvenida y resolver cualquier duda que tengas 🎓`
+  const texto = `Hola ${nombre} 👋, soy de Control Escolar de CJVB Académico. Vi que te registraste y quería darte la bienvenida y resolver cualquier duda que tengas 🎓`
   return `https://wa.me/${WA_NUMERO}?text=${encodeURIComponent(texto)}`
 }
 

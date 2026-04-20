@@ -220,7 +220,7 @@ export async function POST(request: NextRequest) {
     const newUserId = authData.user.id
     const year      = new Date().getFullYear()
     const rand      = String(Math.floor(1 + Math.random() * 9999)).padStart(4, '0')
-    const matricula = `IVS-${year}-${rand}`
+    const matricula = `CJVB-${year}-${rand}`
 
     // Insertar en usuarios
     await admin.from('usuarios').insert({ id: newUserId, nombre, apellidos, email, rol: 'ALUMNO' })

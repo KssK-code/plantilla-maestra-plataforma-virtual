@@ -68,7 +68,7 @@ export async function GET(
 
     return NextResponse.json({
       id:                  a.id,
-      matricula:           a.matricula ?? 'IVS-0000',
+      matricula:           a.matricula ?? 'CJVB-0000',
       nivel:               a.nivel ?? null,
       modalidad:           a.modalidad ?? '6_meses',
       duracion_meses:      duracion,
