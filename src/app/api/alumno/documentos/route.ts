@@ -90,7 +90,7 @@ export async function POST(req: NextRequest) {
         alumno_id: alumno.id,
         tipo,
         nombre_archivo: archivo.name,
-        url: publicUrl,
+        url_archivo: publicUrl,
         estado: 'pendiente',
         comentario_admin: null,
         subido_en: new Date().toISOString(),
