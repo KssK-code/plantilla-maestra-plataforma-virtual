@@ -88,14 +88,12 @@ export async function POST(req: NextRequest) {
       .from('documentos_alumno')
       .upsert({
         alumno_id: alumno.id,
-        tipo,
+        tipo_documento: tipo,
         nombre_archivo: archivo.name,
         url_archivo: publicUrl,
-        estado: 'pendiente',
-        comentario_admin: null,
-        subido_en: new Date().toISOString(),
-        revisado_en: null,
-      }, { onConflict: 'alumno_id,tipo' })
+        verificado: false,
+        fecha_subida: new Date().toISOString(),
+      }, { onConflict: 'alumno_id,tipo_documento' })
 
     if (upsertError) return NextResponse.json({ error: upsertError.message }, { status: 500 })
 
