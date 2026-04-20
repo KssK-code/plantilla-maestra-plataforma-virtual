@@ -3,19 +3,20 @@ import { createClient } from '@/lib/supabase/server'
 import type { SupabaseClient } from '@supabase/supabase-js'
 
 /**
- * CJVB — consulta equivalente a PostgREST:
+ * Quiz por semana — sin filtro por nivel (secundaria/preparatoria/demo).
  *
- * GET .../quiz_semana?semana_id=eq.{semanaId}&order=orden.asc
- * SQL:
- *   SELECT id, semana_id, pregunta, opcion_a, opcion_b, opcion_c, respuesta_correcta, explicacion, orden
- *   FROM public.quiz_semana
+ * PostgREST:
+ *   GET .../quiz_semana?select=*&semana_id=eq.{semanaId}&order=orden.asc
+ * SQL equivalente:
+ *   SELECT * FROM public.quiz_semana
  *   WHERE semana_id = $semanaId::uuid
  *   ORDER BY orden ASC;
+ *
+ * Se usa select('*') para incluir filas con solo `opciones` (JSONB) o solo opcion_a/b/c;
+ * un select fijo sin `opciones` dejaba preguntas vacías en sec/prepa.
  */
-const QUIZ_SEMANA_SELECT_CJVB =
-  'id, semana_id, pregunta, opcion_a, opcion_b, opcion_c, respuesta_correcta, explicacion, orden' as const
 
-/** Fila cruda de quiz_semana (CJVB: opcion_a/b/c; otras instalaciones: opciones JSONB) */
+/** Fila cruda de quiz_semana (CJVB: opcion_a/b/c; seeds alternos: opciones JSONB) */
 type QuizSemanaRow = {
   id: string
   semana_id?: string
@@ -225,7 +226,7 @@ export async function GET(
 
     const { data: rawRows, error: quizErr } = await supabase
       .from('quiz_semana')
-      .select(QUIZ_SEMANA_SELECT_CJVB)
+      .select('*')
       .eq('semana_id', semanaId)
       .order('orden', { ascending: true })
 
