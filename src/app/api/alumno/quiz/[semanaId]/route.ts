@@ -2,9 +2,23 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import type { SupabaseClient } from '@supabase/supabase-js'
 
-/** Fila cruda de quiz_semana (schema repo: opcion_a/b/c + letra; migración alterna: opciones JSONB + índice) */
+/**
+ * CJVB — consulta equivalente a PostgREST:
+ *
+ * GET .../quiz_semana?semana_id=eq.{semanaId}&order=orden.asc
+ * SQL:
+ *   SELECT id, semana_id, pregunta, opcion_a, opcion_b, opcion_c, respuesta_correcta, explicacion, orden
+ *   FROM public.quiz_semana
+ *   WHERE semana_id = $semanaId::uuid
+ *   ORDER BY orden ASC NULLS LAST;
+ */
+const QUIZ_SEMANA_SELECT_CJVB =
+  'id, semana_id, pregunta, opcion_a, opcion_b, opcion_c, respuesta_correcta, explicacion, orden' as const
+
+/** Fila cruda de quiz_semana (CJVB: opcion_a/b/c; otras instalaciones: opciones JSONB) */
 type QuizSemanaRow = {
   id: string
+  semana_id?: string
   pregunta: string
   orden: number | null
   opciones?: unknown
@@ -22,19 +36,37 @@ function letterToIndex(letter: string): number {
   return 2
 }
 
+/** Índice 0..2: acepta letra a/b/c, número 0–2 o string "0".."2". */
+function respuestaCorrectaToIndex(rc: unknown): number {
+  if (typeof rc === 'number' && Number.isFinite(rc)) {
+    const n = Math.trunc(rc)
+    if (n >= 0 && n <= 2) return n
+  }
+  const s = String(rc ?? 'a').trim().toLowerCase()
+  if (s === '0' || s === 'a') return 0
+  if (s === '1' || s === 'b') return 1
+  if (s === '2' || s === 'c') return 2
+  return letterToIndex(s)
+}
+
 /** Normaliza a la forma que consume `SemanaQuiz` */
 function mapQuizSemanaRow(row: QuizSemanaRow) {
   const id = row.id
   const pregunta = row.pregunta ?? ''
   const orden = row.orden ?? 0
+  const explicacionRaw = row.explicacion
+  const explicacion =
+    typeof explicacionRaw === 'string' && explicacionRaw.trim() !== ''
+      ? explicacionRaw.trim()
+      : undefined
 
   if (row.opcion_a != null && row.opcion_b != null && row.opcion_c != null) {
     return {
       id,
       pregunta,
-      opciones: [row.opcion_a, row.opcion_b, row.opcion_c],
-      respuesta_correcta: letterToIndex(String(row.respuesta_correcta ?? 'a')),
-      explicacion: undefined as string | undefined,
+      opciones: [String(row.opcion_a), String(row.opcion_b), String(row.opcion_c)],
+      respuesta_correcta: respuestaCorrectaToIndex(row.respuesta_correcta),
+      explicacion,
       orden,
     }
   }
@@ -43,13 +75,13 @@ function mapQuizSemanaRow(row: QuizSemanaRow) {
     const opciones = row.opciones.map(String)
     const rc = row.respuesta_correcta
     const respuesta_correcta =
-      typeof rc === 'number' ? rc : letterToIndex(String(rc ?? 'a'))
+      typeof rc === 'number' && rc >= 0 && rc <= 2 ? rc : respuestaCorrectaToIndex(rc)
     return {
       id,
       pregunta,
       opciones,
       respuesta_correcta,
-      explicacion: row.explicacion ?? undefined,
+      explicacion,
       orden,
     }
   }
@@ -186,13 +218,16 @@ export async function GET(
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) return NextResponse.json({ error: 'No autorizado' }, { status: 401 })
 
-    const { semanaId } = params
+    const semanaId = typeof params?.semanaId === 'string' ? params.semanaId.trim() : ''
+    if (!semanaId) {
+      return NextResponse.json({ error: 'semanaId requerido' }, { status: 400 })
+    }
 
     const { data: rawRows, error: quizErr } = await supabase
       .from('quiz_semana')
-      .select('*')
+      .select(QUIZ_SEMANA_SELECT_CJVB)
       .eq('semana_id', semanaId)
-      .order('orden')
+      .order('orden', { ascending: true })
 
     if (quizErr) {
       console.error('[quiz GET] quiz_semana', quizErr)
@@ -240,7 +275,11 @@ export async function POST(
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) return NextResponse.json({ error: 'No autorizado' }, { status: 401 })
 
-    const { semanaId } = params
+    const semanaId = typeof params?.semanaId === 'string' ? params.semanaId.trim() : ''
+    if (!semanaId) {
+      return NextResponse.json({ error: 'semanaId requerido' }, { status: 400 })
+    }
+
     const body = await request.json()
     const { respuestas } = body as { respuestas: Record<string, number> }
 
