@@ -365,15 +365,13 @@ export default function MateriaPage() {
                         </div>
                       )}
 
-                      {/* Mini quiz de refuerzo */}
-                      {alumnoId && (
-                        <SemanaQuiz
-                          key={semana.id}
-                          semanaId={semana.id}
-                          alumnoId={alumnoId}
-                          lang="es"
-                        />
-                      )}
+                      {/* Mini quiz de refuerzo (sesión en API; alumnoId no requerido para montar) */}
+                      <SemanaQuiz
+                        key={semana.id}
+                        semanaId={semana.id}
+                        alumnoId={alumnoId}
+                        lang="es"
+                      />
 
                       {/* Botón completar semana — siempre visible al final del contenido */}
                       <div className="pt-2">

@@ -22,7 +22,8 @@ interface RespuestaPrevia {
 
 interface SemanaQuizProps {
   semanaId: string
-  alumnoId: string
+  /** Reservado para futuras llamadas con RLS desde cliente; el API usa la sesión del servidor */
+  alumnoId?: string
   lang: string
 }
 

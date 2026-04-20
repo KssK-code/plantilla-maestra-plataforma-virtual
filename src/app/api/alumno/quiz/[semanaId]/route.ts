@@ -1,5 +1,181 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
+import type { SupabaseClient } from '@supabase/supabase-js'
+
+/** Fila cruda de quiz_semana (schema repo: opcion_a/b/c + letra; migración alterna: opciones JSONB + índice) */
+type QuizSemanaRow = {
+  id: string
+  pregunta: string
+  orden: number | null
+  opciones?: unknown
+  respuesta_correcta?: unknown
+  explicacion?: string | null
+  opcion_a?: string | null
+  opcion_b?: string | null
+  opcion_c?: string | null
+}
+
+function letterToIndex(letter: string): number {
+  const c = letter.trim().toLowerCase()
+  if (c === 'a') return 0
+  if (c === 'b') return 1
+  return 2
+}
+
+/** Normaliza a la forma que consume `SemanaQuiz` */
+function mapQuizSemanaRow(row: QuizSemanaRow) {
+  const id = row.id
+  const pregunta = row.pregunta ?? ''
+  const orden = row.orden ?? 0
+
+  if (row.opcion_a != null && row.opcion_b != null && row.opcion_c != null) {
+    return {
+      id,
+      pregunta,
+      opciones: [row.opcion_a, row.opcion_b, row.opcion_c],
+      respuesta_correcta: letterToIndex(String(row.respuesta_correcta ?? 'a')),
+      explicacion: undefined as string | undefined,
+      orden,
+    }
+  }
+
+  if (Array.isArray(row.opciones)) {
+    const opciones = row.opciones.map(String)
+    const rc = row.respuesta_correcta
+    const respuesta_correcta =
+      typeof rc === 'number' ? rc : letterToIndex(String(rc ?? 'a'))
+    return {
+      id,
+      pregunta,
+      opciones,
+      respuesta_correcta,
+      explicacion: row.explicacion ?? undefined,
+      orden,
+    }
+  }
+
+  return null
+}
+
+async function fetchRespuestaPreviaJsonb(
+  supabase: SupabaseClient,
+  alumnoId: string,
+  semanaId: string
+): Promise<{ respuestas: Record<string, number>; completado_en: string } | null> {
+  const { data, error } = await supabase
+    .from('quiz_respuestas')
+    .select('respuestas, completado_en')
+    .eq('alumno_id', alumnoId)
+    .eq('semana_id', semanaId)
+    .maybeSingle()
+
+  // Tabla legacy sin semana_id/respuestas → PostgREST devuelve error; seguir con filas por quiz_id
+  if (error) return null
+  if (!data?.respuestas || typeof data.respuestas !== 'object') return null
+  return {
+    respuestas: data.respuestas as Record<string, number>,
+    completado_en: (data.completado_en as string) ?? new Date().toISOString(),
+  }
+}
+
+async function fetchRespuestaPreviaLegacy(
+  supabase: SupabaseClient,
+  alumnoId: string,
+  preguntaIds: string[]
+): Promise<{ respuestas: Record<string, number>; completado_en: string } | null> {
+  if (preguntaIds.length === 0) return null
+
+  const { data: answers, error } = await supabase
+    .from('quiz_respuestas')
+    .select('quiz_id, respuesta, fecha')
+    .eq('alumno_id', alumnoId)
+    .in('quiz_id', preguntaIds)
+    .order('fecha', { ascending: false })
+
+  if (error || !answers?.length) return null
+
+  const latest = new Map<string, { respuesta: string; fecha: string }>()
+  for (const a of answers) {
+    const qid = a.quiz_id as string
+    if (!latest.has(qid)) {
+      latest.set(qid, {
+        respuesta: String((a as { respuesta?: string }).respuesta ?? 'a'),
+        fecha: String((a as { fecha?: string }).fecha ?? ''),
+      })
+    }
+  }
+
+  if (latest.size !== preguntaIds.length) return null
+
+  const respuestas: Record<string, number> = {}
+  let completado_en = ''
+  for (const id of preguntaIds) {
+    const row = latest.get(id)
+    if (!row) return null
+    respuestas[id] = letterToIndex(row.respuesta)
+    if (row.fecha > completado_en) completado_en = row.fecha
+  }
+
+  return { respuestas, completado_en }
+}
+
+async function saveRespuestasJsonb(
+  supabase: SupabaseClient,
+  alumnoId: string,
+  semanaId: string,
+  respuestas: Record<string, number>
+) {
+  return supabase.from('quiz_respuestas').upsert(
+    {
+      alumno_id: alumnoId,
+      semana_id: semanaId,
+      respuestas,
+      completado_en: new Date().toISOString(),
+    },
+    { onConflict: 'alumno_id,semana_id', ignoreDuplicates: false }
+  )
+}
+
+async function saveRespuestasLegacy(
+  supabase: SupabaseClient,
+  alumnoId: string,
+  respuestas: Record<string, number>
+) {
+  const ids = Object.keys(respuestas)
+  if (ids.length === 0) return { error: null as null }
+
+  const { data: rows, error: qErr } = await supabase
+    .from('quiz_semana')
+    .select('id, respuesta_correcta')
+    .in('id', ids)
+
+  if (qErr || !rows?.length) return { error: qErr ?? new Error('Sin preguntas') }
+
+  const expected = new Map(
+    rows.map(r => {
+      const rc = (r as { respuesta_correcta?: unknown }).respuesta_correcta
+      const letter =
+        typeof rc === 'number'
+          ? String.fromCharCode(97 + (rc as number))
+          : String(rc ?? 'a').toLowerCase().slice(0, 1)
+      return [r.id as string, letter]
+    })
+  )
+
+  const inserts = ids.map(quizId => {
+    const idx = respuestas[quizId] ?? 0
+    const letter = String.fromCharCode(97 + Math.min(2, Math.max(0, idx)))
+    const exp = expected.get(quizId) ?? 'a'
+    return {
+      alumno_id: alumnoId,
+      quiz_id: quizId,
+      respuesta: letter,
+      correcta: letter === exp,
+    }
+  })
+
+  return supabase.from('quiz_respuestas').insert(inserts)
+}
 
 export async function GET(
   _request: NextRequest,
@@ -12,14 +188,21 @@ export async function GET(
 
     const { semanaId } = params
 
-    // Obtener preguntas del quiz para esta semana
-    const { data: preguntas } = await supabase
+    const { data: rawRows, error: quizErr } = await supabase
       .from('quiz_semana')
-      .select('id, pregunta, opciones, respuesta_correcta, explicacion, orden')
+      .select('*')
       .eq('semana_id', semanaId)
       .order('orden')
 
-    // Obtener alumno (schema nuevo: alumnos.id = user.id)
+    if (quizErr) {
+      console.error('[quiz GET] quiz_semana', quizErr)
+      return NextResponse.json({ error: 'Error al cargar preguntas' }, { status: 500 })
+    }
+
+    const preguntas = (rawRows as QuizSemanaRow[] | null)
+      ?.map(mapQuizSemanaRow)
+      .filter((p): p is NonNullable<typeof p> => p != null) ?? []
+
     const { data: alumnoData } = await supabase
       .from('alumnos')
       .select('id')
@@ -30,19 +213,20 @@ export async function GET(
 
     const { id: alumnoId } = alumnoData as { id: string }
 
-    // Verificar si el alumno ya completó este quiz
-    const { data: respuestaPrevia } = await supabase
-      .from('quiz_respuestas')
-      .select('respuestas, completado_en')
-      .eq('alumno_id', alumnoId)
-      .eq('semana_id', semanaId)
-      .single()
+    let respuestaPrevia =
+      (await fetchRespuestaPreviaJsonb(supabase, alumnoId, semanaId)) ??
+      (await fetchRespuestaPreviaLegacy(
+        supabase,
+        alumnoId,
+        preguntas.map(p => p.id)
+      ))
 
     return NextResponse.json({
-      preguntas: preguntas ?? [],
-      respuesta_previa: respuestaPrevia ?? null,
+      preguntas,
+      respuesta_previa: respuestaPrevia,
     })
-  } catch {
+  } catch (e) {
+    console.error('[quiz GET]', e)
     return NextResponse.json({ error: 'Error interno del servidor' }, { status: 500 })
   }
 }
@@ -60,9 +244,10 @@ export async function POST(
     const body = await request.json()
     const { respuestas } = body as { respuestas: Record<string, number> }
 
-    if (!respuestas) return NextResponse.json({ error: 'respuestas requeridas' }, { status: 400 })
+    if (!respuestas || typeof respuestas !== 'object') {
+      return NextResponse.json({ error: 'respuestas requeridas' }, { status: 400 })
+    }
 
-    // Obtener alumno (schema nuevo: alumnos.id = user.id)
     const { data: alumnoData } = await supabase
       .from('alumnos')
       .select('id')
@@ -73,23 +258,31 @@ export async function POST(
 
     const { id: alumnoId } = alumnoData as { id: string }
 
-    // Guardar respuestas (upsert — permite re-intentar si no se guardó antes)
-    const { error } = await supabase
-      .from('quiz_respuestas')
-      .upsert(
-        {
-          alumno_id: alumnoId,
-          semana_id: semanaId,
-          respuestas,
-          completado_en: new Date().toISOString(),
-        },
-        { onConflict: 'alumno_id,semana_id', ignoreDuplicates: false }
-      )
+    const jsonb = await saveRespuestasJsonb(supabase, alumnoId, semanaId, respuestas)
+    if (!jsonb.error) return NextResponse.json({ ok: true })
 
-    if (error) return NextResponse.json({ error: 'Error al guardar respuestas' }, { status: 500 })
+    const msg = (jsonb.error.message ?? '').toLowerCase()
+    const isSchemaMismatch =
+      msg.includes('semana_id') ||
+      msg.includes('respuestas') ||
+      msg.includes('column') ||
+      jsonb.error.code === 'PGRST204' ||
+      jsonb.error.code === '42703'
+
+    if (!isSchemaMismatch) {
+      console.error('[quiz POST] upsert jsonb', jsonb.error)
+      return NextResponse.json({ error: 'Error al guardar respuestas' }, { status: 500 })
+    }
+
+    const legacy = await saveRespuestasLegacy(supabase, alumnoId, respuestas)
+    if (legacy.error) {
+      console.error('[quiz POST] insert legacy', legacy.error)
+      return NextResponse.json({ error: 'Error al guardar respuestas' }, { status: 500 })
+    }
 
     return NextResponse.json({ ok: true })
-  } catch {
+  } catch (e) {
+    console.error('[quiz POST]', e)
     return NextResponse.json({ error: 'Error interno del servidor' }, { status: 500 })
   }
 }
