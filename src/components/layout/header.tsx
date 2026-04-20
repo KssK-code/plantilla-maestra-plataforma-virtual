@@ -32,10 +32,10 @@ export function Header({ pageTitle, userName, avatarUrl, theme = 'dark', onMenuT
 
   const headerBg     = isLight ? '#ffffff'               : 'rgba(11,13,17,0.8)'
   const headerBorder = isLight ? '#EEF2F7'                : '#2A2F3E'
-  const titleColor   = isLight ? '#1B3A57'                : '#F1F5F9'
+  const titleColor   = isLight ? '#0D1B3E'                : '#F1F5F9'
   const dateColor    = isLight ? '#7A92A9'                : '#475569'
-  const menuColor    = isLight ? '#1B3A57'                : '#94A3B8'
-  const menuHoverBg  = isLight ? 'rgba(27,58,87,0.06)'   : 'rgba(255,255,255,0.06)'
+  const menuColor    = isLight ? '#0D1B3E'                : '#94A3B8'
+  const menuHoverBg  = isLight ? 'rgba(13,27,62,0.06)'   : 'rgba(255,255,255,0.06)'
 
   return (
     <header
@@ -88,12 +88,12 @@ export function Header({ pageTitle, userName, avatarUrl, theme = 'dark', onMenuT
             width={32}
             height={32}
             className="w-8 h-8 rounded-full object-cover flex-shrink-0"
-            style={{ border: `2px solid ${isLight ? '#D1E9E8' : '#2A2F3E'}` }}
+            style={{ border: `2px solid ${isLight ? '#BBDEFB' : '#2A2F3E'}` }}
           />
         ) : (
           <div
             className="flex items-center justify-center w-8 h-8 rounded-full text-xs font-bold flex-shrink-0"
-            style={{ background: '#3AAFA9', color: '#fff' }}
+            style={{ background: '#1565C0', color: '#fff' }}
           >
             {initials}
           </div>

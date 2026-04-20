@@ -200,7 +200,7 @@ export default function SemanaQuiz({ semanaId, lang }: SemanaQuizProps) {
       <div className="h-1.5 rounded-full overflow-hidden" style={{ background: '#2A2F3E' }}>
         <div
           className="h-full rounded-full transition-all duration-300"
-          style={{ width: `${((currentIdx + 1) / total) * 100}%`, background: '#6366F1' }}
+          style={{ width: `${((currentIdx + 1) / total) * 100}%`, background: '#1565C0' }}
         />
       </div>
 
@@ -234,7 +234,7 @@ export default function SemanaQuiz({ semanaId, lang }: SemanaQuizProps) {
               }
             } else if (esSeleccionada) {
               bg = 'rgba(99,102,241,0.15)'
-              borderColor = '#6366F1'
+              borderColor = '#1565C0'
               textColor = '#E2E8F0'
             }
 
@@ -259,7 +259,7 @@ export default function SemanaQuiz({ semanaId, lang }: SemanaQuizProps) {
                         ? '#10B981'
                         : yaRespondida && esSeleccionada
                           ? '#EF4444'
-                          : '#6366F1',
+                          : '#1565C0',
                   }}
                 >
                   {String.fromCharCode(65 + i)}.
@@ -312,7 +312,7 @@ export default function SemanaQuiz({ semanaId, lang }: SemanaQuizProps) {
             onClick={handleNext}
             disabled={guardando}
             className="px-4 py-1.5 text-xs rounded-lg font-semibold transition-all disabled:opacity-60"
-            style={{ background: '#6366F1', color: '#fff', border: 'none' }}
+            style={{ background: '#1565C0', color: '#fff', border: 'none' }}
           >
             {guardando
               ? '...'

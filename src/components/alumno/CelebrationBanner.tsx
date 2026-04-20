@@ -8,17 +8,17 @@ interface CelebrationBannerProps {
 }
 
 const CONFETTI = [
-  { left: '8%',  color: '#6366F1', delay: '0s',    dur: '1.4s' },
+  { left: '8%',  color: '#1565C0', delay: '0s',    dur: '1.4s' },
   { left: '18%', color: '#10B981', delay: '0.15s',  dur: '1.7s' },
   { left: '27%', color: '#F59E0B', delay: '0.05s',  dur: '1.2s' },
   { left: '35%', color: '#EC4899', delay: '0.3s',   dur: '1.9s' },
-  { left: '44%', color: '#6366F1', delay: '0.1s',   dur: '1.5s' },
+  { left: '44%', color: '#1565C0', delay: '0.1s',   dur: '1.5s' },
   { left: '52%', color: '#34D399', delay: '0.4s',   dur: '1.3s' },
   { left: '60%', color: '#FBBF24', delay: '0.2s',   dur: '1.8s' },
   { left: '68%', color: '#818CF8', delay: '0.35s',  dur: '1.1s' },
   { left: '75%', color: '#F472B6', delay: '0.05s',  dur: '1.6s' },
   { left: '82%', color: '#10B981', delay: '0.25s',  dur: '2.0s' },
-  { left: '89%', color: '#6366F1', delay: '0.45s',  dur: '1.4s' },
+  { left: '89%', color: '#1565C0', delay: '0.45s',  dur: '1.4s' },
   { left: '94%', color: '#F59E0B', delay: '0.1s',   dur: '1.7s' },
 ]
 
@@ -87,9 +87,9 @@ export default function CelebrationBanner({
           <button
             onClick={onClose}
             className="mt-2 px-6 py-2.5 rounded-xl text-sm font-semibold transition-all"
-            style={{ background: '#6366F1', color: '#fff' }}
+            style={{ background: '#1565C0', color: '#fff' }}
             onMouseEnter={e => { e.currentTarget.style.background = '#818CF8' }}
-            onMouseLeave={e => { e.currentTarget.style.background = '#6366F1' }}
+            onMouseLeave={e => { e.currentTarget.style.background = '#1565C0' }}
           >
             {lang === 'en' ? 'Continue →' : 'Continuar →'}
           </button>

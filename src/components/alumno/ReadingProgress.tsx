@@ -169,7 +169,7 @@ export default function ReadingProgress({
           style={{
             height: '100%',
             width: `${scrollPct}%`,
-            background: '#6366F1',
+            background: '#1565C0',
             transition: 'width 0.1s linear',
           }}
         />
@@ -241,7 +241,7 @@ export default function ReadingProgress({
               onClick={marcarLeido}
               disabled={cargando}
               className="flex items-center gap-2 px-5 py-2.5 rounded-full text-sm font-semibold shadow-lg transition-opacity disabled:opacity-70"
-              style={{ background: '#6366F1', color: '#fff', border: 'none', cursor: cargando ? 'not-allowed' : 'pointer' }}
+              style={{ background: '#1565C0', color: '#fff', border: 'none', cursor: cargando ? 'not-allowed' : 'pointer' }}
             >
               {cargando ? (
                 <Loader2 className="w-4 h-4 animate-spin" />

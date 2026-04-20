@@ -1,323 +1,372 @@
-'use client'
-
-import { useState, useEffect } from 'react'
-import Link from 'next/link'
 import Image from 'next/image'
+import Link from 'next/link'
+import { Playfair_Display, DM_Sans } from 'next/font/google'
 import { CONFIG } from '@/lib/config'
 
-const WA_URL = `https://wa.me/${CONFIG.whatsapp}`
+const playfair = Playfair_Display({
+  subsets: ['latin'],
+  weight: ['500', '600', '700'],
+  display: 'swap',
+})
 
-const WaButton = ({ className = '', label = 'Informes por WhatsApp' }: { className?: string, label?: string }) => (
-  <a
-    href={WA_URL}
-    target="_blank"
-    rel="noopener noreferrer"
-    className={`flex items-center justify-center gap-2 bg-green-500 hover:bg-green-600 text-white px-6 py-3 rounded-xl font-semibold transition-colors ${className}`}
-  >
-    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
-      <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347z"/>
-      <path d="M12 0C5.373 0 0 5.373 0 12c0 2.124.558 4.17 1.538 5.943L0 24l6.232-1.503A11.954 11.954 0 0012 24c6.627 0 12-5.373 12-12S18.627 0 12 0zm0 21.818a9.818 9.818 0 01-5.002-1.366l-.36-.214-3.7.893.935-3.58-.235-.372A9.818 9.818 0 1112 21.818z"/>
-    </svg>
-    {label}
-  </a>
-)
+const dmSans = DM_Sans({
+  subsets: ['latin'],
+  weight: ['400', '500', '600', '700'],
+  display: 'swap',
+})
 
-const faqs = [
-  { q: '¿El certificado es válido en México?', a: 'Sí. Emitimos un certificado oficial reconocido por la SEP México. Puedes verificarlo en el portal SIGED de la SEP con el folio de tu documento.' },
-  { q: '¿Cuánto tiempo al día necesito dedicarle?', a: 'Con 1 a 2 horas diarias es suficiente. El plan de 6 meses es ideal si trabajas o tienes familia. El plan de 3 meses es más intensivo pero manejable.' },
-  { q: '¿Qué documentos necesito para inscribirme?', a: 'Para Secundaria necesitas tu Certificado de Primaria. Para Preparatoria necesitas tu Certificado de Secundaria. Además: CURP, Acta de Nacimiento e Identificación Oficial.' },
-  { q: '¿Puedo estudiar desde mi celular?', a: 'Sí, la plataforma está optimizada para celular, tablet y computadora. Estudia cuando y donde quieras, sin horarios fijos.' },
-  { q: '¿Hay examen final?', a: 'No hay examen CENEVAL. Tu certificado se obtiene completando las actividades del programa. Sin estrés de examen único.' },
-  { q: '¿Puedo ver la plataforma antes de pagar?', a: 'Sí. Crea tu cuenta gratis, entra a la plataforma y explora el contenido demo. Solo necesitas pagar la inscripción ($399 MXN) para desbloquear acceso completo.' },
-]
+const C = {
+  navy: '#0D1B3E',
+  royal: '#1565C0',
+  light: '#1E88E5',
+  bright: '#42A5F5',
+  ice: '#E3F2FD',
+  white: '#FFFFFF',
+}
+
+const fmt = (n: number) =>
+  n.toLocaleString('es-MX', { style: 'currency', currency: 'MXN', maximumFractionDigits: 0 })
 
 export default function LandingPage() {
-  const [openFaq, setOpenFaq] = useState<number | null>(null)
-
-  useEffect(() => {
-    document.documentElement.style.scrollBehavior = 'smooth'
-  }, [])
+  const p = CONFIG.precios
+  const wa = CONFIG.whatsappUrl
 
   return (
-    <div style={{ fontFamily: 'system-ui, -apple-system, sans-serif', color: '#1a1a2e', background: '#fff' }}>
-
-      <nav style={{
-        position: 'sticky', top: 0, zIndex: 50,
-        background: 'rgba(255,255,255,0.97)', backdropFilter: 'blur(10px)',
-        borderBottom: '1px solid #e8e8f0',
-        padding: '0 1.5rem', height: 68,
-        display: 'flex', alignItems: 'center', justifyContent: 'space-between'
-      }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-          <Image src={CONFIG.logo} alt={CONFIG.nombre} width={44} height={44} style={{ objectFit: 'contain', borderRadius: 8 }} />
-          <div>
-            <div style={{ fontWeight: 700, fontSize: 18, color: '#1B2F6E', lineHeight: 1 }}>{CONFIG.nombre}</div>
-            <div style={{ fontSize: 10, color: '#C9A84C', fontWeight: 600, letterSpacing: '0.05em' }}>INSTITUTO</div>
-          </div>
-        </div>
-        <div className="flex items-center gap-2 sm:gap-3" style={{ display: 'flex', alignItems: 'center' }}>
-          <a href={WA_URL} target="_blank" rel="noopener noreferrer" className="hidden sm:flex" style={{
-            display: 'flex', alignItems: 'center', gap: 8,
-            background: '#25D366', color: '#fff',
-            padding: '8px 16px', borderRadius: 10, fontWeight: 600, fontSize: 14,
-            textDecoration: 'none'
-          }}>
-            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
-              <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347z"/>
-              <path d="M12 0C5.373 0 0 5.373 0 12c0 2.124.558 4.17 1.538 5.943L0 24l6.232-1.503A11.954 11.954 0 0012 24c6.627 0 12-5.373 12-12S18.627 0 12 0zm0 21.818a9.818 9.818 0 01-5.002-1.366l-.36-.214-3.7.893.935-3.58-.235-.372A9.818 9.818 0 1112 21.818z"/>
-            </svg>
-            WhatsApp
-          </a>
-          <Link href="/login" style={{
-            background: '#1B2F6E', color: '#fff',
-            padding: '8px 20px', borderRadius: 10, fontWeight: 600, fontSize: 14,
-            textDecoration: 'none'
-          }}>Ingresar</Link>
-        </div>
-      </nav>
-
-      <section style={{
-        background: 'linear-gradient(135deg, #0d1b4b 0%, #1B2F6E 50%, #2E4BA3 100%)',
-        padding: '80px 1.5rem 100px', textAlign: 'center', position: 'relative', overflow: 'hidden'
-      }}>
-        <div style={{ position: 'absolute', top: -80, right: -80, width: 300, height: 300, borderRadius: '50%', background: 'rgba(201,168,76,0.08)', pointerEvents: 'none' }} />
-        <div style={{ position: 'absolute', bottom: -60, left: -60, width: 200, height: 200, borderRadius: '50%', background: 'rgba(201,168,76,0.06)', pointerEvents: 'none' }} />
-        <div style={{ maxWidth: 780, margin: '0 auto', position: 'relative' }}>
-          <div style={{ display: 'flex', justifyContent: 'center', marginBottom: 24 }}>
-            <Image src={CONFIG.logo} alt={CONFIG.nombre} width={130} height={130} style={{ objectFit: 'contain', borderRadius: 16, background: 'white', padding: 12 }} />
-          </div>
-          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 10, justifyContent: 'center', marginBottom: 32 }}>
-            {['🏛️ Incorporado a la SEP', '💻 100% en línea', '📜 Certificación oficial', '🚫 Sin examen final'].map(b => (
-              <span key={b} style={{
-                background: 'rgba(201,168,76,0.15)', border: '1px solid rgba(201,168,76,0.4)',
-                color: '#E8C97A', padding: '6px 14px', borderRadius: 20, fontSize: 13, fontWeight: 600
-              }}>{b}</span>
-            ))}
-          </div>
-          <h1 style={{ fontSize: 'clamp(2rem, 5vw, 3.2rem)', fontWeight: 800, color: '#fff', lineHeight: 1.2, marginBottom: 20 }}>
-            Tu <span style={{ color: '#C9A84C' }}>Secundaria o Preparatoria</span> desde casa
-          </h1>
-          <p style={{ fontSize: 18, color: 'rgba(255,255,255,0.8)', marginBottom: 40, lineHeight: 1.6 }}>
-            Sin ir a la escuela. Sin perder tu trabajo.<br />
-            Con <strong style={{ color: '#E8C97A' }}>certificado oficial reconocido por la SEP.</strong>
-          </p>
-          <div
-            className="flex flex-col sm:flex-row items-center justify-center"
-            style={{ gap: 16, marginBottom: 56 }}
+    <div
+      className={dmSans.className}
+      style={{ background: C.white, color: C.navy, minHeight: '100vh' }}
+    >
+      {/* ── 1. NAV fijo ───────────────────────────────────────────────────── */}
+      <header
+        className="fixed top-0 left-0 right-0 z-50 flex items-center justify-between px-4 sm:px-8 h-[72px] border-b"
+        style={{
+          background: 'rgba(255,255,255,0.92)',
+          backdropFilter: 'blur(12px)',
+          borderColor: `${C.ice}`,
+        }}
+      >
+        <Link href="/" className="flex items-center gap-3 min-w-0">
+          <Image
+            src="/logo-cjvb.png"
+            alt={CONFIG.nombreCompleto}
+            width={48}
+            height={48}
+            className="h-10 w-auto sm:h-12 object-contain flex-shrink-0"
+            priority
+          />
+          <span
+            className={`hidden sm:inline font-semibold text-sm sm:text-base truncate ${playfair.className}`}
+            style={{ color: C.navy, letterSpacing: '0.02em' }}
           >
-            <Link href="/register" style={{
-              background: '#C9A84C', color: '#1B2F6E',
-              padding: '14px 32px', borderRadius: 12, fontWeight: 800, fontSize: 16,
-              textDecoration: 'none', display: 'inline-block'
-            }}>Crear mi cuenta gratis →</Link>
-            <WaButton />
-          </div>
-          <div style={{ display: 'flex', gap: 32, justifyContent: 'center', flexWrap: 'wrap' }}>
-            {[
-              { num: '2', label: 'Niveles', sub: 'Sec. y Prepa' },
-              { num: '6', label: 'Meses', sub: 'Estándar' },
-              { num: '3', label: 'Meses', sub: 'Express' },
-              { num: '100%', label: 'En línea', sub: 'Sin salón' },
-            ].map(s => (
-              <div key={s.num} style={{ textAlign: 'center' }}>
-                <div style={{ fontSize: 36, fontWeight: 800, color: '#C9A84C' }}>{s.num}</div>
-                <div style={{ color: '#fff', fontWeight: 600, fontSize: 14 }}>{s.label}</div>
-                <div style={{ color: 'rgba(255,255,255,0.6)', fontSize: 12 }}>{s.sub}</div>
-              </div>
-            ))}
-          </div>
-        </div>
-      </section>
+            {CONFIG.nombreCompleto}
+          </span>
+        </Link>
+        <nav className="flex items-center gap-2 sm:gap-3 flex-shrink-0">
+          <Link
+            href="/login"
+            className="px-3 sm:px-5 py-2 rounded-lg text-sm font-semibold transition-colors border"
+            style={{
+              borderColor: C.royal,
+              color: C.royal,
+              background: 'transparent',
+            }}
+          >
+            Iniciar sesión
+          </Link>
+          <Link
+            href="/register"
+            className="px-3 sm:px-5 py-2 rounded-lg text-sm font-semibold text-white transition-colors"
+            style={{ background: C.royal }}
+          >
+            Crear cuenta →
+          </Link>
+        </nav>
+      </header>
 
-      <section style={{ padding: '80px 1.5rem', background: '#F8F9FF' }}>
-        <div style={{ maxWidth: 900, margin: '0 auto' }}>
-          <div style={{ textAlign: 'center', marginBottom: 48 }}>
-            <div style={{ color: '#C9A84C', fontWeight: 700, fontSize: 13, letterSpacing: '0.1em', marginBottom: 8 }}>PROGRAMAS</div>
-            <h2 style={{ fontSize: 'clamp(1.8rem, 4vw, 2.5rem)', fontWeight: 800, color: '#1B2F6E' }}>Elige tu nivel educativo</h2>
-            <p style={{ color: '#666', marginTop: 12, fontSize: 16 }}>Dos programas, el mismo certificado oficial, la misma calidad.</p>
-          </div>
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: 24 }}>
-            {[
-              { icon: '📚', titulo: 'Secundaria', desc: 'Certifícate con tu certificado de primaria.', doc: 'Certificado de Primaria', cert: '$4,250', popular: false },
-              { icon: '🎓', titulo: 'Preparatoria', desc: 'Certifícate con tu certificado de secundaria.', doc: 'Certificado de Secundaria', cert: '$4,750', popular: true },
-            ].map(n => (
-              <div key={n.titulo} style={{
-                background: '#fff', borderRadius: 20,
-                border: n.popular ? '2px solid #C9A84C' : '1px solid #e8e8f0',
-                padding: '32px 28px', position: 'relative',
-                boxShadow: n.popular ? '0 8px 32px rgba(201,168,76,0.15)' : '0 2px 8px rgba(0,0,0,0.06)'
-              }}>
-                {n.popular && (
-                  <div style={{
-                    position: 'absolute', top: -14, left: '50%', transform: 'translateX(-50%)',
-                    background: '#C9A84C', color: '#1B2F6E', padding: '4px 20px',
-                    borderRadius: 20, fontSize: 12, fontWeight: 800, whiteSpace: 'nowrap'
-                  }}>🔥 Más solicitada</div>
-                )}
-                <div style={{ fontSize: 40, marginBottom: 16 }}>{n.icon}</div>
-                <h3 style={{ fontSize: 24, fontWeight: 800, color: '#1B2F6E', marginBottom: 8 }}>{n.titulo}</h3>
-                <p style={{ color: '#666', marginBottom: 20 }}>{n.desc}</p>
-                <div style={{ background: '#F8F9FF', borderRadius: 10, padding: '10px 14px', marginBottom: 20, fontSize: 13 }}>
-                  <span style={{ color: '#888' }}>Documento requerido: </span>
-                  <span style={{ fontWeight: 600, color: '#1B2F6E' }}>{n.doc}</span>
+      <main style={{ paddingTop: 72 }}>
+        {/* ── 2. HERO fullscreen ───────────────────────────────────────────── */}
+        <section
+          className="relative min-h-[calc(100vh-72px)] flex flex-col justify-center px-4 sm:px-8 py-16 sm:py-24 overflow-hidden"
+          style={{
+            backgroundColor: C.navy,
+            backgroundImage: `
+              radial-gradient(ellipse 80% 50% at 50% -20%, ${C.royal}33, transparent 55%),
+              radial-gradient(circle at 85% 60%, ${C.light}18 0%, transparent 45%),
+              linear-gradient(165deg, ${C.navy} 0%, #0a1428 100%)
+            `,
+          }}
+        >
+          <div
+            className="pointer-events-none absolute inset-0 opacity-[0.07]"
+            style={{
+              backgroundImage: `url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%23ffffff' fill-opacity='1'%3E%3Cpath d='M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E")`,
+            }}
+          />
+          <div className="relative z-10 max-w-4xl mx-auto text-center">
+            <p
+              className="inline-block px-4 py-1.5 rounded-full text-xs sm:text-sm font-semibold tracking-wide mb-6"
+              style={{
+                background: `${C.ice}22`,
+                color: C.ice,
+                border: `1px solid ${C.bright}44`,
+              }}
+            >
+              Incorporado a la SEP · Puebla, México
+            </p>
+            <h1
+              className={`${playfair.className} text-[clamp(2.25rem,6vw,3.75rem)] leading-[1.08] font-semibold mb-6`}
+              style={{ color: C.white }}
+            >
+              Excelencia académica
+              <br />
+              <span style={{ color: C.bright }}>en línea</span>, con validez oficial
+            </h1>
+            <p
+              className="text-base sm:text-lg max-w-2xl mx-auto mb-10 leading-relaxed"
+              style={{ color: `${C.ice}cc` }}
+            >
+              {CONFIG.nombreCompleto}: Secundaria y Preparatoria con acompañamiento cercano,
+              plataforma moderna y certificación alineada a estándares nacionales.
+            </p>
+            <div className="flex flex-col sm:flex-row items-center justify-center gap-4 mb-14 sm:mb-20">
+              <Link
+                href="/register"
+                className="w-full sm:w-auto px-8 py-3.5 rounded-xl font-semibold text-center transition-colors shadow-lg"
+                style={{ background: C.white, color: C.navy }}
+              >
+                Crear cuenta
+              </Link>
+              <a
+                href={wa}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="w-full sm:w-auto px-8 py-3.5 rounded-xl font-semibold text-center border-2 transition-colors"
+                style={{
+                  borderColor: C.bright,
+                  color: C.ice,
+                  background: 'transparent',
+                }}
+              >
+                WhatsApp
+              </a>
+            </div>
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-6 sm:gap-10 max-w-3xl mx-auto border-t pt-10 sm:pt-12"
+              style={{ borderColor: `${C.light}33` }}
+            >
+              {[
+                { n: '2', l: 'Niveles', s: 'Sec. · Prepa' },
+                { n: '100%', l: 'En línea', s: 'A tu ritmo' },
+                { n: 'SEP', l: 'Respaldo', s: 'Oficial' },
+                { n: '24h', l: 'Acceso', s: 'Plataforma' },
+              ].map((s) => (
+                <div key={s.l}>
+                  <div className={`text-2xl sm:text-3xl font-bold ${playfair.className}`} style={{ color: C.bright }}>
+                    {s.n}
+                  </div>
+                  <div className="text-sm font-semibold mt-1" style={{ color: C.white }}>
+                    {s.l}
+                  </div>
+                  <div className="text-xs mt-0.5" style={{ color: `${C.ice}99` }}>
+                    {s.s}
+                  </div>
                 </div>
-                <div style={{ marginBottom: 16 }}>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', padding: '8px 0', borderBottom: '1px solid #f0f0f0', fontSize: 14 }}>
-                    <span>6 meses / por mes</span><span style={{ fontWeight: 700, color: '#1B2F6E' }}>$1,000</span>
-                  </div>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', padding: '8px 0', borderBottom: '1px solid #f0f0f0', fontSize: 14 }}>
-                    <span>3 meses Express / por mes</span><span style={{ fontWeight: 700, color: '#1B2F6E' }}>$2,000</span>
-                  </div>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', padding: '8px 0', fontSize: 14 }}>
-                    <span>Certificación (pago único)</span><span style={{ fontWeight: 700, color: '#C9A84C' }}>{n.cert}</span>
-                  </div>
-                </div>
-                <WaButton className="w-full" />
-              </div>
-            ))}
+              ))}
+            </div>
           </div>
-        </div>
-      </section>
+        </section>
 
-      <section style={{ padding: '80px 1.5rem', background: '#fff' }}>
-        <div style={{ maxWidth: 900, margin: '0 auto' }}>
-          <div style={{ textAlign: 'center', marginBottom: 48 }}>
-            <div style={{ color: '#C9A84C', fontWeight: 700, fontSize: 13, letterSpacing: '0.1em', marginBottom: 8 }}>VENTAJAS</div>
-            <h2 style={{ fontSize: 'clamp(1.8rem, 4vw, 2.5rem)', fontWeight: 800, color: '#1B2F6E' }}>Todo lo que necesitas para terminar</h2>
-          </div>
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))', gap: 20 }}>
-            {[
-              { icon: '📱', titulo: 'Desde tu celular o PC', desc: 'Estudia cuando quieras, donde quieras. Sin horarios fijos, sin trasladarte.' },
-              { icon: '🚫', titulo: 'Sin examen final', desc: 'Nada de exámenes CENEVAL. Tu certificado se obtiene por actividades completadas.' },
-              { icon: '⚡', titulo: '6 meses o 3 meses Express', desc: 'Elige tu ritmo. Programa regular en 6 meses o acelera al doble con Express.' },
-              { icon: '✅', titulo: 'Certificado SEP oficial', desc: 'Certificado con validez oficial para continuar en universidades de México.' },
-              { icon: '🎯', titulo: 'Videos y contenido claro', desc: 'Material didáctico con videos explicativos, quizzes y guías de estudio.' },
-              { icon: '🏛️', titulo: 'Incorporado a la SEP', desc: 'Centro educativo oficialmente registrado ante la Secretaría de Educación Pública.' },
-            ].map(f => (
-              <div key={f.titulo} style={{ background: '#F8F9FF', borderRadius: 16, padding: '24px 20px', border: '1px solid #e8e8f0' }}>
-                <div style={{ fontSize: 32, marginBottom: 12 }}>{f.icon}</div>
-                <div style={{ fontWeight: 700, color: '#1B2F6E', marginBottom: 6, fontSize: 15 }}>{f.titulo}</div>
-                <div style={{ color: '#666', fontSize: 14, lineHeight: 1.6 }}>{f.desc}</div>
-              </div>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      <section style={{ padding: '80px 1.5rem', background: '#1B2F6E' }}>
-        <div style={{ maxWidth: 800, margin: '0 auto', textAlign: 'center' }}>
-          <div style={{ color: '#C9A84C', fontWeight: 700, fontSize: 13, letterSpacing: '0.1em', marginBottom: 8 }}>INVERSIÓN</div>
-          <h2 style={{ fontSize: 'clamp(1.8rem, 4vw, 2.5rem)', fontWeight: 800, color: '#fff', marginBottom: 12 }}>Planes y Precios</h2>
-          <p style={{ color: 'rgba(255,255,255,0.7)', marginBottom: 48 }}>
-            Inscripción única: <strong style={{ color: '#C9A84C' }}>$399 MXN</strong> · Después pagas mensual según tu modalidad.
-          </p>
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: 24 }}>
-            {[
-              { tag: 'Programa Regular', sub: '6 Meses', precio: '$1,000', per: 'MXN/mes', items: ['Acceso completo 6 meses', 'Sin horarios fijos', 'Sin examen final', 'Soporte por WhatsApp', 'Certificado oficial SEP'], popular: false },
-              { tag: '🔥 Terminas antes', sub: '⚡ Express 3 Meses', precio: '$2,000', per: 'MXN/mes', items: ['Terminas 3 meses antes', 'Ritmo intensivo manejable', 'Sin examen final', 'Soporte prioritario WhatsApp', 'Certificado oficial SEP'], popular: true },
-            ].map(p => (
-              <div key={p.sub} style={{
-                background: p.popular ? '#C9A84C' : 'rgba(255,255,255,0.08)',
-                borderRadius: 20, padding: '32px 28px',
-                border: p.popular ? 'none' : '1px solid rgba(255,255,255,0.15)'
-              }}>
-                <div style={{ fontSize: 12, fontWeight: 700, color: p.popular ? '#1B2F6E' : 'rgba(255,255,255,0.6)', marginBottom: 8 }}>{p.tag}</div>
-                <div style={{ fontSize: 20, fontWeight: 800, color: p.popular ? '#1B2F6E' : '#fff', marginBottom: 16 }}>{p.sub}</div>
-                <div style={{ fontSize: 40, fontWeight: 800, color: p.popular ? '#1B2F6E' : '#C9A84C' }}>{p.precio}</div>
-                <div style={{ fontSize: 13, color: p.popular ? '#1B2F6E' : 'rgba(255,255,255,0.6)', marginBottom: 24 }}>{p.per}</div>
-                <ul style={{ listStyle: 'none', padding: 0, textAlign: 'left', marginBottom: 24 }}>
-                  {p.items.map(item => (
-                    <li key={item} style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '6px 0', fontSize: 14, color: p.popular ? '#1B2F6E' : 'rgba(255,255,255,0.85)' }}>
-                      <span style={{ color: p.popular ? '#1B2F6E' : '#C9A84C', fontWeight: 700 }}>✓</span> {item}
+        {/* ── 3. NIVELES + precios ─────────────────────────────────────────── */}
+        <section className="py-20 sm:py-28 px-4 sm:px-8" style={{ background: C.ice }}>
+          <div className="max-w-5xl mx-auto">
+            <p className={`text-center text-sm font-semibold tracking-widest mb-3 ${playfair.className}`} style={{ color: C.royal }}>
+              PROGRAMAS
+            </p>
+            <h2
+              className={`text-center text-3xl sm:text-4xl font-semibold mb-4 ${playfair.className}`}
+              style={{ color: C.navy }}
+            >
+              Secundaria y Preparatoria
+            </h2>
+            <p className="text-center max-w-xl mx-auto mb-12 sm:mb-16 text-sm sm:text-base" style={{ color: `${C.navy}aa` }}>
+              Inscripción: {fmt(p.inscripcion)} · Mensualidades y certificación según plan.
+            </p>
+            <div className="grid md:grid-cols-2 gap-8">
+              {[
+                {
+                  title: 'Preparatoria',
+                  lines: [
+                    `Prepa 6 meses: ${fmt(p.plan6mMensualidad)}/mes`,
+                    `Prepa 3 meses: ${fmt(p.plan3mMensualidad)}/mes`,
+                    `Certificación prepa: ${fmt(p.certificacionPreparatoria)}`,
+                  ],
+                },
+                {
+                  title: 'Secundaria',
+                  lines: [
+                    `Sec 6 meses: ${fmt(p.plan6mMensualidad)}/mes`,
+                    `Sec 3 meses: ${fmt(p.plan3mMensualidad)}/mes`,
+                    `Certificación sec: ${fmt(p.certificacionSecundaria)}`,
+                  ],
+                },
+              ].map((card) => (
+                <div
+                  key={card.title}
+                  className="rounded-2xl p-8 sm:p-10 shadow-xl border"
+                  style={{
+                    background: C.white,
+                    borderColor: `${C.light}33`,
+                    boxShadow: `0 24px 60px ${C.navy}14`,
+                  }}
+                >
+                  <h3 className={`text-2xl font-semibold mb-6 ${playfair.className}`} style={{ color: C.navy }}>
+                    {card.title}
+                  </h3>
+                  <ul className="space-y-4 text-sm sm:text-base">
+                    <li className="font-semibold pb-2 border-b" style={{ borderColor: C.ice, color: C.royal }}>
+                      Inscripción: {fmt(p.inscripcion)}
                     </li>
-                  ))}
-                </ul>
-                <WaButton className="w-full" />
-              </div>
-            ))}
+                    {card.lines.map((line) => (
+                      <li key={line} style={{ color: `${C.navy}cc` }}>
+                        {line}
+                      </li>
+                    ))}
+                  </ul>
+                  <Link
+                    href="/register"
+                    className="mt-8 inline-block w-full text-center py-3 rounded-xl font-semibold text-white transition-colors"
+                    style={{ background: C.royal }}
+                  >
+                    Comenzar →
+                  </Link>
+                </div>
+              ))}
+            </div>
           </div>
-          <p style={{ marginTop: 32, color: 'rgba(255,255,255,0.6)', fontSize: 14 }}>
-            Costo de certificación al finalizar: <strong style={{ color: '#C9A84C' }}>Secundaria $4,250 · Preparatoria $4,750</strong>
+        </section>
+
+        {/* ── 4. CÓMO FUNCIONA ─────────────────────────────────────────────── */}
+        <section className="py-20 sm:py-28 px-4 sm:px-8 bg-white">
+          <div className="max-w-4xl mx-auto">
+            <p className={`text-center text-sm font-semibold tracking-widest mb-3 ${playfair.className}`} style={{ color: C.royal }}>
+              PROCESO
+            </p>
+            <h2 className={`text-center text-3xl sm:text-4xl font-semibold mb-14 ${playfair.className}`} style={{ color: C.navy }}>
+              Cómo funciona
+            </h2>
+            <ol className="space-y-10 sm:space-y-12">
+              {[
+                { step: '1', t: 'Registro', d: 'Crea tu cuenta y elige nivel (Secundaria o Preparatoria).' },
+                { step: '2', t: 'Inscripción', d: 'Completa tu pago de inscripción y sube la documentación requerida.' },
+                { step: '3', t: 'Acceso', d: 'Recibes acceso a meses y materias según tu plan contratado.' },
+                { step: '4', t: 'Certificación', d: 'Avanza en la plataforma y concluye con la certificación correspondiente.' },
+              ].map((item) => (
+                <li key={item.step} className="flex gap-5 sm:gap-8">
+                  <div
+                    className={`flex-shrink-0 w-14 h-14 rounded-full flex items-center justify-center text-lg font-bold ${playfair.className}`}
+                    style={{ background: C.navy, color: C.white }}
+                  >
+                    {item.step}
+                  </div>
+                  <div>
+                    <h3 className="text-xl font-semibold mb-2" style={{ color: C.navy }}>
+                      {item.t}
+                    </h3>
+                    <p className="text-sm sm:text-base leading-relaxed" style={{ color: `${C.navy}99` }}>
+                      {item.d}
+                    </p>
+                  </div>
+                </li>
+              ))}
+            </ol>
+          </div>
+        </section>
+
+        {/* ── 5. BENEFICIOS (fondo marino) ─────────────────────────────────── */}
+        <section className="py-20 sm:py-28 px-4 sm:px-8" style={{ background: C.navy }}>
+          <div className="max-w-6xl mx-auto">
+            <h2 className={`text-center text-3xl sm:text-4xl font-semibold mb-4 ${playfair.className}`} style={{ color: C.white }}>
+              Beneficios
+            </h2>
+            <p className="text-center mb-12 sm:mb-16 text-sm max-w-lg mx-auto" style={{ color: `${C.ice}aa` }}>
+              Una experiencia pensada para quienes buscan rigor académico y flexibilidad real.
+            </p>
+            <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-6">
+              {[
+                'Validez oficial SEP e incorporación institucional.',
+                'Estudia desde Puebla u otro punto del país, 100% en línea.',
+                'Contenidos estructurados por meses y materias claras.',
+                'Seguimiento y canal directo por WhatsApp.',
+                'Planes de 6 y 3 meses según tu disponibilidad.',
+                'Constancia y trazabilidad de tu avance en la plataforma.',
+              ].map((txt) => (
+                <div
+                  key={txt}
+                  className="rounded-xl p-6 border"
+                  style={{
+                    background: `${C.royal}18`,
+                    borderColor: `${C.light}33`,
+                  }}
+                >
+                  <p className="text-sm sm:text-[15px] leading-relaxed" style={{ color: C.ice }}>
+                    {txt}
+                  </p>
+                </div>
+              ))}
+            </div>
+          </div>
+        </section>
+
+        {/* ── 6. CTA FINAL (gradiente + WA verde) ─────────────────────────── */}
+        <section
+          className="py-20 sm:py-28 px-4 sm:px-8 text-center"
+          style={{
+            background: `linear-gradient(135deg, ${C.navy} 0%, ${C.royal} 45%, ${C.light} 100%)`,
+          }}
+        >
+          <div className="max-w-2xl mx-auto">
+            <h2 className={`text-3xl sm:text-[2.75rem] font-semibold mb-6 leading-tight ${playfair.className}`} style={{ color: C.white }}>
+              Da el siguiente paso con {CONFIG.nombreCompleto}
+            </h2>
+            <p className="mb-10 text-sm sm:text-base" style={{ color: `${C.ice}dd` }}>
+              Registro en minutos. Equipo listo para orientarte.
+            </p>
+            <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
+              <Link
+                href="/register"
+                className="w-full sm:w-auto px-10 py-3.5 rounded-xl font-semibold shadow-lg"
+                style={{ background: C.white, color: C.navy }}
+              >
+                Crear cuenta
+              </Link>
+              <a
+                href={wa}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="w-full sm:w-auto px-10 py-3.5 rounded-xl font-semibold text-white"
+                style={{ background: '#25D366' }}
+              >
+                WhatsApp
+              </a>
+            </div>
+          </div>
+        </section>
+
+        {/* ── 7. FOOTER ─────────────────────────────────────────────────────── */}
+        <footer className="py-12 px-4 sm:px-8 text-center" style={{ background: '#070f1f', color: `${C.ice}88` }}>
+          <div className="flex justify-center mb-4">
+            <Image src="/logo-cjvb.png" alt={CONFIG.nombreCompleto} width={40} height={40} className="opacity-95 object-contain" />
+          </div>
+          <p className="text-sm font-medium" style={{ color: C.ice }}>
+            {CONFIG.nombreCompleto}
           </p>
-        </div>
-      </section>
-
-      <section style={{ padding: '80px 1.5rem', background: '#fff' }}>
-        <div style={{ maxWidth: 800, margin: '0 auto', textAlign: 'center' }}>
-          <div style={{ color: '#C9A84C', fontWeight: 700, fontSize: 13, letterSpacing: '0.1em', marginBottom: 8 }}>PROCESO</div>
-          <h2 style={{ fontSize: 'clamp(1.8rem, 4vw, 2.5rem)', fontWeight: 800, color: '#1B2F6E', marginBottom: 48 }}>3 pasos y ya estás adentro</h2>
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: 32 }}>
-            {[
-              { num: '01', icon: '🙋', titulo: 'Crea tu cuenta gratis', desc: 'Regístrate en menos de 2 minutos. Sin tarjeta de crédito.' },
-              { num: '02', icon: '💬', titulo: 'Contacta a tu asesor', desc: 'Escríbenos por WhatsApp. Te orientamos sobre nivel y modalidad.' },
-              { num: '03', icon: '🎉', titulo: '¡Empieza a estudiar!', desc: 'Nuestro equipo te da acceso y puedes comenzar de inmediato.' },
-            ].map(s => (
-              <div key={s.num} style={{ textAlign: 'center' }}>
-                <div style={{ width: 56, height: 56, borderRadius: '50%', background: '#1B2F6E', color: '#C9A84C', fontWeight: 800, fontSize: 18, display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 16px' }}>{s.num}</div>
-                <div style={{ fontSize: 32, marginBottom: 12 }}>{s.icon}</div>
-                <div style={{ fontWeight: 700, color: '#1B2F6E', marginBottom: 8, fontSize: 16 }}>{s.titulo}</div>
-                <div style={{ color: '#666', fontSize: 14, lineHeight: 1.6 }}>{s.desc}</div>
-              </div>
-            ))}
-          </div>
-          <div style={{ display: 'flex', gap: 16, justifyContent: 'center', flexWrap: 'wrap', marginTop: 48 }}>
-            <Link href="/register" style={{ background: '#1B2F6E', color: '#fff', padding: '14px 32px', borderRadius: 12, fontWeight: 800, fontSize: 16, textDecoration: 'none' }}>Crear mi cuenta gratis →</Link>
-            <WaButton />
-          </div>
-        </div>
-      </section>
-
-      <section style={{ padding: '80px 1.5rem', background: '#F8F9FF' }}>
-        <div style={{ maxWidth: 700, margin: '0 auto' }}>
-          <div style={{ textAlign: 'center', marginBottom: 48 }}>
-            <div style={{ color: '#C9A84C', fontWeight: 700, fontSize: 13, letterSpacing: '0.1em', marginBottom: 8 }}>FAQ</div>
-            <h2 style={{ fontSize: 'clamp(1.8rem, 4vw, 2.5rem)', fontWeight: 800, color: '#1B2F6E' }}>Preguntas frecuentes</h2>
-          </div>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-            {faqs.map((faq, i) => (
-              <div key={i} style={{ background: '#fff', borderRadius: 12, border: openFaq === i ? '1px solid #C9A84C' : '1px solid #e8e8f0', overflow: 'hidden' }}>
-                <button onClick={() => setOpenFaq(openFaq === i ? null : i)} style={{
-                  width: '100%', textAlign: 'left', padding: '18px 20px',
-                  background: 'none', border: 'none', cursor: 'pointer',
-                  display: 'flex', justifyContent: 'space-between', alignItems: 'center',
-                  fontWeight: 600, color: '#1B2F6E', fontSize: 15
-                }}>
-                  {faq.q}
-                  <span style={{ color: '#C9A84C', fontSize: 20, flexShrink: 0, marginLeft: 12 }}>{openFaq === i ? '−' : '+'}</span>
-                </button>
-                {openFaq === i && (
-                  <div style={{ padding: '0 20px 18px', color: '#555', fontSize: 14, lineHeight: 1.7 }}>{faq.a}</div>
-                )}
-              </div>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      <section style={{ background: 'linear-gradient(135deg, #0d1b4b 0%, #1B2F6E 60%, #2E4BA3 100%)', padding: '80px 1.5rem', textAlign: 'center' }}>
-        <div style={{ maxWidth: 600, margin: '0 auto' }}>
-          <div style={{ fontSize: 48, marginBottom: 20 }}>🎓</div>
-          <h2 style={{ fontSize: 'clamp(1.8rem, 4vw, 2.8rem)', fontWeight: 800, color: '#fff', marginBottom: 16 }}>Tu certificado te espera.</h2>
-          <p style={{ color: 'rgba(255,255,255,0.75)', fontSize: 16, marginBottom: 40, lineHeight: 1.6 }}>
-            En 6 meses — o 3 — puedes tener tu Secundaria o Preparatoria terminada.<br />Sin salir de casa. Sin perder tu trabajo.
+          <p className="text-xs mt-2">
+            Puebla, México · {CONFIG.dominio}
           </p>
-          <div style={{ display: 'flex', gap: 16, justifyContent: 'center', flexWrap: 'wrap' }}>
-            <Link href="/register" style={{ background: '#C9A84C', color: '#1B2F6E', padding: '16px 36px', borderRadius: 12, fontWeight: 800, fontSize: 17, textDecoration: 'none' }}>Crear mi cuenta gratis →</Link>
-            <WaButton />
-          </div>
-          <p style={{ color: 'rgba(255,255,255,0.5)', fontSize: 13, marginTop: 24 }}>Sin tarjeta de crédito · Registro en 2 minutos · Inscripción desde $399 MXN</p>
-        </div>
-      </section>
-
-      <footer style={{ background: '#0d1b4b', padding: '32px 1.5rem', textAlign: 'center' }}>
-        <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', gap: 12, marginBottom: 16 }}>
-          <Image src={CONFIG.logo} alt={CONFIG.nombre} width={36} height={36} style={{ objectFit: 'contain', borderRadius: 6, background: 'white', padding: 4 }} />
-          <span style={{ color: '#fff', fontWeight: 700 }}>{CONFIG.nombre}</span>
-        </div>
-        <p style={{ color: 'rgba(255,255,255,0.4)', fontSize: 13, marginBottom: 8 }}>{CONFIG.dominio} · Preparatoria · Secundaria · {CONFIG.nombreCompleto}</p>
-        <p style={{ color: 'rgba(255,255,255,0.3)', fontSize: 12 }}>© {new Date().getFullYear()} {CONFIG.nombre} · Todos los derechos reservados</p>
-      </footer>
-
+          <p className="text-xs mt-6 opacity-60">
+            © {new Date().getFullYear()} {CONFIG.nombreCompleto}. Todos los derechos reservados.
+          </p>
+        </footer>
+      </main>
     </div>
   )
 }

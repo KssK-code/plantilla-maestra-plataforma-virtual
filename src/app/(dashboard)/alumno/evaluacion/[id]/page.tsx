@@ -117,7 +117,7 @@ export default function EvaluacionPage() {
   // ── LOADING ──
   if (estado === 'loading' || estado === 'enviando') return (
     <div className="flex flex-col items-center justify-center min-h-[500px] gap-4">
-      <Loader2 className="w-8 h-8 animate-spin" style={{ color: '#5B6CFF' }} />
+      <Loader2 className="w-8 h-8 animate-spin" style={{ color: '#1565C0' }} />
       <p className="text-sm" style={{ color: '#94A3B8' }}>
         {estado === 'enviando' ? 'Calificando...' : 'Cargando examen...'}
       </p>
@@ -129,7 +129,7 @@ export default function EvaluacionPage() {
     <div className="flex flex-col items-center justify-center min-h-[500px] gap-4">
       <AlertCircle className="w-10 h-10" style={{ color: '#EF4444' }} />
       <p className="text-sm font-medium" style={{ color: '#EF4444' }}>{errorMsg}</p>
-      <button onClick={() => router.back()} className="text-sm" style={{ color: '#5B6CFF' }}>Regresar</button>
+      <button onClick={() => router.back()} className="text-sm" style={{ color: '#1565C0' }}>Regresar</button>
     </div>
   )
 
@@ -203,9 +203,9 @@ export default function EvaluacionPage() {
                 setEstado('quiz')
               }}
               className="w-full sm:flex-1 py-3 rounded-lg text-sm font-semibold transition-all"
-              style={{ background: '#5B6CFF', color: '#fff' }}
-              onMouseEnter={e => { e.currentTarget.style.background = '#7B8AFF' }}
-              onMouseLeave={e => { e.currentTarget.style.background = '#5B6CFF' }}
+              style={{ background: '#1565C0', color: '#fff' }}
+              onMouseEnter={e => { e.currentTarget.style.background = '#42A5F5' }}
+              onMouseLeave={e => { e.currentTarget.style.background = '#1565C0' }}
             >
               Reintentar ({intentosRestantes} {intentosRestantes !== 1 ? 'restantes' : 'restante'})
             </button>
@@ -258,7 +258,7 @@ export default function EvaluacionPage() {
 
                 {d.retroalimentacion && (
                   <div className="mt-2 px-3 py-2.5 rounded-lg text-xs" style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid #2A2F3E', color: '#94A3B8' }}>
-                    <span className="font-semibold" style={{ color: '#5B6CFF' }}>Retroalimentación: </span>
+                    <span className="font-semibold" style={{ color: '#1565C0' }}>Retroalimentación: </span>
                     {d.retroalimentacion}
                   </div>
                 )}
@@ -294,7 +294,7 @@ export default function EvaluacionPage() {
             </p>
           </div>
         </div>
-        <span className="text-xs px-2 py-1 rounded flex-shrink-0" style={{ background: 'rgba(91,108,255,0.15)', color: '#7B8AFF' }}>
+        <span className="text-xs px-2 py-1 rounded flex-shrink-0" style={{ background: 'rgba(21,101,192,0.15)', color: '#42A5F5' }}>
           Intento {intentosUsados + 1}/{evaluacion?.intentos_max}
         </span>
       </div>
@@ -303,7 +303,7 @@ export default function EvaluacionPage() {
       <div className="h-1.5 rounded-full overflow-hidden" style={{ background: 'rgba(255,255,255,0.06)' }}>
         <div
           className="h-full rounded-full transition-all duration-300"
-          style={{ width: `${((preguntaActual + 1) / preguntas.length) * 100}%`, background: '#5B6CFF' }}
+          style={{ width: `${((preguntaActual + 1) / preguntas.length) * 100}%`, background: '#1565C0' }}
         />
       </div>
 
@@ -323,15 +323,15 @@ export default function EvaluacionPage() {
                 className="w-full flex items-center gap-3 px-4 py-4 rounded-xl text-sm text-left transition-all duration-150"
                 style={{
                   minHeight: '52px',
-                  background: seleccionada ? 'rgba(91,108,255,0.15)' : 'rgba(255,255,255,0.03)',
-                  border: seleccionada ? '2px solid #5B6CFF' : '1px solid #2A2F3E',
+                  background: seleccionada ? 'rgba(21,101,192,0.15)' : 'rgba(255,255,255,0.03)',
+                  border: seleccionada ? '2px solid #1565C0' : '1px solid #2A2F3E',
                   color: seleccionada ? '#F1F5F9' : '#94A3B8',
                 }}
               >
                 <span
                   className="flex items-center justify-center w-7 h-7 rounded-full text-xs font-bold flex-shrink-0"
                   style={{
-                    background: seleccionada ? '#5B6CFF' : 'rgba(255,255,255,0.06)',
+                    background: seleccionada ? '#1565C0' : 'rgba(255,255,255,0.06)',
                     color: seleccionada ? '#fff' : '#94A3B8',
                   }}
                 >
@@ -356,9 +356,9 @@ export default function EvaluacionPage() {
                 onClick={() => setPreguntaActual(idx)}
                 className="w-8 h-8 rounded-full text-xs font-bold flex-shrink-0 transition-all"
                 style={{
-                  background: esActual ? '#5B6CFF' : contestada ? 'rgba(16,185,129,0.2)' : 'rgba(255,255,255,0.06)',
+                  background: esActual ? '#1565C0' : contestada ? 'rgba(16,185,129,0.2)' : 'rgba(255,255,255,0.06)',
                   color: esActual ? '#fff' : contestada ? '#10B981' : '#475569',
-                  border: esActual ? '2px solid #5B6CFF' : contestada ? '1px solid rgba(16,185,129,0.4)' : '1px solid #2A2F3E',
+                  border: esActual ? '2px solid #1565C0' : contestada ? '1px solid rgba(16,185,129,0.4)' : '1px solid #2A2F3E',
                 }}
               >
                 {idx + 1}
@@ -384,7 +384,7 @@ export default function EvaluacionPage() {
           <button
             onClick={() => setPreguntaActual(p => p + 1)}
             className="flex-1 flex items-center justify-center gap-2 py-3 rounded-lg text-sm font-medium transition-all"
-            style={{ background: '#5B6CFF', color: '#fff' }}
+            style={{ background: '#1565C0', color: '#fff' }}
           >
             Siguiente
             <ArrowRight className="w-4 h-4" />

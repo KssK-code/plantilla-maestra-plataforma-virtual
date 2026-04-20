@@ -7,7 +7,7 @@ export default function AdminLoading() {
       style={{ background: '#0B0D11' }}
     >
       <div className="flex flex-col items-center gap-3">
-        <Loader2 className="w-8 h-8 animate-spin" style={{ color: '#5B6CFF' }} />
+        <Loader2 className="w-8 h-8 animate-spin" style={{ color: '#1565C0' }} />
         <p className="text-xs" style={{ color: '#475569' }}>Cargando...</p>
       </div>
     </div>

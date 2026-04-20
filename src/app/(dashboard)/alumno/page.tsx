@@ -51,7 +51,7 @@ function getFechaLarga() {
 
 // ─── Stat Card ────────────────────────────────────────────────────────────────
 function StatCard({
-  emoji, label, value, sub, extra, accentColor = '#3AAFA9',
+  emoji, label, value, sub, extra, accentColor = '#1565C0',
 }: {
   emoji:       string
   label:       string
@@ -69,7 +69,7 @@ function StatCard({
         {emoji}
       </div>
       {/* Big value */}
-      <div className="text-3xl font-bold leading-tight" style={{ color: '#1B3A57' }}>
+      <div className="text-3xl font-bold leading-tight" style={{ color: '#0D1B3E' }}>
         {value}
       </div>
       {/* Label */}
@@ -218,13 +218,13 @@ export default function AlumnoDashboard() {
       {/* ── Banner DEMO ────────────────────────────────────────────────────── */}
       {demo && (
         <div className="rounded-2xl p-5 flex flex-col sm:flex-row sm:items-center gap-4"
-          style={{ background: 'linear-gradient(135deg, rgba(58,175,169,0.1) 0%, rgba(27,58,87,0.06) 100%)', border: '1.5px solid rgba(58,175,169,0.3)' }}>
+          style={{ background: 'linear-gradient(135deg, rgba(21,101,192,0.1) 0%, rgba(27,58,87,0.06) 100%)', border: '1.5px solid rgba(21,101,192,0.3)' }}>
           <div className="flex items-center justify-center w-11 h-11 rounded-xl flex-shrink-0"
-            style={{ background: 'rgba(58,175,169,0.15)', border: '1px solid rgba(58,175,169,0.3)' }}>
-            <GraduationCap className="w-5 h-5" style={{ color: '#3AAFA9' }} />
+            style={{ background: 'rgba(21,101,192,0.15)', border: '1px solid rgba(21,101,192,0.3)' }}>
+            <GraduationCap className="w-5 h-5" style={{ color: '#1565C0' }} />
           </div>
           <div className="flex-1 min-w-0">
-            <p className="font-bold text-sm" style={{ color: '#1B3A57' }}>🎓 Estás en modo demo</p>
+            <p className="font-bold text-sm" style={{ color: '#0D1B3E' }}>🎓 Estás en modo demo</p>
             <p className="text-xs mt-1 leading-relaxed" style={{ color: '#6B8FA8' }}>
               Explora la plataforma gratis. Para iniciar tu programa contacta a tu asesor.
             </p>
@@ -268,7 +268,7 @@ export default function AlumnoDashboard() {
 
       {/* ── Welcome header ────────────────────────────────────────────────── */}
       <div className="rounded-2xl p-6 flex flex-col sm:flex-row sm:items-center justify-between gap-4"
-        style={{ background: 'linear-gradient(135deg, #1B3A57 0%, #2B6B6B 60%, #3AAFA9 100%)', position: 'relative', overflow: 'hidden' }}>
+        style={{ background: 'linear-gradient(135deg, #0D1B3E 0%, #2B6B6B 60%, #1565C0 100%)', position: 'relative', overflow: 'hidden' }}>
         {/* Decorative circle */}
         <div style={{ position: 'absolute', top: -40, right: -40, width: 160, height: 160, borderRadius: '50%', background: 'rgba(255,255,255,0.06)' }} />
         <div style={{ position: 'absolute', bottom: -30, right: 80, width: 100, height: 100, borderRadius: '50%', background: 'rgba(255,255,255,0.04)' }} />
@@ -316,11 +316,11 @@ export default function AlumnoDashboard() {
           label="Progreso general"
           value={`${porcentaje}%`}
           sub={`${mesActivo} de ${perfil.duracion_meses || 6} meses`}
-          accentColor="#3AAFA9"
+          accentColor="#1565C0"
           extra={
             <div className="h-1.5 rounded-full overflow-hidden w-full" style={{ background: '#EEF2F7' }}>
               <div className="h-full rounded-full transition-all duration-700"
-                style={{ width: `${porcentaje}%`, background: '#3AAFA9' }} />
+                style={{ width: `${porcentaje}%`, background: '#1565C0' }} />
             </div>
           }
         />
@@ -336,11 +336,11 @@ export default function AlumnoDashboard() {
           label="Materias activas"
           value={materiasAcreditadas}
           sub="acreditadas"
-          accentColor="#6366F1"
+          accentColor="#1565C0"
           extra={
             <div className="h-1.5 rounded-full overflow-hidden w-full" style={{ background: '#EEF2F7' }}>
               <div className="h-full rounded-full transition-all duration-700"
-                style={{ width: `${Math.min(100, (materiasAcreditadas / 10) * 100)}%`, background: '#6366F1' }} />
+                style={{ width: `${Math.min(100, (materiasAcreditadas / 10) * 100)}%`, background: '#1565C0' }} />
             </div>
           }
         />
@@ -362,19 +362,19 @@ export default function AlumnoDashboard() {
       {/* ── Materia DEMO (banner, no oculta los meses) ──────────────────── */}
       {demo && (
         <div className="rounded-2xl p-5 flex flex-col sm:flex-row sm:items-center gap-4"
-          style={{ background: '#fff', border: '1.5px solid rgba(58,175,169,0.25)', boxShadow: '0 1px 8px rgba(27,58,87,0.06)' }}>
+          style={{ background: '#fff', border: '1.5px solid rgba(21,101,192,0.25)', boxShadow: '0 1px 8px rgba(27,58,87,0.06)' }}>
           <div className="flex-1 min-w-0 space-y-1">
-            <p className="text-xs font-mono font-bold" style={{ color: '#3AAFA9' }}>TUT101</p>
-            <p className="text-base font-bold" style={{ color: '#1B3A57' }}>Tutoría de ingreso I</p>
+            <p className="text-xs font-mono font-bold" style={{ color: '#1565C0' }}>TUT101</p>
+            <p className="text-base font-bold" style={{ color: '#0D1B3E' }}>Tutoría de ingreso I</p>
             <p className="text-sm" style={{ color: '#7A92A9' }}>
               Familiarízate con la plataforma, tu plan de estudio y la metodología.
             </p>
           </div>
           <Link href="/alumno/materia/f0551b82-1c3e-4286-bfb4-878842bc6eff"
             className="flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-semibold flex-shrink-0 transition-all"
-            style={{ background: '#3AAFA9', color: '#fff' }}
-            onMouseEnter={e => { (e.currentTarget as HTMLElement).style.background = '#2B7A77' }}
-            onMouseLeave={e => { (e.currentTarget as HTMLElement).style.background = '#3AAFA9' }}>
+            style={{ background: '#1565C0', color: '#fff' }}
+            onMouseEnter={e => { (e.currentTarget as HTMLElement).style.background = '#1E88E5' }}
+            onMouseLeave={e => { (e.currentTarget as HTMLElement).style.background = '#1565C0' }}>
             Explorar demo →
           </Link>
         </div>
@@ -422,10 +422,10 @@ export default function AlumnoDashboard() {
                                  : '#fff',
                       border:      bloqueado  ? '1.5px solid #E2E8F0'
                                  : completado ? '1.5px solid #86EFAC'
-                                 : '1.5px solid #3AAFA9',
+                                 : '1.5px solid #1565C0',
                       opacity:     bloqueado  ? 0.65 : 1,
                       cursor:      bloqueado  ? 'default' : 'pointer',
-                      boxShadow:   activo     ? '0 4px 20px rgba(58,175,169,0.2)' : 'none',
+                      boxShadow:   activo     ? '0 4px 20px rgba(21,101,192,0.2)' : 'none',
                     }}
                     onMouseEnter={e => {
                       if (!bloqueado) (e.currentTarget as HTMLElement).style.transform = 'translateY(-2px)'
@@ -436,7 +436,7 @@ export default function AlumnoDashboard() {
                   >
                     <div className="flex items-start justify-between gap-2">
                       <span className="text-3xl font-bold leading-none tabular-nums"
-                        style={{ color: bloqueado ? '#C8D8E8' : completado ? '#16A34A' : '#3AAFA9' }}>
+                        style={{ color: bloqueado ? '#C8D8E8' : completado ? '#16A34A' : '#1565C0' }}>
                         {numMes < 10 ? `0${numMes}` : numMes}
                       </span>
                       <div className="flex-shrink-0">
@@ -444,7 +444,7 @@ export default function AlumnoDashboard() {
                         {completado && <CheckCircle2 className="w-5 h-5" style={{ color: '#22C55E' }} />}
                         {activo     && (
                           <span className="text-xs font-bold px-2 py-0.5 rounded-full"
-                            style={{ background: 'rgba(58,175,169,0.15)', color: '#3AAFA9' }}>
+                            style={{ background: 'rgba(21,101,192,0.15)', color: '#1565C0' }}>
                             ACTIVO
                           </span>
                         )}
@@ -455,7 +455,7 @@ export default function AlumnoDashboard() {
                       {subMaterias}
                     </p>
                     <p className="text-xs font-medium"
-                      style={{ color: bloqueado ? '#C8D8E8' : completado ? '#15803D' : '#1B3A57' }}>
+                      style={{ color: bloqueado ? '#C8D8E8' : completado ? '#15803D' : '#0D1B3E' }}>
                       {bloqueado ? 'Bloqueado' : completado ? 'Completado' : 'En progreso'}
                     </p>
                   </div>
@@ -479,7 +479,7 @@ export default function AlumnoDashboard() {
 function SectionTitle({ children }: { children: React.ReactNode }) {
   return (
     <div className="flex items-center gap-3 mb-4">
-      <h2 className="text-sm font-bold uppercase tracking-wider flex-shrink-0" style={{ color: '#1B3A57' }}>
+      <h2 className="text-sm font-bold uppercase tracking-wider flex-shrink-0" style={{ color: '#0D1B3E' }}>
         {children}
       </h2>
       <div className="flex-1 h-px" style={{ background: '#EEF2F7' }} />

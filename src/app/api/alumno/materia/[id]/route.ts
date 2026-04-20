@@ -174,7 +174,7 @@ export async function GET(
       codigo:          '',
       nombre:          materia.nombre,
       nombre_en:       materia.nombre,
-      color_hex:       materia.color ?? '#3AAFA9',
+      color_hex:       materia.color ?? '#1565C0',
       descripcion:     materia.descripcion ?? '',
       descripcion_en:  materia.descripcion ?? '',
       objetivo:        materia.descripcion ?? '',

@@ -14,7 +14,7 @@ export default function PagarPage() {
         </p>
       </div>
 
-      <div className="bg-teal-50 border border-teal-200 rounded-lg p-4 text-center">
+      <div className="bg-[#E3F2FD] border border-[#BBDEFB] rounded-lg p-4 text-center">
         <p className="text-gray-700">Para desbloquear el siguiente módulo contacta a tu asesor</p>
         <a
           href={`https://wa.me/${CONFIG.whatsapp}`}

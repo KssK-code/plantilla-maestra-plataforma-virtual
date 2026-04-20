@@ -38,7 +38,7 @@ export default function MateriasPage() {
 
   if (loading) return (
     <div className="flex items-center justify-center min-h-[400px]">
-      <Loader2 className="w-6 h-6 animate-spin" style={{ color: '#3AAFA9' }} />
+      <Loader2 className="w-6 h-6 animate-spin" style={{ color: '#1565C0' }} />
     </div>
   )
 
@@ -55,15 +55,15 @@ export default function MateriasPage() {
       {/* Header */}
       <div className="flex items-start justify-between">
         <div>
-          <h2 className="text-xl font-bold" style={{ color: '#1B3A57' }}>Mis Materias</h2>
+          <h2 className="text-xl font-bold" style={{ color: '#0D1B3E' }}>Mis Materias</h2>
           <p className="text-sm mt-0.5" style={{ color: '#64748B' }}>
             {data?.nivel === 'preparatoria' ? 'Preparatoria' : data?.nivel === 'secundaria' ? 'Secundaria' : 'Plan de estudios'}
             {' · '}Meses desbloqueados:{' '}
-            <span className="font-semibold" style={{ color: '#1B3A57' }}>{data?.meses_desbloqueados ?? 0}</span>
+            <span className="font-semibold" style={{ color: '#0D1B3E' }}>{data?.meses_desbloqueados ?? 0}</span>
           </p>
         </div>
         <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs font-medium"
-          style={{ background: 'rgba(58,175,169,0.1)', color: '#3AAFA9' }}>
+          style={{ background: 'rgba(21,101,192,0.1)', color: '#1565C0' }}>
           <LayoutGrid className="w-3.5 h-3.5" />
           {materias.length} {materias.length === 1 ? 'materia' : 'materias'}
         </div>
@@ -104,7 +104,7 @@ function MateriaCard({
 }) {
   const [hovered, setHovered] = useState(false)
 
-  const accent      = materia.color || '#3AAFA9'
+  const accent      = materia.color || '#1565C0'
   const isAvailable = materia.disponible
 
   return (
@@ -152,7 +152,7 @@ function MateriaCard({
 
         {/* Nombre */}
         <div className="flex-1">
-          <h3 className="font-bold text-sm leading-snug" style={{ color: '#1B3A57' }}>
+          <h3 className="font-bold text-sm leading-snug" style={{ color: '#0D1B3E' }}>
             {materia.nombre}
           </h3>
           {materia.descripcion && (

@@ -13,10 +13,10 @@ const ACCENT_BY_TIPO: Record<
   { border: string; iconBg: string; iconTint: string; check: string }
 > = {
   primera_semana: {
-    border: 'border-teal-200',
-    iconBg: 'bg-teal-50',
-    iconTint: 'text-teal-600',
-    check: 'text-teal-600',
+    border: 'border-blue-200',
+    iconBg: 'bg-[#E3F2FD]',
+    iconTint: 'text-[#1565C0]',
+    check: 'text-[#1565C0]',
   },
   materia_completada: {
     border: 'border-indigo-200',

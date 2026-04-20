@@ -99,7 +99,7 @@ export default function CalificacionesPage() {
 
   if (loading) return (
     <div className="flex items-center justify-center min-h-[400px]">
-      <Loader2 className="w-6 h-6 animate-spin" style={{ color: '#5B6CFF' }} />
+      <Loader2 className="w-6 h-6 animate-spin" style={{ color: '#1565C0' }} />
     </div>
   )
 

@@ -100,7 +100,7 @@ export async function GET() {
             id:        `ficticio-${n}-${j}`,
             codigo:    '',
             nombre:    '',
-            color_hex: '#3AAFA9',
+            color_hex: '#1565C0',
           })),
           desbloqueado: n <= mesesDesbloqueados,
         }
@@ -130,7 +130,7 @@ export async function GET() {
         id:        mat.id,
         codigo:    '',
         nombre:    mat.nombre,
-        color_hex: mat.color ?? '#3AAFA9',
+        color_hex: mat.color ?? '#1565C0',
       })
     }
 

@@ -63,7 +63,7 @@ export default function ContenidoPage() {
 
   if (loading) return (
     <div className="flex items-center justify-center min-h-[400px]">
-      <Loader2 className="w-6 h-6 animate-spin" style={{ color: '#5B6CFF' }} />
+      <Loader2 className="w-6 h-6 animate-spin" style={{ color: '#1565C0' }} />
     </div>
   )
 
@@ -86,7 +86,7 @@ export default function ContenidoPage() {
           {stats && (
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
               {[
-                { label: 'Total Materias', value: stats.totalMaterias, icon: BookOpen, color: '#5B6CFF', bg: 'rgba(91,108,255,0.15)' },
+                { label: 'Total Materias', value: stats.totalMaterias, icon: BookOpen, color: '#1565C0', bg: 'rgba(21,101,192,0.15)' },
                 { label: 'Total Semanas', value: stats.totalSemanas, icon: ChevronRight, color: '#10B981', bg: 'rgba(16,185,129,0.15)' },
                 { label: 'Total Evaluaciones', value: stats.totalEvaluaciones, icon: Award, color: '#F59E0B', bg: 'rgba(245,158,11,0.15)' },
               ].map(({ label, value, icon: Icon, color, bg }) => (
@@ -118,7 +118,7 @@ export default function ContenidoPage() {
                     <div className="flex items-center gap-3">
                       <span
                         className="flex items-center justify-center w-8 h-8 rounded-lg text-lg flex-shrink-0"
-                        style={{ background: abierto ? 'rgba(91,108,255,0.2)' : 'rgba(255,255,255,0.06)' }}
+                        style={{ background: abierto ? 'rgba(21,101,192,0.2)' : 'rgba(255,255,255,0.06)' }}
                       >
                         {mes.titulo === 'Demo' ? '🎓' : mes.titulo === 'Preparatoria' ? '📚' : '🏫'}
                       </span>
@@ -127,7 +127,7 @@ export default function ContenidoPage() {
                           {mes.titulo}
                         </p>
                       </div>
-                      <span className="ml-2 text-xs px-2 py-0.5 rounded-full" style={{ background: 'rgba(91,108,255,0.1)', color: '#7B8AFF' }}>
+                      <span className="ml-2 text-xs px-2 py-0.5 rounded-full" style={{ background: 'rgba(21,101,192,0.1)', color: '#42A5F5' }}>
                         {mes.materias?.length ?? 0} materias
                       </span>
                     </div>
@@ -150,10 +150,10 @@ export default function ContenidoPage() {
                               <div className="flex items-center gap-2 min-w-0">
                                 <div
                                   className="w-2.5 h-2.5 rounded-full flex-shrink-0"
-                                  style={{ background: mat.color_hex || '#5B6CFF' }}
+                                  style={{ background: mat.color_hex || '#1565C0' }}
                                 />
                                 {mat.codigo && (
-                                  <span className="font-mono text-xs font-semibold" style={{ color: '#7B8AFF' }}>
+                                  <span className="font-mono text-xs font-semibold" style={{ color: '#42A5F5' }}>
                                     {mat.codigo}
                                   </span>
                                 )}
@@ -161,9 +161,9 @@ export default function ContenidoPage() {
                               <button
                                 onClick={() => router.push(`/admin/contenido/${mat.id}`)}
                                 className="flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-medium transition-all flex-shrink-0"
-                                style={{ background: 'rgba(91,108,255,0.1)', color: '#7B8AFF', border: '1px solid rgba(91,108,255,0.2)' }}
-                                onMouseEnter={e => { e.currentTarget.style.background = 'rgba(91,108,255,0.2)' }}
-                                onMouseLeave={e => { e.currentTarget.style.background = 'rgba(91,108,255,0.1)' }}
+                                style={{ background: 'rgba(21,101,192,0.1)', color: '#42A5F5', border: '1px solid rgba(21,101,192,0.2)' }}
+                                onMouseEnter={e => { e.currentTarget.style.background = 'rgba(21,101,192,0.2)' }}
+                                onMouseLeave={e => { e.currentTarget.style.background = 'rgba(21,101,192,0.1)' }}
                               >
                                 <Eye className="w-3 h-3" />
                                 Ver contenido

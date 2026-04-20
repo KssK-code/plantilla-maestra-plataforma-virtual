@@ -107,7 +107,7 @@ export default function PerfilPage() {
 
   if (loading) return (
     <div className="flex items-center justify-center min-h-[400px]">
-      <Loader2 className="w-6 h-6 animate-spin" style={{ color: '#5B6CFF' }} />
+      <Loader2 className="w-6 h-6 animate-spin" style={{ color: '#1565C0' }} />
     </div>
   )
 
@@ -142,7 +142,7 @@ export default function PerfilPage() {
             ) : (
               <div
                 className="w-16 h-16 rounded-full flex items-center justify-center text-lg font-bold"
-                style={{ background: '#3AAFA9', color: '#fff' }}
+                style={{ background: '#1565C0', color: '#fff' }}
               >
                 {perfil?.nombre_completo.split(' ').slice(0, 2).map(n => n[0]).join('').toUpperCase() ?? '?'}
               </div>
@@ -166,9 +166,9 @@ export default function PerfilPage() {
               onClick={() => fileInputRef.current?.click()}
               disabled={avatarLoading}
               className="flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all disabled:opacity-60 disabled:cursor-not-allowed"
-              style={{ background: 'rgba(91,108,255,0.12)', color: '#7B8AFF', border: '1px solid rgba(91,108,255,0.3)' }}
-              onMouseEnter={e => { if (!avatarLoading) (e.currentTarget as HTMLElement).style.background = 'rgba(91,108,255,0.22)' }}
-              onMouseLeave={e => { if (!avatarLoading) (e.currentTarget as HTMLElement).style.background = 'rgba(91,108,255,0.12)' }}
+              style={{ background: 'rgba(21,101,192,0.12)', color: '#42A5F5', border: '1px solid rgba(21,101,192,0.3)' }}
+              onMouseEnter={e => { if (!avatarLoading) (e.currentTarget as HTMLElement).style.background = 'rgba(21,101,192,0.22)' }}
+              onMouseLeave={e => { if (!avatarLoading) (e.currentTarget as HTMLElement).style.background = 'rgba(21,101,192,0.12)' }}
             >
               <Camera className="w-4 h-4" />
               {avatarLoading ? 'Subiendo...' : 'Cambiar foto'}
@@ -181,8 +181,8 @@ export default function PerfilPage() {
       {/* Card Información Personal */}
       <div className="rounded-xl overflow-hidden" style={CARD}>
         <div className="flex items-center gap-3 px-5 py-4" style={{ borderBottom: '1px solid #2A2F3E' }}>
-          <div className="w-8 h-8 rounded-lg flex items-center justify-center" style={{ background: 'rgba(91,108,255,0.15)' }}>
-            <User className="w-4 h-4" style={{ color: '#7B8AFF' }} />
+          <div className="w-8 h-8 rounded-lg flex items-center justify-center" style={{ background: 'rgba(21,101,192,0.15)' }}>
+            <User className="w-4 h-4" style={{ color: '#42A5F5' }} />
           </div>
           <h3 className="text-sm font-semibold text-gray-900">Información Personal</h3>
         </div>
@@ -240,8 +240,8 @@ export default function PerfilPage() {
                     className="w-full px-4 pr-11 py-3 rounded-lg text-sm outline-none transition-all"
                     style={INPUT_STYLE}
                     onFocus={e => {
-                      e.currentTarget.style.border = '1px solid rgba(91,108,255,0.6)'
-                      e.currentTarget.style.boxShadow = '0 0 0 3px rgba(91,108,255,0.1)'
+                      e.currentTarget.style.border = '1px solid rgba(21,101,192,0.6)'
+                      e.currentTarget.style.boxShadow = '0 0 0 3px rgba(21,101,192,0.1)'
                     }}
                     onBlur={e => {
                       e.currentTarget.style.border = '1px solid rgba(255,255,255,0.1)'
@@ -274,9 +274,9 @@ export default function PerfilPage() {
               type="submit"
               disabled={passLoading}
               className="w-full flex items-center justify-center gap-2 py-3 rounded-lg text-sm font-semibold transition-all disabled:opacity-60 disabled:cursor-not-allowed"
-              style={{ background: '#5B6CFF', color: '#fff' }}
-              onMouseEnter={e => { if (!passLoading) e.currentTarget.style.background = '#7B8AFF' }}
-              onMouseLeave={e => { if (!passLoading) e.currentTarget.style.background = '#5B6CFF' }}
+              style={{ background: '#1565C0', color: '#fff' }}
+              onMouseEnter={e => { if (!passLoading) e.currentTarget.style.background = '#42A5F5' }}
+              onMouseLeave={e => { if (!passLoading) e.currentTarget.style.background = '#1565C0' }}
             >
               {passLoading ? <><Loader2 className="w-4 h-4 animate-spin" /> Cambiando...</> : 'Cambiar contraseña'}
             </button>
@@ -307,9 +307,9 @@ export default function PerfilPage() {
               <a
                 href={`mailto:${ESCUELA_CONFIG.contactoEmail}`}
                 className="text-sm transition-colors"
-                style={{ color: '#5B6CFF' }}
-                onMouseEnter={e => { e.currentTarget.style.color = '#7B8AFF' }}
-                onMouseLeave={e => { e.currentTarget.style.color = '#5B6CFF' }}
+                style={{ color: '#1565C0' }}
+                onMouseEnter={e => { e.currentTarget.style.color = '#42A5F5' }}
+                onMouseLeave={e => { e.currentTarget.style.color = '#1565C0' }}
               >
                 {ESCUELA_CONFIG.contactoEmail}
               </a>
@@ -323,7 +323,7 @@ export default function PerfilPage() {
                 <a
                   href={`https://wa.me/${ESCUELA_CONFIG.contactoTelefono}`}
                   className="text-sm transition-colors"
-                  style={{ color: '#5B6CFF' }}
+                  style={{ color: '#1565C0' }}
                 >
                   {ESCUELA_CONFIG.contactoTelefono}
                 </a>

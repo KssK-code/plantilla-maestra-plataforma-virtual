@@ -49,14 +49,14 @@ export default function MesPage() {
 
   if (loading) return (
     <div className="flex items-center justify-center min-h-[400px]">
-      <Loader2 className="w-6 h-6 animate-spin" style={{ color: '#5B6CFF' }} />
+      <Loader2 className="w-6 h-6 animate-spin" style={{ color: '#1565C0' }} />
     </div>
   )
 
   if (error || !mes) return (
     <div className="flex flex-col items-center justify-center min-h-[400px] gap-3">
       <p className="text-sm" style={{ color: '#EF4444' }}>{error ?? 'Mes no encontrado'}</p>
-      <button onClick={() => router.push('/alumno')} className="text-sm" style={{ color: '#5B6CFF' }}>Regresar</button>
+      <button onClick={() => router.push('/alumno')} className="text-sm" style={{ color: '#1565C0' }}>Regresar</button>
     </div>
   )
 
@@ -100,12 +100,12 @@ export default function MesPage() {
               {/* Franja de color */}
               <div
                 className="w-1.5 flex-shrink-0"
-                style={{ background: mat.color_hex || '#5B6CFF' }}
+                style={{ background: mat.color_hex || '#1565C0' }}
               />
               <div className="flex-1 p-5">
                 <div className="flex items-start justify-between gap-3 mb-2">
                   <div>
-                    <span className="font-mono text-xs px-2 py-0.5 rounded" style={{ background: 'rgba(91,108,255,0.15)', color: '#7B8AFF' }}>
+                    <span className="font-mono text-xs px-2 py-0.5 rounded" style={{ background: 'rgba(21,101,192,0.15)', color: '#42A5F5' }}>
                       {mat.codigo}
                     </span>
                     <h3 className="text-sm font-semibold mt-2 text-gray-900">{mat.nombre}</h3>
@@ -117,9 +117,9 @@ export default function MesPage() {
                 <button
                   onClick={() => router.push(`/alumno/materia/${mat.id}`)}
                   className="flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-semibold transition-all w-full justify-center"
-                  style={{ background: '#5B6CFF', color: '#fff' }}
-                  onMouseEnter={e => { e.currentTarget.style.background = '#7B8AFF' }}
-                  onMouseLeave={e => { e.currentTarget.style.background = '#5B6CFF' }}
+                  style={{ background: '#1565C0', color: '#fff' }}
+                  onMouseEnter={e => { e.currentTarget.style.background = '#42A5F5' }}
+                  onMouseLeave={e => { e.currentTarget.style.background = '#1565C0' }}
                 >
                   <BookOpen className="w-4 h-4" />
                   Estudiar

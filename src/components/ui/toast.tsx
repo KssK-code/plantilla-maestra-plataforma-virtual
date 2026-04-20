@@ -26,7 +26,7 @@ function SingleToast({ item, onClose }: SingleToastProps) {
   const config = {
     success: { border: 'rgba(16,185,129,0.4)', color: '#10B981', Icon: CheckCircle },
     error: { border: 'rgba(239,68,68,0.4)', color: '#EF4444', Icon: XCircle },
-    info: { border: 'rgba(91,108,255,0.4)', color: '#7B8AFF', Icon: Info },
+    info: { border: 'rgba(21,101,192,0.4)', color: '#42A5F5', Icon: Info },
   }[item.type]
 
   const Icon = config.Icon

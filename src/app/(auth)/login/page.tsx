@@ -21,7 +21,7 @@ const BENEFITS = [
 
 // ─── Input helpers ─────────────────────────────────────────────────────────────
 function onFocus(e: React.FocusEvent<HTMLInputElement>) {
-  e.currentTarget.style.borderColor = '#1B2F6E'
+  e.currentTarget.style.borderColor = '#1565C0'
   e.currentTarget.style.boxShadow   = '0 0 0 3px rgba(27,47,110,0.12)'
 }
 function onBlur(e: React.FocusEvent<HTMLInputElement>) {
@@ -47,7 +47,7 @@ function LeftPanel() {
       style={{
         width: '40%',
         minHeight: '100vh',
-        background: 'linear-gradient(160deg, #0d1b4b 0%, #1B2F6E 55%, #2E4BA3 100%)',
+        background: 'linear-gradient(160deg, #0d1b4b 0%, #1565C0 55%, #2E4BA3 100%)',
         position: 'relative',
         overflow: 'hidden',
       }}
@@ -91,7 +91,7 @@ function LeftPanel() {
       <div className="relative z-10">
         <h2 className="text-4xl font-bold leading-tight mb-3" style={{ color: '#fff', fontFamily: 'Syne, sans-serif' }}>
           Tu educación,<br />
-          <span style={{ color: '#C9A84C' }}>a tu ritmo</span>
+          <span style={{ color: '#42A5F5' }}>a tu ritmo</span>
         </h2>
         <p className="text-base mb-8" style={{ color: 'rgba(255,255,255,0.75)', lineHeight: 1.6 }}>
           Obtén tu certificado con validez oficial SEP desde la comodidad de tu hogar.
@@ -100,7 +100,7 @@ function LeftPanel() {
         <div className="flex flex-col gap-3">
           {BENEFITS.map(b => (
             <div key={b} className="flex items-center gap-3">
-              <CheckCircle2 className="shrink-0 w-5 h-5" style={{ color: '#C9A84C' }} />
+              <CheckCircle2 className="shrink-0 w-5 h-5" style={{ color: '#42A5F5' }} />
               <span className="text-sm" style={{ color: 'rgba(255,255,255,0.9)' }}>{b}</span>
             </div>
           ))}
@@ -208,7 +208,7 @@ export default function LoginPage() {
         >
           {/* Header */}
           <div className="mb-7">
-            <h1 className="text-2xl font-bold" style={{ color: '#1B3A57', fontFamily: 'Syne, sans-serif' }}>
+            <h1 className="text-2xl font-bold" style={{ color: '#0D1B3E', fontFamily: 'Syne, sans-serif' }}>
               Bienvenido de vuelta
             </h1>
             <p className="mt-1 text-sm" style={{ color: '#7A92A9' }}>
@@ -219,7 +219,7 @@ export default function LoginPage() {
           <form onSubmit={handleSubmit} className="space-y-4">
             {/* Email */}
             <div>
-              <label className="block text-sm font-semibold mb-1.5" style={{ color: '#1B3A57' }}>
+              <label className="block text-sm font-semibold mb-1.5" style={{ color: '#0D1B3E' }}>
                 Correo electrónico
               </label>
               <div className="relative">
@@ -231,7 +231,7 @@ export default function LoginPage() {
                   onFocus={onFocus} onBlur={onBlur}
                   style={{
                     width: '100%', border: '1.5px solid #E2E8F0', borderRadius: 10,
-                    padding: '12px 14px 12px 38px', fontSize: 15, color: '#1B3A57',
+                    padding: '12px 14px 12px 38px', fontSize: 15, color: '#0D1B3E',
                     outline: 'none', transition: 'border-color .2s, box-shadow .2s', background: '#FAFCFF',
                   }}
                 />
@@ -241,14 +241,14 @@ export default function LoginPage() {
             {/* Contraseña */}
             <div>
               <div className="flex items-center justify-between mb-1.5">
-                <label className="text-sm font-semibold" style={{ color: '#1B3A57' }}>
+                <label className="text-sm font-semibold" style={{ color: '#0D1B3E' }}>
                   Contraseña
                 </label>
                 <Link href="/forgot-password"
                   className="text-xs font-medium transition-colors"
-                  style={{ color: '#C9A84C' }}
-                  onMouseEnter={e => { e.currentTarget.style.color = '#1B2F6E' }}
-                  onMouseLeave={e => { e.currentTarget.style.color = '#C9A84C' }}
+                  style={{ color: '#42A5F5' }}
+                  onMouseEnter={e => { e.currentTarget.style.color = '#1565C0' }}
+                  onMouseLeave={e => { e.currentTarget.style.color = '#42A5F5' }}
                 >
                   ¿Olvidaste tu contraseña?
                 </Link>
@@ -262,7 +262,7 @@ export default function LoginPage() {
                   onFocus={onFocus} onBlur={onBlur}
                   style={{
                     width: '100%', border: '1.5px solid #E2E8F0', borderRadius: 10,
-                    padding: '12px 40px 12px 38px', fontSize: 15, color: '#1B3A57',
+                    padding: '12px 40px 12px 38px', fontSize: 15, color: '#0D1B3E',
                     outline: 'none', transition: 'border-color .2s, box-shadow .2s', background: '#FAFCFF',
                   }}
                 />
@@ -289,13 +289,13 @@ export default function LoginPage() {
                 type="submit" disabled={loading}
                 className="w-full flex items-center justify-center gap-2 font-semibold text-white transition-all disabled:opacity-60 disabled:cursor-not-allowed"
                 style={{
-                  background: loading ? '#1B2F6E' : '#1B2F6E',
+                  background: loading ? '#1565C0' : '#1565C0',
                   borderRadius: 12, height: 48, fontSize: 15,
                   boxShadow: '0 4px 16px rgba(27,47,110,0.35)',
                   border: 'none', cursor: loading ? 'not-allowed' : 'pointer',
                 }}
                 onMouseEnter={e => { if (!loading) e.currentTarget.style.background = '#2E4BA3' }}
-                onMouseLeave={e => { if (!loading) e.currentTarget.style.background = '#1B2F6E' }}
+                onMouseLeave={e => { if (!loading) e.currentTarget.style.background = '#1565C0' }}
               >
                 {loading
                   ? <><Loader2 className="w-4 h-4 animate-spin" />Iniciando sesión...</>
@@ -318,7 +318,7 @@ export default function LoginPage() {
             style={{
               display: 'flex',
               background: '#fff', border: '1.5px solid #E2E8F0', borderRadius: 12,
-              color: '#1B3A57', padding: '12px 16px', textDecoration: 'none',
+              color: '#0D1B3E', padding: '12px 16px', textDecoration: 'none',
             }}
             onMouseEnter={e => {
               e.currentTarget.style.borderColor = '#22C55E'
@@ -327,7 +327,7 @@ export default function LoginPage() {
             }}
             onMouseLeave={e => {
               e.currentTarget.style.borderColor = '#E2E8F0'
-              e.currentTarget.style.color = '#1B3A57'
+              e.currentTarget.style.color = '#0D1B3E'
               e.currentTarget.style.background = '#fff'
             }}
           >
@@ -340,9 +340,9 @@ export default function LoginPage() {
             ¿No tienes cuenta?{' '}
             <Link href="/register"
               className="font-semibold transition-colors"
-              style={{ color: '#C9A84C' }}
-              onMouseEnter={e => { e.currentTarget.style.color = '#1B2F6E' }}
-              onMouseLeave={e => { e.currentTarget.style.color = '#C9A84C' }}
+              style={{ color: '#42A5F5' }}
+              onMouseEnter={e => { e.currentTarget.style.color = '#1565C0' }}
+              onMouseLeave={e => { e.currentTarget.style.color = '#42A5F5' }}
             >
               Regístrate gratis
             </Link>

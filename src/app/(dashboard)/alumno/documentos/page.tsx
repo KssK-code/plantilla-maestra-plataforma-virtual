@@ -48,7 +48,7 @@ const TIPO_LABEL: Record<DocTipo, string> = {
 }
 
 function DocIcon({ tipo }: { tipo: DocTipo }) {
-  const color = '#7B8AFF'
+  const color = '#42A5F5'
   if (tipo === 'acta_nacimiento') return (
     <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
       <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/>
@@ -141,7 +141,7 @@ export default function DocumentosPage() {
 
   if (loading) return (
     <div className="flex items-center justify-center min-h-[400px]">
-      <Loader2 className="w-6 h-6 animate-spin" style={{ color: '#5B6CFF' }} />
+      <Loader2 className="w-6 h-6 animate-spin" style={{ color: '#1565C0' }} />
     </div>
   )
 
@@ -168,7 +168,7 @@ export default function DocumentosPage() {
               <div className="flex items-center gap-3">
                 <div
                   className="w-12 h-12 rounded-xl flex items-center justify-center flex-shrink-0"
-                  style={{ background: 'rgba(91,108,255,0.1)' }}
+                  style={{ background: 'rgba(21,101,192,0.1)' }}
                 >
                   <DocIcon tipo={tipo} />
                 </div>
@@ -216,9 +216,9 @@ export default function DocumentosPage() {
                   onClick={() => fileInputRefs.current[tipo]?.click()}
                   disabled={isUploading}
                   className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all disabled:opacity-60 disabled:cursor-not-allowed flex-shrink-0"
-                  style={{ background: 'rgba(91,108,255,0.15)', color: '#7B8AFF', border: '1px solid rgba(91,108,255,0.3)' }}
-                  onMouseEnter={e => { if (!isUploading) e.currentTarget.style.background = 'rgba(91,108,255,0.25)' }}
-                  onMouseLeave={e => { if (!isUploading) e.currentTarget.style.background = 'rgba(91,108,255,0.15)' }}
+                  style={{ background: 'rgba(21,101,192,0.15)', color: '#42A5F5', border: '1px solid rgba(21,101,192,0.3)' }}
+                  onMouseEnter={e => { if (!isUploading) e.currentTarget.style.background = 'rgba(21,101,192,0.25)' }}
+                  onMouseLeave={e => { if (!isUploading) e.currentTarget.style.background = 'rgba(21,101,192,0.15)' }}
                 >
                   {isUploading
                     ? <><Loader2 className="w-3.5 h-3.5 animate-spin" />Subiendo...</>

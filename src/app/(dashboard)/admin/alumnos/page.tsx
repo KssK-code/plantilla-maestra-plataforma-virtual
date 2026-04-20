@@ -172,9 +172,9 @@ export default function AlumnosPage() {
         <button
           onClick={() => setModalOpen(true)}
           className="flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-semibold transition-all duration-150"
-          style={{ background: '#5B6CFF', color: '#fff' }}
-          onMouseEnter={e => { e.currentTarget.style.background = '#7B8AFF' }}
-          onMouseLeave={e => { e.currentTarget.style.background = '#5B6CFF' }}
+          style={{ background: '#1565C0', color: '#fff' }}
+          onMouseEnter={e => { e.currentTarget.style.background = '#42A5F5' }}
+          onMouseLeave={e => { e.currentTarget.style.background = '#1565C0' }}
         >
           <Plus className="w-4 h-4" />
           Nuevo Alumno
@@ -187,9 +187,9 @@ export default function AlumnosPage() {
           onClick={() => setTab('todos')}
           className="flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all"
           style={{
-            background: tab === 'todos' ? 'rgba(91,108,255,0.15)' : 'transparent',
-            color: tab === 'todos' ? '#7B8AFF' : '#94A3B8',
-            border: tab === 'todos' ? '1px solid rgba(91,108,255,0.35)' : '1px solid #2A2F3E',
+            background: tab === 'todos' ? 'rgba(21,101,192,0.15)' : 'transparent',
+            color: tab === 'todos' ? '#42A5F5' : '#94A3B8',
+            border: tab === 'todos' ? '1px solid rgba(21,101,192,0.35)' : '1px solid #2A2F3E',
           }}
         >
           <Users className="w-4 h-4" />
@@ -197,8 +197,8 @@ export default function AlumnosPage() {
           <span
             className="px-1.5 py-0.5 rounded-full text-xs font-bold"
             style={{
-              background: tab === 'todos' ? 'rgba(91,108,255,0.25)' : 'rgba(255,255,255,0.07)',
-              color: tab === 'todos' ? '#7B8AFF' : '#64748B',
+              background: tab === 'todos' ? 'rgba(21,101,192,0.25)' : 'rgba(255,255,255,0.07)',
+              color: tab === 'todos' ? '#42A5F5' : '#64748B',
             }}
           >
             {alumnos.length}
@@ -252,7 +252,7 @@ export default function AlumnosPage() {
           onChange={e => setBusqueda(e.target.value)}
           className="w-full pl-10 pr-4 py-2.5 rounded-lg text-sm outline-none"
           style={{ ...INPUT_STYLE }}
-          onFocus={e => { e.currentTarget.style.border = '1px solid #5B6CFF' }}
+          onFocus={e => { e.currentTarget.style.border = '1px solid #1565C0' }}
           onBlur={e => { e.currentTarget.style.border = '1px solid #2A2F3E' }}
         />
       </div>
@@ -262,7 +262,7 @@ export default function AlumnosPage() {
         <div className="rounded-xl overflow-hidden" style={CARD_STYLE}>
           {loading ? (
             <div className="flex items-center justify-center py-16">
-              <Loader2 className="w-6 h-6 animate-spin" style={{ color: '#5B6CFF' }} />
+              <Loader2 className="w-6 h-6 animate-spin" style={{ color: '#1565C0' }} />
             </div>
           ) : alumnosFiltrados.length === 0 ? (
             <div className="flex flex-col items-center justify-center py-16 gap-3">
@@ -349,9 +349,9 @@ export default function AlumnosPage() {
                       <button
                         onClick={() => router.push(`/admin/alumnos/${a.id}`)}
                         className="flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs font-medium transition-all"
-                        style={{ background: 'rgba(91,108,255,0.1)', color: '#7B8AFF', border: '1px solid rgba(91,108,255,0.2)' }}
-                        onMouseEnter={e => { (e.currentTarget as HTMLElement).style.background = 'rgba(91,108,255,0.2)' }}
-                        onMouseLeave={e => { (e.currentTarget as HTMLElement).style.background = 'rgba(91,108,255,0.1)' }}
+                        style={{ background: 'rgba(21,101,192,0.1)', color: '#42A5F5', border: '1px solid rgba(21,101,192,0.2)' }}
+                        onMouseEnter={e => { (e.currentTarget as HTMLElement).style.background = 'rgba(21,101,192,0.2)' }}
+                        onMouseLeave={e => { (e.currentTarget as HTMLElement).style.background = 'rgba(21,101,192,0.1)' }}
                       >
                         <Eye className="w-3.5 h-3.5" />
                         Ver
@@ -370,7 +370,7 @@ export default function AlumnosPage() {
         <div className="rounded-xl overflow-hidden" style={CARD_STYLE}>
           {loading ? (
             <div className="flex items-center justify-center py-16">
-              <Loader2 className="w-6 h-6 animate-spin" style={{ color: '#5B6CFF' }} />
+              <Loader2 className="w-6 h-6 animate-spin" style={{ color: '#1565C0' }} />
             </div>
           ) : error ? (
             <div className="flex items-center justify-center py-16">
@@ -424,7 +424,7 @@ export default function AlumnosPage() {
                     <button
                       onClick={() => router.push(`/admin/alumnos/${a.id}`)}
                       className="w-full flex items-center justify-center gap-1.5 py-2.5 rounded-lg text-xs font-medium"
-                      style={{ background: 'rgba(91,108,255,0.1)', color: '#7B8AFF', border: '1px solid rgba(91,108,255,0.2)' }}
+                      style={{ background: 'rgba(21,101,192,0.1)', color: '#42A5F5', border: '1px solid rgba(21,101,192,0.2)' }}
                     >
                       <Eye className="w-3.5 h-3.5" />
                       Ver detalle
@@ -448,7 +448,7 @@ export default function AlumnosPage() {
                       <tr
                         key={a.id}
                         style={{ borderBottom: '1px solid rgba(42,47,62,0.5)' }}
-                        onMouseEnter={e => { (e.currentTarget as HTMLElement).style.background = 'rgba(91,108,255,0.04)' }}
+                        onMouseEnter={e => { (e.currentTarget as HTMLElement).style.background = 'rgba(21,101,192,0.04)' }}
                         onMouseLeave={e => { (e.currentTarget as HTMLElement).style.background = 'transparent' }}
                       >
                         <td className="px-4 py-3 font-mono text-xs" style={{ color: '#94A3B8' }}>{a.matricula}</td>
@@ -485,9 +485,9 @@ export default function AlumnosPage() {
                           <button
                             onClick={() => router.push(`/admin/alumnos/${a.id}`)}
                             className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-all"
-                            style={{ background: 'rgba(91,108,255,0.1)', color: '#7B8AFF', border: '1px solid rgba(91,108,255,0.2)' }}
-                            onMouseEnter={e => { e.currentTarget.style.background = 'rgba(91,108,255,0.2)' }}
-                            onMouseLeave={e => { e.currentTarget.style.background = 'rgba(91,108,255,0.1)' }}
+                            style={{ background: 'rgba(21,101,192,0.1)', color: '#42A5F5', border: '1px solid rgba(21,101,192,0.2)' }}
+                            onMouseEnter={e => { e.currentTarget.style.background = 'rgba(21,101,192,0.2)' }}
+                            onMouseLeave={e => { e.currentTarget.style.background = 'rgba(21,101,192,0.1)' }}
                           >
                             <Eye className="w-3.5 h-3.5" />
                             Ver detalle
@@ -536,7 +536,7 @@ export default function AlumnosPage() {
                     onChange={e => setForm(prev => ({ ...prev, [key]: e.target.value }))}
                     className="w-full px-3 py-2.5 rounded-lg text-sm outline-none"
                     style={INPUT_STYLE}
-                    onFocus={e => { e.currentTarget.style.border = '1px solid #5B6CFF' }}
+                    onFocus={e => { e.currentTarget.style.border = '1px solid #1565C0' }}
                     onBlur={e => { e.currentTarget.style.border = '1px solid #2A2F3E' }}
                   />
                 </div>
@@ -591,7 +591,7 @@ export default function AlumnosPage() {
                   type="submit"
                   disabled={submitting}
                   className="flex-1 flex items-center justify-center gap-2 py-2.5 rounded-lg text-sm font-semibold transition-all disabled:opacity-60"
-                  style={{ background: '#5B6CFF', color: '#fff' }}
+                  style={{ background: '#1565C0', color: '#fff' }}
                 >
                   {submitting ? <><Loader2 className="w-4 h-4 animate-spin" />Creando...</> : 'Crear Alumno'}
                 </button>

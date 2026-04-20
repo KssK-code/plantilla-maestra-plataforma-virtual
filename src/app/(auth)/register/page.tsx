@@ -19,7 +19,7 @@ const BENEFITS = [
 
 // ─── Input helpers ─────────────────────────────────────────────────────────────
 function onFocus(e: React.FocusEvent<HTMLInputElement | HTMLSelectElement>) {
-  e.currentTarget.style.borderColor = '#1B2F6E'
+  e.currentTarget.style.borderColor = '#1565C0'
   e.currentTarget.style.boxShadow   = '0 0 0 3px rgba(27,47,110,0.12)'
 }
 function onBlur(e: React.FocusEvent<HTMLInputElement | HTMLSelectElement>) {
@@ -29,7 +29,7 @@ function onBlur(e: React.FocusEvent<HTMLInputElement | HTMLSelectElement>) {
 
 const inputStyle: React.CSSProperties = {
   width: '100%', border: '1.5px solid #E2E8F0', borderRadius: 10,
-  padding: '11px 14px 11px 38px', fontSize: 14, color: '#1B3A57',
+  padding: '11px 14px 11px 38px', fontSize: 14, color: '#0D1B3E',
   outline: 'none', transition: 'border-color .2s, box-shadow .2s',
   background: '#FAFCFF',
 }
@@ -44,7 +44,7 @@ const selectStyle: React.CSSProperties = {
 // ─── Sub-components ─────────────────────────────────────────────────────────────
 function Label({ text, required: req }: { text: string; required?: boolean }) {
   return (
-    <label className="block text-sm font-semibold mb-1.5" style={{ color: '#1B3A57' }}>
+    <label className="block text-sm font-semibold mb-1.5" style={{ color: '#0D1B3E' }}>
       {text}{req && <span style={{ color: '#EF4444' }}> *</span>}
     </label>
   )
@@ -54,10 +54,10 @@ function SectionHeader({ step, label }: { step: number; label: string }) {
   return (
     <div className="flex items-center gap-3 mb-4">
       <div className="flex items-center justify-center w-7 h-7 rounded-full text-xs font-bold"
-        style={{ background: '#1B2F6E', color: '#fff', flexShrink: 0 }}>
+        style={{ background: '#1565C0', color: '#fff', flexShrink: 0 }}>
         {step}
       </div>
-      <h3 className="text-sm font-bold uppercase tracking-wide" style={{ color: '#1B3A57', letterSpacing: '0.07em' }}>
+      <h3 className="text-sm font-bold uppercase tracking-wide" style={{ color: '#0D1B3E', letterSpacing: '0.07em' }}>
         {label}
       </h3>
       <div className="flex-1 h-px" style={{ background: '#EEF2F7' }} />
@@ -92,7 +92,7 @@ function ProgressBar({ current }: { current: 1 | 2 | 3 }) {
               <div
                 className="flex items-center justify-center w-8 h-8 rounded-full text-xs font-bold transition-all"
                 style={{
-                  background: done ? '#1B2F6E' : active ? '#1B2F6E' : '#EEF2F7',
+                  background: done ? '#1565C0' : active ? '#1565C0' : '#EEF2F7',
                   color:      done || active ? '#fff' : '#B0C4D4',
                   boxShadow:  active ? '0 0 0 4px rgba(27,47,110,0.18)' : 'none',
                 }}
@@ -101,7 +101,7 @@ function ProgressBar({ current }: { current: 1 | 2 | 3 }) {
               </div>
               <span
                 className="mt-1.5 text-xs font-medium text-center leading-tight hidden sm:block"
-                style={{ color: active ? '#1B2F6E' : done ? '#1B2F6E' : '#B0C4D4', maxWidth: 72 }}
+                style={{ color: active ? '#1565C0' : done ? '#1565C0' : '#B0C4D4', maxWidth: 72 }}
               >
                 {s.label}
               </span>
@@ -109,7 +109,7 @@ function ProgressBar({ current }: { current: 1 | 2 | 3 }) {
             {i < steps.length - 1 && (
               <div
                 className="flex-1 h-0.5 mx-2 mb-4"
-                style={{ background: s.n < current ? '#1B2F6E' : '#EEF2F7', transition: 'background .3s' }}
+                style={{ background: s.n < current ? '#1565C0' : '#EEF2F7', transition: 'background .3s' }}
               />
             )}
           </div>
@@ -127,7 +127,7 @@ function LeftPanel() {
       style={{
         width: '38%',
         minHeight: '100vh',
-        background: 'linear-gradient(160deg, #0d1b4b 0%, #1B2F6E 55%, #2E4BA3 100%)',
+        background: 'linear-gradient(160deg, #0d1b4b 0%, #1565C0 55%, #2E4BA3 100%)',
         position: 'relative',
         overflow: 'hidden',
         flexShrink: 0,
@@ -153,7 +153,7 @@ function LeftPanel() {
       <div className="relative z-10">
         <h2 className="text-3xl font-bold leading-tight mb-3" style={{ color: '#fff', fontFamily: 'Syne, sans-serif' }}>
           Comienza hoy<br />
-          <span style={{ color: '#C9A84C' }}>tu certificado oficial</span>
+          <span style={{ color: '#42A5F5' }}>tu certificado oficial</span>
         </h2>
         <p className="text-sm mb-8" style={{ color: 'rgba(255,255,255,0.75)', lineHeight: 1.7 }}>
           Únete a miles de alumnos que ya obtuvieron su certificado con validez SEP.
@@ -162,7 +162,7 @@ function LeftPanel() {
         <div className="flex flex-col gap-3">
           {BENEFITS.map(b => (
             <div key={b} className="flex items-center gap-3">
-              <CheckCircle2 className="shrink-0 w-5 h-5" style={{ color: '#C9A84C' }} />
+              <CheckCircle2 className="shrink-0 w-5 h-5" style={{ color: '#42A5F5' }} />
               <span className="text-sm" style={{ color: 'rgba(255,255,255,0.9)' }}>{b}</span>
             </div>
           ))}
@@ -296,7 +296,7 @@ export default function RegisterPage() {
         >
           {/* Header */}
           <div className="mb-6">
-            <h1 className="text-2xl font-bold" style={{ color: '#1B3A57', fontFamily: 'Syne, sans-serif' }}>
+            <h1 className="text-2xl font-bold" style={{ color: '#0D1B3E', fontFamily: 'Syne, sans-serif' }}>
               Crear mi cuenta gratis
             </h1>
             <p className="mt-1 text-sm" style={{ color: '#7A92A9' }}>
@@ -439,12 +439,12 @@ export default function RegisterPage() {
               type="submit" disabled={loading}
               className="w-full flex items-center justify-center gap-2 font-bold text-white transition-all disabled:opacity-60 disabled:cursor-not-allowed"
               style={{
-                background: '#1B2F6E', borderRadius: 12, height: 52, fontSize: 15,
+                background: '#1565C0', borderRadius: 12, height: 52, fontSize: 15,
                 boxShadow: '0 4px 18px rgba(27,47,110,0.38)',
                 border: 'none', cursor: loading ? 'not-allowed' : 'pointer',
               }}
               onMouseEnter={e => { if (!loading) e.currentTarget.style.background = '#2E4BA3' }}
-              onMouseLeave={e => { if (!loading) e.currentTarget.style.background = '#1B2F6E' }}
+              onMouseLeave={e => { if (!loading) e.currentTarget.style.background = '#1565C0' }}
             >
               {loading
                 ? <><Loader2 className="w-5 h-5 animate-spin" />Creando cuenta...</>
@@ -460,9 +460,9 @@ export default function RegisterPage() {
             {/* Login link */}
             <p className="text-center text-sm" style={{ color: '#7A92A9' }}>
               ¿Ya tienes cuenta?{' '}
-              <Link href="/login" className="font-semibold transition-colors" style={{ color: '#C9A84C' }}
-                onMouseEnter={e => { e.currentTarget.style.color = '#1B2F6E' }}
-                onMouseLeave={e => { e.currentTarget.style.color = '#C9A84C' }}>
+              <Link href="/login" className="font-semibold transition-colors" style={{ color: '#42A5F5' }}
+                onMouseEnter={e => { e.currentTarget.style.color = '#1565C0' }}
+                onMouseLeave={e => { e.currentTarget.style.color = '#42A5F5' }}>
                 Inicia sesión
               </Link>
             </p>

@@ -184,7 +184,7 @@ export default function DocumentosAdminPage() {
       {/* Content */}
       {loading ? (
         <div className="flex items-center justify-center min-h-[300px]">
-          <Loader2 className="w-6 h-6 animate-spin" style={{ color: '#3AAFA9' }} />
+          <Loader2 className="w-6 h-6 animate-spin" style={{ color: '#1565C0' }} />
         </div>
       ) : error ? (
         <div
@@ -269,7 +269,7 @@ export default function DocumentosAdminPage() {
                         target="_blank"
                         rel="noopener noreferrer"
                         className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-colors w-full sm:w-auto justify-center"
-                        style={{ background: 'rgba(58,175,169,0.1)', color: '#3AAFA9' }}
+                        style={{ background: 'rgba(21,101,192,0.1)', color: '#1565C0' }}
                       >
                         <ExternalLink className="w-3 h-3" />
                         Ver documento

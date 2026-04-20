@@ -110,7 +110,7 @@ export default function WeekRoadmap({
                   <Check className="w-5 h-5" style={{ color: '#fff' }} strokeWidth={2.5} />
                 )}
                 {estado === 'activo' && (
-                  <span className="text-sm font-bold" style={{ color: '#6366F1' }}>
+                  <span className="text-sm font-bold" style={{ color: '#1565C0' }}>
                     {semana.numero}
                   </span>
                 )}
@@ -146,7 +146,7 @@ export default function WeekRoadmap({
               <div className="flex items-center gap-2 mb-0.5 mt-1.5">
                 <span
                   className="text-xs font-mono transition-all duration-500"
-                  style={{ color: estado === 'bloqueado' ? '#475569' : '#6366F1' }}
+                  style={{ color: estado === 'bloqueado' ? '#475569' : '#1565C0' }}
                 >
                   {labelPrefijo} {semana.numero}
                 </span>

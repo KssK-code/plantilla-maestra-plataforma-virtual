@@ -24,7 +24,7 @@ export function Footer() {
           rel="noopener noreferrer"
           className="text-xs transition-colors"
           style={{ color: '#374151' }}
-          onMouseEnter={e => { e.currentTarget.style.color = '#3AAFA9' }}
+          onMouseEnter={e => { e.currentTarget.style.color = '#1565C0' }}
           onMouseLeave={e => { e.currentTarget.style.color = '#374151' }}
         >
           {CONFIG.dominio}
@@ -34,7 +34,7 @@ export function Footer() {
           href={`mailto:${ESCUELA_CONFIG.contactoEmail}`}
           className="text-xs transition-colors"
           style={{ color: '#374151' }}
-          onMouseEnter={e => { e.currentTarget.style.color = '#3AAFA9' }}
+          onMouseEnter={e => { e.currentTarget.style.color = '#1565C0' }}
           onMouseLeave={e => { e.currentTarget.style.color = '#374151' }}
         >
           {ESCUELA_CONFIG.contactoEmail}
@@ -46,7 +46,7 @@ export function Footer() {
               href={`https://wa.me/${ESCUELA_CONFIG.contactoTelefono}`}
               className="text-xs transition-colors"
               style={{ color: '#374151' }}
-              onMouseEnter={e => { e.currentTarget.style.color = '#3AAFA9' }}
+              onMouseEnter={e => { e.currentTarget.style.color = '#1565C0' }}
               onMouseLeave={e => { e.currentTarget.style.color = '#374151' }}
             >
               {ESCUELA_CONFIG.whatsappDisplay ?? ESCUELA_CONFIG.contactoTelefono}

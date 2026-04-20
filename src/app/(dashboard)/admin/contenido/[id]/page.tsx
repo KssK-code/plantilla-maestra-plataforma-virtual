@@ -46,7 +46,7 @@ const INNER = { background: '#0D1017', border: '1px solid #2A2F3E' }
 function inputStyle(dirty: boolean) {
   return {
     background: '#0D1017',
-    border: `1px solid ${dirty ? '#5B6CFF' : '#2A2F3E'}`,
+    border: `1px solid ${dirty ? '#1565C0' : '#2A2F3E'}`,
     color: '#F1F5F9',
     borderRadius: '0.5rem',
     padding: '0.375rem 0.625rem',
@@ -188,14 +188,14 @@ export default function ContenidoDetallePage() {
 
   if (loading) return (
     <div className="flex items-center justify-center min-h-[400px]">
-      <Loader2 className="w-6 h-6 animate-spin" style={{ color: '#5B6CFF' }} />
+      <Loader2 className="w-6 h-6 animate-spin" style={{ color: '#1565C0' }} />
     </div>
   )
 
   if (error || !materia) return (
     <div className="flex flex-col items-center justify-center min-h-[400px] gap-3">
       <p className="text-sm" style={{ color: '#EF4444' }}>{error ?? 'Materia no encontrada'}</p>
-      <button onClick={() => router.back()} className="text-sm" style={{ color: '#5B6CFF' }}>Regresar</button>
+      <button onClick={() => router.back()} className="text-sm" style={{ color: '#1565C0' }}>Regresar</button>
     </div>
   )
 
@@ -217,7 +217,7 @@ export default function ContenidoDetallePage() {
         </button>
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2 flex-wrap">
-            <div className="w-2.5 h-2.5 rounded-full flex-shrink-0" style={{ background: materia.color || '#5B6CFF' }} />
+            <div className="w-2.5 h-2.5 rounded-full flex-shrink-0" style={{ background: materia.color || '#1565C0' }} />
             <span className="text-xs px-2 py-0.5 rounded-full capitalize" style={{ background: 'rgba(16,185,129,0.1)', color: '#10B981' }}>
               {materia.nivel}
             </span>
@@ -256,7 +256,7 @@ export default function ContenidoDetallePage() {
                   <div className="flex items-center gap-3">
                     <span
                       className="flex items-center justify-center w-8 h-8 rounded-lg text-sm font-bold flex-shrink-0"
-                      style={{ background: abierto ? 'rgba(91,108,255,0.2)' : 'rgba(255,255,255,0.06)', color: abierto ? '#5B6CFF' : '#94A3B8' }}
+                      style={{ background: abierto ? 'rgba(21,101,192,0.2)' : 'rgba(255,255,255,0.06)', color: abierto ? '#1565C0' : '#94A3B8' }}
                     >
                       {mes.numero_mes}
                     </span>
@@ -285,7 +285,7 @@ export default function ContenidoDetallePage() {
                             <div className="flex items-center gap-3">
                               <span
                                 className="flex items-center justify-center w-6 h-6 rounded-full text-xs font-bold flex-shrink-0"
-                                style={{ background: 'rgba(91,108,255,0.2)', color: '#5B6CFF' }}
+                                style={{ background: 'rgba(21,101,192,0.2)', color: '#1565C0' }}
                               >
                                 {sem.numero_semana}
                               </span>
@@ -368,7 +368,7 @@ export default function ContenidoDetallePage() {
                                     className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all disabled:opacity-40"
                                     style={v.saved
                                       ? { background: 'rgba(16,185,129,0.15)', color: '#10B981', border: '1px solid rgba(16,185,129,0.3)' }
-                                      : { background: v.dirty ? 'rgba(91,108,255,0.2)' : 'rgba(255,255,255,0.04)', color: v.dirty ? '#7B8AFF' : '#64748B', border: `1px solid ${v.dirty ? 'rgba(91,108,255,0.4)' : '#2A2F3E'}` }
+                                      : { background: v.dirty ? 'rgba(21,101,192,0.2)' : 'rgba(255,255,255,0.04)', color: v.dirty ? '#42A5F5' : '#64748B', border: `1px solid ${v.dirty ? 'rgba(21,101,192,0.4)' : '#2A2F3E'}` }
                                     }
                                   >
                                     {v.saving

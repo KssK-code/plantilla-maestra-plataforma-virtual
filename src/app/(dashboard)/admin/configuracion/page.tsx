@@ -64,7 +64,7 @@ export default function ConfiguracionPage() {
 
   if (loading) return (
     <div className="flex items-center justify-center min-h-[400px]">
-      <Loader2 className="w-6 h-6 animate-spin" style={{ color: '#5B6CFF' }} />
+      <Loader2 className="w-6 h-6 animate-spin" style={{ color: '#1565C0' }} />
     </div>
   )
 
@@ -86,17 +86,17 @@ export default function ConfiguracionPage() {
       </div>
 
       {/* Aviso readonly */}
-      <div className="flex items-start gap-3 px-4 py-3 rounded-xl" style={{ background: 'rgba(91,108,255,0.08)', border: '1px solid rgba(91,108,255,0.2)' }}>
-        <Info className="w-4 h-4 flex-shrink-0 mt-0.5" style={{ color: '#7B8AFF' }} />
+      <div className="flex items-start gap-3 px-4 py-3 rounded-xl" style={{ background: 'rgba(21,101,192,0.08)', border: '1px solid rgba(21,101,192,0.2)' }}>
+        <Info className="w-4 h-4 flex-shrink-0 mt-0.5" style={{ color: '#42A5F5' }} />
         <p className="text-xs leading-relaxed" style={{ color: '#94A3B8' }}>
-          Para modificar estos datos, edita el archivo <code className="font-mono text-xs px-1 rounded" style={{ background: 'rgba(91,108,255,0.15)', color: '#7B8AFF' }}>src/lib/config.ts</code> y redeploya la plataforma. Contacta al administrador del sistema si necesitas ayuda.
+          Para modificar estos datos, edita el archivo <code className="font-mono text-xs px-1 rounded" style={{ background: 'rgba(21,101,192,0.15)', color: '#42A5F5' }}>src/lib/config.ts</code> y redeploya la plataforma. Contacta al administrador del sistema si necesitas ayuda.
         </p>
       </div>
 
       {/* Datos de la escuela */}
       <div className="rounded-xl p-5 space-y-4" style={CARD}>
         <div className="flex items-center gap-2">
-          <Settings className="w-4 h-4" style={{ color: '#5B6CFF' }} />
+          <Settings className="w-4 h-4" style={{ color: '#1565C0' }} />
           <h3 className="text-sm font-semibold text-gray-900">Datos de la Escuela</h3>
         </div>
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -110,7 +110,7 @@ export default function ConfiguracionPage() {
       {/* Colores */}
       <div className="rounded-xl p-5 space-y-4" style={CARD}>
         <div className="flex items-center gap-2">
-          <Palette className="w-4 h-4" style={{ color: '#5B6CFF' }} />
+          <Palette className="w-4 h-4" style={{ color: '#1565C0' }} />
           <h3 className="text-sm font-semibold text-gray-900">Colores de la Marca</h3>
         </div>
         <div className="flex flex-wrap gap-4">
@@ -135,9 +135,9 @@ export default function ConfiguracionPage() {
       {/* Planes de estudio */}
       <div className="rounded-xl overflow-hidden" style={CARD}>
         <div className="px-5 py-4 flex items-center gap-2" style={{ borderBottom: '1px solid #2A2F3E' }}>
-          <BookOpen className="w-4 h-4" style={{ color: '#5B6CFF' }} />
+          <BookOpen className="w-4 h-4" style={{ color: '#1565C0' }} />
           <h3 className="text-sm font-semibold text-gray-900">Planes de Estudio Activos</h3>
-          <span className="ml-auto text-xs px-2 py-0.5 rounded-full" style={{ background: 'rgba(91,108,255,0.15)', color: '#7B8AFF' }}>
+          <span className="ml-auto text-xs px-2 py-0.5 rounded-full" style={{ background: 'rgba(21,101,192,0.15)', color: '#42A5F5' }}>
             {planes.length} plan{planes.length !== 1 ? 'es' : ''}
           </span>
         </div>
@@ -169,7 +169,7 @@ export default function ConfiguracionPage() {
       {/* Info del sistema */}
       <div className="rounded-xl p-5 space-y-4" style={CARD}>
         <div className="flex items-center gap-2">
-          <Info className="w-4 h-4" style={{ color: '#5B6CFF' }} />
+          <Info className="w-4 h-4" style={{ color: '#1565C0' }} />
           <h3 className="text-sm font-semibold text-gray-900">Información del Sistema</h3>
         </div>
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
@@ -180,7 +180,7 @@ export default function ConfiguracionPage() {
             { label: 'Último deploy', value: sistema.fecha_deploy },
           ].map(({ label, value }) => (
             <div key={label} className="text-center p-3 rounded-xl" style={{ background: '#0D1017', border: '1px solid #2A2F3E' }}>
-              <p className="text-lg font-bold" style={{ color: '#5B6CFF' }}>{value}</p>
+              <p className="text-lg font-bold" style={{ color: '#1565C0' }}>{value}</p>
               <p className="text-xs mt-0.5" style={{ color: '#94A3B8' }}>{label}</p>
             </div>
           ))}

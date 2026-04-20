@@ -16,14 +16,14 @@ function formatDate(iso: string) {
 
 // ─── stat card ────────────────────────────────────────────────────────────────
 function StatCard({
-  emoji, label, value, sub, color = '#3AAFA9',
+  emoji, label, value, sub, color = '#1565C0',
 }: {
   emoji: string; label: string; value: string | number; sub?: string; color?: string
 }) {
   return (
     <div
       className="rounded-2xl p-5 flex flex-col gap-2"
-      style={{ background: '#fff', border: '1px solid #E8F0F7', borderTop: '3px solid #3AAFA9', boxShadow: '0 2px 8px rgba(27,58,87,0.06)' }}
+      style={{ background: '#fff', border: '1px solid #E8F0F7', borderTop: '3px solid #1565C0', boxShadow: '0 2px 8px rgba(27,58,87,0.06)' }}
     >
       <div
         className="flex items-center justify-center w-11 h-11 rounded-xl text-xl"
@@ -31,7 +31,7 @@ function StatCard({
       >
         {emoji}
       </div>
-      <div className="text-3xl font-bold" style={{ color: '#1B3A57', fontFamily: 'Syne, sans-serif' }}>
+      <div className="text-3xl font-bold" style={{ color: '#0D1B3E', fontFamily: 'Syne, sans-serif' }}>
         {value}
       </div>
       <p className="text-sm font-medium" style={{ color: '#6B8FA8' }}>{label}</p>
@@ -47,8 +47,8 @@ function NivelBadge({ nivel }: { nivel?: string | null }) {
     <span
       className="inline-block px-2 py-0.5 rounded-full text-xs font-semibold"
       style={{
-        background: isPrepa ? 'rgba(58,175,169,0.12)' : 'rgba(27,58,87,0.1)',
-        color:      isPrepa ? '#3AAFA9' : '#1B3A57',
+        background: isPrepa ? 'rgba(21,101,192,0.12)' : 'rgba(27,58,87,0.1)',
+        color:      isPrepa ? '#1565C0' : '#0D1B3E',
       }}
     >
       {isPrepa ? 'Preparatoria' : nivel === 'secundaria' ? 'Secundaria' : 'Sin nivel'}
@@ -122,7 +122,7 @@ export default async function AdminDashboardPage() {
     <div className="space-y-6">
       {/* Encabezado */}
       <div>
-        <h2 className="text-xl font-bold" style={{ color: '#1B3A57', fontFamily: 'Syne, sans-serif' }}>
+        <h2 className="text-xl font-bold" style={{ color: '#0D1B3E', fontFamily: 'Syne, sans-serif' }}>
           Bienvenido, Administrador 👋
         </h2>
         <p className="text-sm mt-1" style={{ color: '#6B8FA8' }}>
@@ -133,7 +133,7 @@ export default async function AdminDashboardPage() {
       {/* Stats grid */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
         <StatCard emoji="👥" label="Total alumnos"       value={totalAlumnos ?? 0} />
-        <StatCard emoji="🎓" label="Preparatoria"        value={totalPrepa ?? 0}   sub={`${totalSecundaria ?? 0} en Secundaria`} color="#1B3A57" />
+        <StatCard emoji="🎓" label="Preparatoria"        value={totalPrepa ?? 0}   sub={`${totalSecundaria ?? 0} en Secundaria`} color="#0D1B3E" />
         <StatCard emoji="📅" label="Registros este mes"  value={esteMes ?? 0}      color="#22C55E" />
         <StatCard emoji="📄" label="Docs. pendientes"    value={docsPendientes ?? 0} color="#F59E0B" />
       </div>
@@ -148,13 +148,13 @@ export default async function AdminDashboardPage() {
           className="flex items-center justify-between px-5 py-4"
           style={{ borderBottom: '1px solid #F0F4F8' }}
         >
-          <h3 className="text-sm font-bold" style={{ color: '#1B3A57' }}>
+          <h3 className="text-sm font-bold" style={{ color: '#0D1B3E' }}>
             Alumnos recientes
           </h3>
           <Link
             href="/admin/alumnos"
             className="text-xs font-semibold px-3 py-1.5 rounded-lg transition-all"
-            style={{ background: 'rgba(58,175,169,0.1)', color: '#3AAFA9' }}
+            style={{ background: 'rgba(21,101,192,0.1)', color: '#1565C0' }}
           >
             Ver todos →
           </Link>
@@ -189,11 +189,11 @@ export default async function AdminDashboardPage() {
                       <div className="flex items-center gap-2.5">
                         <div
                           className="flex items-center justify-center w-8 h-8 rounded-full text-xs font-bold flex-shrink-0"
-                          style={{ background: 'rgba(58,175,169,0.15)', color: '#3AAFA9' }}
+                          style={{ background: 'rgba(21,101,192,0.15)', color: '#1565C0' }}
                         >
                           {a.nombre.charAt(0).toUpperCase()}
                         </div>
-                        <span className="font-medium truncate max-w-[140px]" style={{ color: '#1B3A57' }}>
+                        <span className="font-medium truncate max-w-[140px]" style={{ color: '#0D1B3E' }}>
                           {a.nombre}
                         </span>
                       </div>
@@ -205,7 +205,7 @@ export default async function AdminDashboardPage() {
                       <NivelBadge nivel={a.nivel} />
                     </td>
                     <td className="px-5 py-3.5">
-                      <span style={{ color: '#1B3A57', fontVariantNumeric: 'tabular-nums' }}>
+                      <span style={{ color: '#0D1B3E', fontVariantNumeric: 'tabular-nums' }}>
                         {a.meses_desbloqueados ?? 0}
                         <span style={{ color: '#9DB0C0' }}>/{duracion(a)}</span>
                       </span>
@@ -217,7 +217,7 @@ export default async function AdminDashboardPage() {
                       <Link
                         href={`/admin/alumnos/${a.id}`}
                         className="text-xs font-semibold px-3 py-1.5 rounded-lg transition-all"
-                        style={{ background: '#F0F4F8', color: '#1B3A57' }}
+                        style={{ background: '#F0F4F8', color: '#0D1B3E' }}
                       >
                         Ver →
                       </Link>

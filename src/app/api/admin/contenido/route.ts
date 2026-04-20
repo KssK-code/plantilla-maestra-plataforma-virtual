@@ -62,7 +62,7 @@ export async function GET() {
           id:               mat.id,
           codigo:           '',                      // IVS no tiene 'codigo' — vacío para compatibilidad UI
           nombre:           mat.nombre,
-          color_hex:        mat.color ?? '#5B6CFF',  // IVS usa 'color', mapeamos a color_hex para el frontend
+          color_hex:        mat.color ?? '#1565C0',  // IVS usa 'color', mapeamos a color_hex para el frontend
           descripcion:      mat.descripcion ?? '',
           nivel:            mat.nivel,
           num_semanas:      semCount,

@@ -85,13 +85,12 @@ export function Sidebar({ role, userName, avatarUrl, nivel, isOpen, onClose }: S
 
   const isAlumno = role === 'ALUMNO'
 
-  // ─── sidebar styles: mismo tema IVS para ambos roles ────────────────────────
-  const sidebarBg     = '#1B3A57'
-  const sidebarBorder = 'rgba(58,175,169,0.2)'
-  const activeBg      = '#3AAFA9'
+  const sidebarBg     = '#0D1B3E'
+  const sidebarBorder = 'rgba(30,136,229,0.22)'
+  const activeBg      = '#1565C0'
   const activeColor   = '#fff'
   const inactiveColor = 'rgba(255,255,255,0.65)'
-  const hoverBg       = 'rgba(58,175,169,0.2)'
+  const hoverBg       = 'rgba(21,101,192,0.28)'
   const hoverColor    = '#fff'
 
   return (
@@ -197,10 +196,10 @@ export function Sidebar({ role, userName, avatarUrl, nivel, isOpen, onClose }: S
             {avatarUrl ? (
               <Image src={avatarUrl} alt={userName} width={38} height={38}
                 className="rounded-full object-cover flex-shrink-0"
-                style={{ border: '2px solid rgba(58,175,169,0.5)' }} />
+                style={{ border: '2px solid rgba(30,136,229,0.45)' }} />
             ) : (
               <div className="flex items-center justify-center w-9 h-9 rounded-full flex-shrink-0 text-xs font-bold"
-                style={{ background: 'rgba(58,175,169,0.3)', color: '#fff', border: '2px solid rgba(58,175,169,0.5)' }}>
+                style={{ background: 'rgba(21,101,192,0.35)', color: '#fff', border: '2px solid rgba(30,136,229,0.45)' }}>
                 {initials}
               </div>
             )}
@@ -210,7 +209,7 @@ export function Sidebar({ role, userName, avatarUrl, nivel, isOpen, onClose }: S
               </p>
               {nivelLabel && (
                 <span className="inline-block mt-0.5 text-xs px-2 py-0.5 rounded-full font-medium"
-                  style={{ background: 'rgba(58,175,169,0.25)', color: '#A8EDEA', fontSize: 10 }}>
+                  style={{ background: 'rgba(21,101,192,0.35)', color: '#E3F2FD', fontSize: 10 }}>
                   {nivelLabel}
                 </span>
               )}
@@ -258,8 +257,8 @@ function MobileBottomNav({ items, isActive }: { items: NavItem[]; isActive: (h: 
     <nav
       className="fixed bottom-0 left-0 right-0 z-30 md:hidden flex items-center justify-around px-2 pb-safe"
       style={{
-        background: '#1B3A57',
-        borderTop:  '1px solid rgba(58,175,169,0.25)',
+        background: '#0D1B3E',
+        borderTop:  '1px solid rgba(30,136,229,0.25)',
         height:     60,
         paddingBottom: 'env(safe-area-inset-bottom, 0)',
       }}
@@ -272,7 +271,7 @@ function MobileBottomNav({ items, isActive }: { items: NavItem[]; isActive: (h: 
             key={`mobile-${item.href}-${item.label}`}
             href={item.href}
             className="flex flex-col items-center justify-center gap-0.5 flex-1 py-1 rounded-lg transition-all"
-            style={{ color: active ? '#3AAFA9' : 'rgba(255,255,255,0.45)' }}
+            style={{ color: active ? '#42A5F5' : 'rgba(255,255,255,0.45)' }}
           >
             {item.emoji
               ? <span className="text-lg leading-none">{item.emoji}</span>

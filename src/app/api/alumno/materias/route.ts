@@ -77,7 +77,7 @@ export async function GET() {
         nombre:         mat.nombre,
         descripcion:    mat.descripcion ?? null,
         icono:          mat.icono       ?? '📚',
-        color:          mat.color       ?? '#3AAFA9',
+        color:          mat.color       ?? '#1565C0',
         orden:          mat.orden       ?? 0,
         total_meses:    meses.length,
         total_semanas:  totalSemanas,
