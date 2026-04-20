@@ -10,7 +10,7 @@ import type { SupabaseClient } from '@supabase/supabase-js'
  *   SELECT id, semana_id, pregunta, opcion_a, opcion_b, opcion_c, respuesta_correcta, explicacion, orden
  *   FROM public.quiz_semana
  *   WHERE semana_id = $semanaId::uuid
- *   ORDER BY orden ASC NULLS LAST;
+ *   ORDER BY orden ASC;
  */
 const QUIZ_SEMANA_SELECT_CJVB =
   'id, semana_id, pregunta, opcion_a, opcion_b, opcion_c, respuesta_correcta, explicacion, orden' as const
