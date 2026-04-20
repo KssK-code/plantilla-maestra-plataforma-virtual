@@ -289,7 +289,7 @@ export default function MateriaPage() {
                         <span className="text-xs font-mono" style={{ color: '#6366F1' }}>
                           {materia.nivel === 'demo' ? `Paso ${semana.numero}` : `Semana ${semana.numero}`}
                         </span>
-                        <h3 className="text-base font-bold mt-0.5 text-gray-900">
+                        <h3 className="text-base font-bold mt-0.5" style={{ color: '#F1F5F9' }}>
                           {semana.titulo}
                         </h3>
                         {(() => {
@@ -322,9 +322,9 @@ export default function MateriaPage() {
                               p:      ({ children }) => <p className="mb-3 text-sm leading-relaxed" style={{ color: '#94A3B8' }}>{children}</p>,
                               strong: ({ children }) => <strong style={{ color: '#F1F5F9', fontWeight: 600 }}>{children}</strong>,
                               em:     ({ children }) => <em style={{ color: '#CBD5E1' }}>{children}</em>,
-                              h1:     ({ children }) => <h1 className="text-base font-bold mt-4 mb-2 text-gray-900">{children}</h1>,
-                              h2:     ({ children }) => <h2 className="text-sm font-bold mt-3 mb-1.5 text-gray-900">{children}</h2>,
-                              h3:     ({ children }) => <h3 className="text-sm font-semibold mt-2 mb-1 text-gray-900">{children}</h3>,
+                              h1:     ({ children }) => <h1 className="text-base font-bold mt-4 mb-2" style={{ color: '#F1F5F9' }}>{children}</h1>,
+                              h2:     ({ children }) => <h2 className="text-sm font-bold mt-3 mb-1.5" style={{ color: '#F1F5F9' }}>{children}</h2>,
+                              h3:     ({ children }) => <h3 className="text-sm font-semibold mt-2 mb-1" style={{ color: '#E2E8F0' }}>{children}</h3>,
                               ul:     ({ children }) => <ul className="list-disc list-inside space-y-1 mb-3 text-sm" style={{ color: '#94A3B8' }}>{children}</ul>,
                               ol:     ({ children }) => <ol className="list-decimal list-inside space-y-1 mb-3 text-sm" style={{ color: '#94A3B8' }}>{children}</ol>,
                               li:     ({ children }) => <li className="leading-relaxed">{children}</li>,

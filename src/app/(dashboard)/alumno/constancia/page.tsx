@@ -376,15 +376,27 @@ export default function ConstanciaPage() {
         </div>
       </div>
 
-      {/* Estilos de impresión */}
+      {/* Estilos de impresión: no usar body > * (Next.js envuelve la app en divs; ocultaba todo el árbol y dejaba PDF en blanco) */}
       <style>{`
         @media print {
-          body > *:not(#constancia-print) { display: none !important; }
+          body * {
+            visibility: hidden !important;
+          }
+          #constancia-print,
+          #constancia-print * {
+            visibility: visible !important;
+          }
           #constancia-print {
-            box-shadow: none !important;
-            border-radius: 0 !important;
+            position: absolute !important;
+            left: 0 !important;
+            top: 0 !important;
             width: 100% !important;
             max-width: 100% !important;
+            box-shadow: none !important;
+            border-radius: 0 !important;
+            background: #fff !important;
+            -webkit-print-color-adjust: exact !important;
+            print-color-adjust: exact !important;
           }
         }
       `}</style>
