@@ -261,7 +261,7 @@ export default function ContenidoDetallePage() {
                       {mes.numero_mes}
                     </span>
                     <div>
-                      <p className="text-sm font-semibold text-left text-gray-900">
+                      <p className="text-sm font-semibold text-left" style={{ color: '#F1F5F9' }}>
                         {mes.titulo || `Mes ${mes.numero_mes}`}
                       </p>
                       <p className="text-xs" style={{ color: '#64748B' }}>{mes.semanas.length} semanas</p>
@@ -289,7 +289,7 @@ export default function ContenidoDetallePage() {
                               >
                                 {sem.numero_semana}
                               </span>
-                              <p className="text-sm font-semibold flex-1 min-w-0 text-gray-900">
+                              <p className="text-sm font-semibold flex-1 min-w-0" style={{ color: '#F1F5F9' }}>
                                 {sem.titulo}
                               </p>
                             </div>
@@ -314,7 +314,7 @@ export default function ContenidoDetallePage() {
                                     ) : (
                                       <div
                                         className="w-full h-20 rounded flex items-center justify-center text-xs"
-                                        style={{ background: '#1A1F2E', border: '1px solid #2A2F3E', color: '#4B5563' }}
+                                        style={{ background: '#1A1F2E', border: '1px solid #2A2F3E', color: '#94A3B8' }}
                                       >
                                         Sin video
                                       </div>

@@ -97,7 +97,7 @@ export default function ReportesPage() {
       <div className="rounded-xl overflow-hidden" style={CARD}>
         <div className="px-5 py-4 flex items-center gap-3" style={{ borderBottom: '1px solid #2A2F3E' }}>
           <BookOpen className="w-4 h-4" style={{ color: '#1565C0' }} />
-          <h3 className="text-sm font-semibold text-gray-900">Rendimiento por Materia</h3>
+          <h3 className="text-sm font-semibold" style={{ color: '#F1F5F9' }}>Rendimiento por Materia</h3>
         </div>
         {rendimiento.length === 0 ? (
           <div className="px-5 py-10 text-center text-sm" style={{ color: '#94A3B8' }}>
@@ -158,7 +158,7 @@ export default function ReportesPage() {
       <div className="rounded-xl overflow-hidden" style={CARD}>
         <div className="px-5 py-4 flex items-center gap-3" style={{ borderBottom: '1px solid #2A2F3E' }}>
           <Award className="w-4 h-4" style={{ color: '#F59E0B' }} />
-          <h3 className="text-sm font-semibold text-gray-900">Historial de Ingresos Recientes</h3>
+          <h3 className="text-sm font-semibold" style={{ color: '#F1F5F9' }}>Historial de Ingresos Recientes</h3>
         </div>
         {pagos.length === 0 ? (
           <div className="px-5 py-10 text-center text-sm" style={{ color: '#94A3B8' }}>

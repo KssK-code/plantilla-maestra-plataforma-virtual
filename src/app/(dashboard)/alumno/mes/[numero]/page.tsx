@@ -86,7 +86,7 @@ export default function MesPage() {
       {/* Grid de materias */}
       {mes.materias.length === 0 ? (
         <div className="flex flex-col items-center justify-center py-16 gap-3" style={CARD}>
-          <BookOpen className="w-10 h-10" style={{ color: '#2A2F3E' }} />
+          <BookOpen className="w-10 h-10" style={{ color: '#94A3B8' }} />
           <p className="text-sm" style={{ color: '#94A3B8' }}>No hay materias en este mes</p>
         </div>
       ) : (
@@ -108,7 +108,7 @@ export default function MesPage() {
                     <span className="font-mono text-xs px-2 py-0.5 rounded" style={{ background: 'rgba(21,101,192,0.15)', color: '#42A5F5' }}>
                       {mat.codigo}
                     </span>
-                    <h3 className="text-sm font-semibold mt-2 text-gray-900">{mat.nombre}</h3>
+                    <h3 className="text-sm font-semibold mt-2" style={{ color: '#F1F5F9' }}>{mat.nombre}</h3>
                   </div>
                 </div>
                 {mat.descripcion && (

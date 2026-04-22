@@ -97,7 +97,7 @@ export default function ConfiguracionPage() {
       <div className="rounded-xl p-5 space-y-4" style={CARD}>
         <div className="flex items-center gap-2">
           <Settings className="w-4 h-4" style={{ color: '#1565C0' }} />
-          <h3 className="text-sm font-semibold text-gray-900">Datos de la Escuela</h3>
+          <h3 className="text-sm font-semibold" style={{ color: '#F1F5F9' }}>Datos de la Escuela</h3>
         </div>
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <Campo label="Nombre de la Escuela" value={escuela.nombre} />
@@ -111,7 +111,7 @@ export default function ConfiguracionPage() {
       <div className="rounded-xl p-5 space-y-4" style={CARD}>
         <div className="flex items-center gap-2">
           <Palette className="w-4 h-4" style={{ color: '#1565C0' }} />
-          <h3 className="text-sm font-semibold text-gray-900">Colores de la Marca</h3>
+          <h3 className="text-sm font-semibold" style={{ color: '#F1F5F9' }}>Colores de la Marca</h3>
         </div>
         <div className="flex flex-wrap gap-4">
           {[
@@ -124,7 +124,7 @@ export default function ConfiguracionPage() {
                 style={{ background: value, border: '2px solid rgba(255,255,255,0.1)' }}
               />
               <div>
-                <p className="text-sm font-semibold text-gray-900">{label}</p>
+                <p className="text-sm font-semibold" style={{ color: '#F1F5F9' }}>{label}</p>
                 <p className="text-xs font-mono mt-0.5" style={{ color: '#94A3B8' }}>{value}</p>
               </div>
             </div>
@@ -136,7 +136,7 @@ export default function ConfiguracionPage() {
       <div className="rounded-xl overflow-hidden" style={CARD}>
         <div className="px-5 py-4 flex items-center gap-2" style={{ borderBottom: '1px solid #2A2F3E' }}>
           <BookOpen className="w-4 h-4" style={{ color: '#1565C0' }} />
-          <h3 className="text-sm font-semibold text-gray-900">Planes de Estudio Activos</h3>
+          <h3 className="text-sm font-semibold" style={{ color: '#F1F5F9' }}>Planes de Estudio Activos</h3>
           <span className="ml-auto text-xs px-2 py-0.5 rounded-full" style={{ background: 'rgba(21,101,192,0.15)', color: '#42A5F5' }}>
             {planes.length} plan{planes.length !== 1 ? 'es' : ''}
           </span>
@@ -150,7 +150,7 @@ export default function ConfiguracionPage() {
             {planes.map(plan => (
               <div key={plan.id} className="flex items-center justify-between px-5 py-4 gap-4">
                 <div>
-                  <p className="text-sm font-semibold text-gray-900">{plan.nombre}</p>
+                  <p className="text-sm font-semibold" style={{ color: '#F1F5F9' }}>{plan.nombre}</p>
                   <p className="text-xs mt-0.5" style={{ color: '#94A3B8' }}>
                     {plan.duracion_meses} meses de duración
                   </p>
@@ -170,7 +170,7 @@ export default function ConfiguracionPage() {
       <div className="rounded-xl p-5 space-y-4" style={CARD}>
         <div className="flex items-center gap-2">
           <Info className="w-4 h-4" style={{ color: '#1565C0' }} />
-          <h3 className="text-sm font-semibold text-gray-900">Información del Sistema</h3>
+          <h3 className="text-sm font-semibold" style={{ color: '#F1F5F9' }}>Información del Sistema</h3>
         </div>
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
           {[

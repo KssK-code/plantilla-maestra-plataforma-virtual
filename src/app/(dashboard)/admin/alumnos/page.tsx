@@ -280,7 +280,7 @@ export default function AlumnosPage() {
                     {/* Info alumno */}
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-2 flex-wrap">
-                        <p className="font-semibold text-sm text-gray-900">
+                        <p className="font-semibold text-sm" style={{ color: '#F1F5F9' }}>
                           {a.nombre_completo}
                         </p>
                         {a.contactado_whatsapp && (
@@ -508,7 +508,7 @@ export default function AlumnosPage() {
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4" style={{ background: 'rgba(0,0,0,0.7)' }}>
           <div className="w-full max-w-md rounded-2xl p-6 shadow-2xl" style={CARD_STYLE}>
             <div className="flex items-center justify-between mb-5">
-              <h3 className="text-lg font-bold text-gray-900">Nuevo Alumno</h3>
+              <h3 className="text-lg font-bold" style={{ color: '#F1F5F9' }}>Nuevo Alumno</h3>
               <button
                 onClick={() => { setModalOpen(false); setFormError(null) }}
                 className="p-1.5 rounded-lg"

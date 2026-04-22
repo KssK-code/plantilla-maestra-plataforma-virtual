@@ -445,7 +445,7 @@ export default function MateriaPage() {
                   >
                     <span style={{ fontSize: '2.5rem', lineHeight: 1 }}>🎯</span>
                     <div className="space-y-1">
-                      <h3 className="text-base font-bold text-gray-900">
+                      <h3 className="text-base font-bold" style={{ color: '#F1F5F9' }}>
                         ¡Materia completada!
                       </h3>
                       <p className="text-sm" style={{ color: '#94A3B8' }}>
@@ -615,7 +615,7 @@ export default function MateriaPage() {
         <div className="space-y-4">
           {(materia.descripcion || materia.objetivo) && (
             <div className="rounded-xl p-5 space-y-2" style={CARD}>
-              <h3 className="text-sm font-semibold text-gray-900">Descripción</h3>
+              <h3 className="text-sm font-semibold" style={{ color: '#F1F5F9' }}>Descripción</h3>
               <p className="text-sm leading-relaxed" style={{ color: '#94A3B8' }}>
                 {materia.descripcion || materia.objetivo}
               </p>
@@ -623,7 +623,7 @@ export default function MateriaPage() {
           )}
           {materia.objetivo && materia.objetivo !== materia.descripcion && (
             <div className="rounded-xl p-5 space-y-2" style={CARD}>
-              <h3 className="text-sm font-semibold text-gray-900">Objetivo</h3>
+              <h3 className="text-sm font-semibold" style={{ color: '#F1F5F9' }}>Objetivo</h3>
               <p className="text-sm leading-relaxed" style={{ color: '#94A3B8' }}>{materia.objetivo}</p>
             </div>
           )}
@@ -635,7 +635,7 @@ export default function MateriaPage() {
             if (!haySemanas && !hayTemas) return null
             return (
               <div className="rounded-xl p-5 space-y-3" style={CARD}>
-                <h3 className="text-sm font-semibold text-gray-900">Plan de estudios</h3>
+                <h3 className="text-sm font-semibold" style={{ color: '#F1F5F9' }}>Plan de estudios</h3>
                 {haySemanas && (
                   <ol className="space-y-2">
                     {materia.semanas!.map(semana => (
@@ -666,7 +666,7 @@ export default function MateriaPage() {
 
           {materia.bibliografia?.length > 0 && (
             <div className="rounded-xl p-5 space-y-3" style={CARD}>
-              <h3 className="text-sm font-semibold text-gray-900">Bibliografía</h3>
+              <h3 className="text-sm font-semibold" style={{ color: '#F1F5F9' }}>Bibliografía</h3>
               <ul className="space-y-2">
                 {materia.bibliografia.map((bib, i) => {
                   const etiqueta = bib.tipo ? `${bib.titulo} (${bib.tipo})` : bib.titulo
@@ -697,7 +697,7 @@ export default function MateriaPage() {
 
           {glosario.length > 0 && (
             <div className="rounded-xl p-5 space-y-4" style={CARD}>
-              <h3 className="text-sm font-semibold text-gray-900">
+              <h3 className="text-sm font-semibold" style={{ color: '#F1F5F9' }}>
                 Glosario
               </h3>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
