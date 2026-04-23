@@ -176,14 +176,14 @@ export default function MateriaPage() {
 
   if (loading) return (
     <div className="flex items-center justify-center min-h-[400px]">
-      <Loader2 className="w-6 h-6 animate-spin" style={{ color: '#1565C0' }} />
+      <Loader2 className="w-6 h-6 animate-spin" style={{ color: '#1B2A6B' }} />
     </div>
   )
 
   if (error || !materia) return (
     <div className="flex flex-col items-center justify-center min-h-[400px] gap-3">
       <p className="text-sm" style={{ color: '#EF4444' }}>{error ?? 'Materia no encontrada'}</p>
-      <button onClick={() => router.back()} className="text-sm" style={{ color: '#1565C0' }}>Regresar</button>
+      <button onClick={() => router.back()} className="text-sm" style={{ color: '#1B2A6B' }}>Regresar</button>
     </div>
   )
 
@@ -209,10 +209,10 @@ export default function MateriaPage() {
         </button>
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2 flex-wrap">
-            <span className="font-mono text-xs px-2 py-0.5 rounded" style={{ background: 'rgba(21,101,192,0.15)', color: '#42A5F5' }}>
+            <span className="font-mono text-xs px-2 py-0.5 rounded" style={{ background: 'rgba(27,42,107,0.15)', color: '#C9A84C' }}>
               {materia.codigo}
             </span>
-            <div className="w-2 h-2 rounded-full" style={{ background: materia.color_hex || '#1565C0' }} />
+            <div className="w-2 h-2 rounded-full" style={{ background: materia.color_hex || '#1B2A6B' }} />
           </div>
           <h1 className="text-xl font-bold text-gray-900 mt-1">{materia.nombre}</h1>
         </div>
@@ -234,7 +234,7 @@ export default function MateriaPage() {
               {tab === tab_.key && (
                 <span
                   className="absolute bottom-0 left-0 right-0 h-0.5 rounded-full"
-                  style={{ background: '#1565C0' }}
+                  style={{ background: '#1B2A6B' }}
                 />
               )}
             </button>
@@ -286,7 +286,7 @@ export default function MateriaPage() {
                     <div className="rounded-xl p-5 space-y-4" style={CARD}>
                       {/* Header de la semana */}
                       <div className="pb-3" style={{ borderBottom: '1px solid #2A2F3E' }}>
-                        <span className="text-xs font-mono" style={{ color: '#1565C0' }}>
+                        <span className="text-xs font-mono" style={{ color: '#C9A84C' }}>
                           {materia.nivel === 'demo' ? `Paso ${semana.numero}` : `Semana ${semana.numero}`}
                         </span>
                         <h3 className="text-base font-bold mt-0.5" style={{ color: '#F1F5F9' }}>
@@ -330,13 +330,13 @@ export default function MateriaPage() {
                               li:     ({ children }) => <li className="leading-relaxed">{children}</li>,
                               blockquote: ({ children }) => (
                                 <blockquote className="pl-4 my-3 text-sm italic"
-                                  style={{ borderLeft: '3px solid rgba(21,101,192,0.4)', color: '#64748B' }}>
+                                  style={{ borderLeft: '3px solid rgba(27,42,107,0.4)', color: '#64748B' }}>
                                   {children}
                                 </blockquote>
                               ),
                               code: ({ children }) => (
                                 <code className="px-1.5 py-0.5 rounded text-xs font-mono"
-                                  style={{ background: 'rgba(21,101,192,0.12)', color: '#42A5F5' }}>
+                                  style={{ background: 'rgba(27,42,107,0.12)', color: '#C9A84C' }}>
                                   {children}
                                 </code>
                               ),
@@ -392,13 +392,13 @@ export default function MateriaPage() {
                             disabled={guardandoProgreso}
                             className="w-full py-3 rounded-lg text-sm font-semibold transition-all disabled:opacity-60"
                             style={{
-                              background: '#1565C0',
+                              background: '#1B2A6B',
                               color: '#fff',
                               border: 'none',
                               cursor: guardandoProgreso ? 'not-allowed' : 'pointer',
                             }}
-                            onMouseEnter={e => { if (!guardandoProgreso) (e.currentTarget as HTMLElement).style.background = '#1E88E5' }}
-                            onMouseLeave={e => { (e.currentTarget as HTMLElement).style.background = '#1565C0' }}
+                            onMouseEnter={e => { if (!guardandoProgreso) (e.currentTarget as HTMLElement).style.background = '#C9A84C' }}
+                            onMouseLeave={e => { (e.currentTarget as HTMLElement).style.background = '#1B2A6B' }}
                           >
                             {guardandoProgreso ? '⏳ Guardando...' : '✅ Marcar semana como completada'}
                           </button>
@@ -455,9 +455,9 @@ export default function MateriaPage() {
                     <button
                       onClick={() => setTab('examen')}
                       className="w-full py-2.5 rounded-lg text-sm font-semibold transition-all"
-                      style={{ background: '#1565C0', color: '#fff', border: 'none' }}
-                      onMouseEnter={e => { e.currentTarget.style.background = '#42A5F5' }}
-                      onMouseLeave={e => { e.currentTarget.style.background = '#1565C0' }}
+                      style={{ background: '#1B2A6B', color: '#fff', border: 'none' }}
+                      onMouseEnter={e => { e.currentTarget.style.background = '#C9A84C' }}
+                      onMouseLeave={e => { e.currentTarget.style.background = '#1B2A6B' }}
                     >
                       Ir al examen →
                     </button>
@@ -539,7 +539,7 @@ export default function MateriaPage() {
                         <span
                           key={term.id}
                           className="px-3 py-1 rounded-full text-xs font-medium"
-                          style={{ background: 'rgba(21,101,192,0.12)', color: '#42A5F5', border: '1px solid rgba(21,101,192,0.25)' }}
+                          style={{ background: 'rgba(27,42,107,0.12)', color: '#C9A84C', border: '1px solid rgba(27,42,107,0.25)' }}
                         >
                           {term.termino}
                         </span>
@@ -551,9 +551,9 @@ export default function MateriaPage() {
                 <button
                   onClick={ocultarGuia}
                   className="w-full py-2.5 rounded-lg text-sm font-semibold transition-all"
-                  style={{ background: '#1565C0', color: '#fff', border: 'none' }}
-                  onMouseEnter={e => { e.currentTarget.style.background = '#42A5F5' }}
-                  onMouseLeave={e => { e.currentTarget.style.background = '#1565C0' }}
+                  style={{ background: '#1B2A6B', color: '#fff', border: 'none' }}
+                  onMouseEnter={e => { e.currentTarget.style.background = '#C9A84C' }}
+                  onMouseLeave={e => { e.currentTarget.style.background = '#1B2A6B' }}
                 >
                   Ya estoy listo — comenzar examen →
                 </button>
@@ -596,9 +596,9 @@ export default function MateriaPage() {
                     <button
                       onClick={() => router.push(`/alumno/evaluacion/${ev.id}`)}
                       className="w-full py-3 rounded-lg text-sm font-semibold transition-all"
-                      style={{ background: '#1565C0', color: '#fff' }}
-                      onMouseEnter={e => { e.currentTarget.style.background = '#42A5F5' }}
-                      onMouseLeave={e => { e.currentTarget.style.background = '#1565C0' }}
+                      style={{ background: '#1B2A6B', color: '#fff' }}
+                      onMouseEnter={e => { e.currentTarget.style.background = '#C9A84C' }}
+                      onMouseLeave={e => { e.currentTarget.style.background = '#1B2A6B' }}
                     >
                       Presentar examen ({intentosRestantes} {intentosRestantes !== 1 ? 'intentos' : 'intento'} {intentosRestantes !== 1 ? 'disponibles' : 'disponible'})
                     </button>
@@ -640,7 +640,7 @@ export default function MateriaPage() {
                   <ol className="space-y-2">
                     {materia.semanas!.map(semana => (
                       <li key={semana.id} className="flex items-start gap-3 text-sm">
-                        <span className="flex-shrink-0 w-5 h-5 flex items-center justify-center rounded-full text-xs font-bold" style={{ background: 'rgba(21,101,192,0.15)', color: '#1565C0' }}>
+                        <span className="flex-shrink-0 w-5 h-5 flex items-center justify-center rounded-full text-xs font-bold" style={{ background: 'rgba(201,168,76,0.15)', color: '#C9A84C' }}>
                           {semana.numero}
                         </span>
                         <span style={{ color: '#94A3B8' }}>{semana.titulo}</span>
@@ -652,7 +652,7 @@ export default function MateriaPage() {
                   <ol className="space-y-2">
                     {temas.map((tema, i) => (
                       <li key={i} className="flex items-start gap-3 text-sm">
-                        <span className="flex-shrink-0 w-5 h-5 flex items-center justify-center rounded-full text-xs font-bold" style={{ background: 'rgba(21,101,192,0.15)', color: '#1565C0' }}>
+                        <span className="flex-shrink-0 w-5 h-5 flex items-center justify-center rounded-full text-xs font-bold" style={{ background: 'rgba(201,168,76,0.15)', color: '#C9A84C' }}>
                           {i + 1}
                         </span>
                         <span style={{ color: '#94A3B8' }}>{tema}</span>
@@ -672,16 +672,16 @@ export default function MateriaPage() {
                   const etiqueta = bib.tipo ? `${bib.titulo} (${bib.tipo})` : bib.titulo
                   return (
                     <li key={i} className="flex items-start gap-2">
-                      <span className="mt-1.5 w-1.5 h-1.5 rounded-full flex-shrink-0" style={{ background: '#1565C0' }} />
+                      <span className="mt-1.5 w-1.5 h-1.5 rounded-full flex-shrink-0" style={{ background: '#C9A84C' }} />
                       {bib.url ? (
                         <a
                           href={bib.url}
                           target="_blank"
                           rel="noopener noreferrer"
                           className="text-sm transition-colors"
-                          style={{ color: '#1565C0' }}
-                          onMouseEnter={e => { e.currentTarget.style.color = '#42A5F5' }}
-                          onMouseLeave={e => { e.currentTarget.style.color = '#1565C0' }}
+                          style={{ color: '#60A5FA' }}
+                          onMouseEnter={e => { e.currentTarget.style.color = '#C9A84C' }}
+                          onMouseLeave={e => { e.currentTarget.style.color = '#60A5FA' }}
                         >
                           {etiqueta}
                         </a>
@@ -706,14 +706,14 @@ export default function MateriaPage() {
                     key={term.id}
                     className="px-4 py-3 rounded-lg space-y-1"
                     style={{
-                      background: 'rgba(21,101,192,0.04)',
-                      borderLeft: '3px solid rgba(21,101,192,0.4)',
+                      background: 'rgba(27,42,107,0.04)',
+                      borderLeft: '3px solid rgba(27,42,107,0.4)',
                       border: '1px solid #2A2F3E',
                       borderLeftWidth: '3px',
-                      borderLeftColor: 'rgba(21,101,192,0.5)',
+                      borderLeftColor: 'rgba(27,42,107,0.5)',
                     }}
                   >
-                    <p className="text-sm font-semibold" style={{ color: '#42A5F5' }}>
+                    <p className="text-sm font-semibold" style={{ color: '#C9A84C' }}>
                       {term.termino}
                     </p>
                     <p className="text-xs leading-relaxed" style={{ color: '#94A3B8' }}>
