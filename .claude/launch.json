@@ -2,6 +2,12 @@
   "version": "0.0.1",
   "configurations": [
     {
+      "name": "CJVB Dev (puerto 3011)",
+      "runtimeExecutable": "npm",
+      "runtimeArgs": ["run", "dev", "--", "-p", "3011"],
+      "port": 3011
+    },
+    {
       "name": "Next.js Dev (puerto 3010)",
       "runtimeExecutable": "npm",
       "runtimeArgs": ["run", "dev", "--", "-p", "3010"],
