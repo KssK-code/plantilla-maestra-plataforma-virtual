@@ -21,6 +21,7 @@ interface DatosConstancia {
   nombre: string
   apellidos: string
   matricula: string
+  nivel?: string | null
   plan_nombre: string
   meses_desbloqueados: number
   duracion_meses: number
@@ -160,7 +161,13 @@ export default function ConstanciaPage() {
                   fontSize: 8, letterSpacing: '0.12em', color: '#94a3b8', fontWeight: 400,
                   borderTop: '1px solid #e2e8f0', paddingTop: 4, marginTop: 5,
                 }}>
-                  Preparatoria &nbsp;•&nbsp; Secundaria
+                  {datos.nivel === 'excel'
+                    ? 'Curso Excel + IA + Copilot'
+                    : datos.nivel === 'preparatoria'
+                    ? 'Preparatoria'
+                    : datos.nivel === 'secundaria'
+                    ? 'Secundaria'
+                    : 'Preparatoria\u00A0•\u00A0Secundaria'}
                 </span>
               </div>
             </div>
@@ -233,7 +240,11 @@ export default function ConstanciaPage() {
               con matrícula{' '}
               <strong style={{ color: '#0f172a', fontWeight: 600 }}>{datos.matricula}</strong>,{' '}
               está inscrito en el programa{' '}
-              <strong style={{ color: '#0f172a', fontWeight: 600 }}>{datos.plan_nombre}</strong>{' '}
+              <strong style={{ color: '#0f172a', fontWeight: 600 }}>
+                {datos.nivel === 'excel'
+                  ? 'Curso Excel + IA + Copilot'
+                  : datos.plan_nombre}
+              </strong>{' '}
               {` de ${CONFIG.nombre}.`}
             </p>
 

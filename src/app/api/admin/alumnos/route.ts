@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { createAdminClient } from '@/lib/supabase/admin'
+import { CONFIG } from '@/lib/config'
 
 // ─── Verificar rol ADMIN (normaliza mayúsculas) ───────────────────────────────
 async function checkAdmin(userId: string): Promise<boolean> {
@@ -60,7 +61,7 @@ export async function GET() {
         const u = Array.isArray(a.usuarios) ? a.usuarios[0] : a.usuarios
         return {
           id:                   a.id,
-          matricula:            a.matricula ?? 'IVS-0000',
+          matricula:            a.matricula ?? `${CONFIG.nombre}-0000`,
           nivel:                a.nivel ?? null,
           modalidad:            a.modalidad ?? '6_meses',
           sindicalizado:        a.sindicalizado ?? false,
@@ -114,7 +115,7 @@ export async function GET() {
         const u = Array.isArray(a.usuarios) ? a.usuarios[0] : a.usuarios
         return {
           id:                   a.id,
-          matricula:            a.matricula ?? 'IVS-0000',
+          matricula:            a.matricula ?? `${CONFIG.nombre}-0000`,
           nivel:                a.nivel ?? null,
           modalidad:            a.modalidad ?? '6_meses',
           sindicalizado:        a.sindicalizado ?? false,
@@ -155,7 +156,7 @@ export async function GET() {
         .single()
       resultFallback.push({
         id:                   a.id,
-        matricula:            a.matricula ?? 'IVS-0000',
+        matricula:            a.matricula ?? `${CONFIG.nombre}-0000`,
         nivel:                a.nivel ?? null,
         modalidad:            a.modalidad ?? '6_meses',
         sindicalizado:        a.sindicalizado ?? false,
@@ -197,8 +198,8 @@ export async function POST(request: NextRequest) {
     if (!nombre || !email || !password) {
       return NextResponse.json({ error: 'nombre, email y password son requeridos' }, { status: 400 })
     }
-    if (!nivel || !['secundaria', 'preparatoria'].includes(nivel)) {
-      return NextResponse.json({ error: 'nivel es requerido (secundaria o preparatoria)' }, { status: 400 })
+    if (!nivel || !['secundaria', 'preparatoria', 'excel'].includes(nivel)) {
+      return NextResponse.json({ error: 'nivel es requerido (secundaria, preparatoria o excel)' }, { status: 400 })
     }
 
     const admin = createAdminClient()
@@ -220,10 +221,20 @@ export async function POST(request: NextRequest) {
     const newUserId = authData.user.id
     const year      = new Date().getFullYear()
     const rand      = String(Math.floor(1 + Math.random() * 9999)).padStart(4, '0')
-    const matricula = `CJVB-${year}-${rand}`
+    const matricula = `${CONFIG.nombre}-${year}-${rand}`
 
-    // Insertar en usuarios
-    await admin.from('usuarios').insert({ id: newUserId, nombre, apellidos, email, rol: 'ALUMNO' })
+    // Upsert en usuarios — upsert porque un trigger de Auth puede haberla creado ya sin nombre
+    const { error: usuarioError } = await admin
+      .from('usuarios')
+      .upsert(
+        { id: newUserId, nombre, apellidos, email, rol: 'ALUMNO' },
+        { onConflict: 'id' }
+      )
+
+    if (usuarioError) {
+      await admin.auth.admin.deleteUser(newUserId)
+      return NextResponse.json({ error: usuarioError.message }, { status: 500 })
+    }
 
     // Insertar en alumnos (nivel + modalidad obligatorios)
     const { data: alumnoData, error: alumnoError } = await admin
@@ -231,7 +242,7 @@ export async function POST(request: NextRequest) {
       .insert({
         id:                  newUserId,
         matricula,
-        nivel:               nivel as 'secundaria' | 'preparatoria',
+        nivel:               nivel as 'secundaria' | 'preparatoria' | 'excel',
         modalidad:           modalidad ?? '6_meses',
         meses_desbloqueados: 0,
       })
@@ -243,7 +254,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: alumnoError.message }, { status: 500 })
     }
 
-    return NextResponse.json(alumnoData, { status: 201 })
+    return NextResponse.json({ ...alumnoData, matricula }, { status: 201 })
   } catch (err) {
     console.error('[POST /api/admin/alumnos]', err)
     return NextResponse.json({ error: 'Error interno del servidor' }, { status: 500 })

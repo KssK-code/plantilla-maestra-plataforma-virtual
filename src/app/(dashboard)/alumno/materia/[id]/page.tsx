@@ -14,7 +14,6 @@ import SemanaQuiz from '@/components/alumno/SemanaQuiz'
 import NotasPersonales from '@/components/alumno/NotasPersonales'
 import gsap from 'gsap'
 import { useGSAP } from '@gsap/react'
-import ReactMarkdown from 'react-markdown'
 
 gsap.registerPlugin(useGSAP)
 
@@ -311,40 +310,12 @@ export default function MateriaPage() {
                         })()}
                       </div>
 
-                      {/* Contenido — markdown (sin sección "Videos recomendados") */}
+                      {/* Contenido — HTML renderizado */}
                       {contenidoSemana && (
-                        <div className="prose prose-sm max-w-none" style={{
-                          color: '#94A3B8',
-                          lineHeight: '1.75',
-                        }}>
-                          <ReactMarkdown
-                            components={{
-                              p:      ({ children }) => <p className="mb-3 text-sm leading-relaxed" style={{ color: '#94A3B8' }}>{children}</p>,
-                              strong: ({ children }) => <strong style={{ color: '#F1F5F9', fontWeight: 600 }}>{children}</strong>,
-                              em:     ({ children }) => <em style={{ color: '#CBD5E1' }}>{children}</em>,
-                              h1:     ({ children }) => <h1 className="text-base font-bold mt-4 mb-2" style={{ color: '#F1F5F9' }}>{children}</h1>,
-                              h2:     ({ children }) => <h2 className="text-sm font-bold mt-3 mb-1.5" style={{ color: '#F1F5F9' }}>{children}</h2>,
-                              h3:     ({ children }) => <h3 className="text-sm font-semibold mt-2 mb-1" style={{ color: '#E2E8F0' }}>{children}</h3>,
-                              ul:     ({ children }) => <ul className="list-disc list-inside space-y-1 mb-3 text-sm" style={{ color: '#94A3B8' }}>{children}</ul>,
-                              ol:     ({ children }) => <ol className="list-decimal list-inside space-y-1 mb-3 text-sm" style={{ color: '#94A3B8' }}>{children}</ol>,
-                              li:     ({ children }) => <li className="leading-relaxed">{children}</li>,
-                              blockquote: ({ children }) => (
-                                <blockquote className="pl-4 my-3 text-sm italic"
-                                  style={{ borderLeft: '3px solid rgba(27,42,107,0.4)', color: '#64748B' }}>
-                                  {children}
-                                </blockquote>
-                              ),
-                              code: ({ children }) => (
-                                <code className="px-1.5 py-0.5 rounded text-xs font-mono"
-                                  style={{ background: 'rgba(27,42,107,0.12)', color: '#C9A84C' }}>
-                                  {children}
-                                </code>
-                              ),
-                            }}
-                          >
-                            {contenidoSemana.replace(/(\n|^)(#{1,3} )?(\*\*)?Videos recomendados(\*\*)?:?[\s\S]*$/i, '')}
-                          </ReactMarkdown>
-                        </div>
+                        <div
+                          className="prose prose-invert max-w-none"
+                          dangerouslySetInnerHTML={{ __html: contenidoSemana }}
+                        />
                       )}
 
                       {/* Videos — embebidos (YouTube iframe) */}

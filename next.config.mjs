@@ -6,6 +6,7 @@ const nextConfig = {
   typescript: {
     ignoreBuildErrors: true,
   },
+  transpilePackages: ['framer-motion', 'motion'],
   allowedDevOrigins: ['127.0.0.1', 'localhost'],
   images: {
     remotePatterns: [
