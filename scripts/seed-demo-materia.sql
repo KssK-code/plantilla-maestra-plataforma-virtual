@@ -1,8 +1,7 @@
 -- ============================================================
---  IVS Virtual — Materia Demo: Tutoría de Ingreso I
+--  Materia Demo: Tutoría de Ingreso I
 --  Ejecutado el: 2026-04-02
---  Estado: YA APLICADO en producción (xxfwcnroshgirbdquffh)
---  Este archivo es solo referencia / re-aplicar si se pierde la BD
+--  Estado: YA APLICADO — referencia histórica, re-aplicar si se pierde la BD
 -- ============================================================
 
 -- ── 1. ACTUALIZAR MATERIA DEMO ───────────────────────────────────────────────

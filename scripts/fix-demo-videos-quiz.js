@@ -1,7 +1,11 @@
+require('dotenv').config({ path: '.env.local' })
 const https = require('https');
 
-const SVCKEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inh4ZndjbnJvc2hnaXJiZHF1ZmZoIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc3NTA3MTgyMCwiZXhwIjoyMDkwNjQ3ODIwfQ.Fo4YhCH6a5rin7fdc5SlFrPn8Xx_KSoX94o14Kfw3Vw";
-const HOST = "xxfwcnroshgirbdquffh.supabase.co";
+const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL
+const SVCKEY = process.env.SUPABASE_SERVICE_ROLE_KEY
+if (!SUPABASE_URL) throw new Error('NEXT_PUBLIC_SUPABASE_URL no definida en .env.local')
+if (!SVCKEY) throw new Error('SUPABASE_SERVICE_ROLE_KEY no definida en .env.local')
+const HOST = new URL(SUPABASE_URL).hostname
 
 function api(method, path, body) {
   return new Promise((resolve, reject) => {

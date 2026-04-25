@@ -1,10 +1,10 @@
 /**
- * update-videos.mjs — IVS Virtual
+ * update-videos.mjs
  * Busca el mejor video de YouTube (en español/MX) para cada semana
  * y actualiza video_url directamente en Supabase via REST API.
  *
- * Diferencias vs EDVEX original:
- *   - IVS usa video_url (string) en vez de videos[] (JSONB)
+ * Notas:
+ *   - Usa video_url (string) en vez de videos[] (JSONB)
  *   - Join: semanas → meses_contenido → materias (no FK directa)
  *   - Aplica cambios directo via REST PATCH (no genera SQL)
  *   - Agrega regionCode=MX para resultados en español
@@ -20,12 +20,17 @@
  */
 
 import https from 'https'
+import { config } from 'dotenv'
+config({ path: '.env.local' })
 
 // ── Credenciales ──────────────────────────────────────────────────────────────
-const DEFAULT_YOUTUBE_API_KEY = 'AIzaSyC7-byoIitePLaQVTj1yCmKoJ_zgUEqW0Q'
-const SUPABASE_HOST    = 'xxfwcnroshgirbdquffh.supabase.co'
-const SUPABASE_SVC_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inh4ZndjbnJvc2hnaXJiZHF1ZmZoIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc3NTA3MTgyMCwiZXhwIjoyMDkwNjQ3ODIwfQ.Fo4YhCH6a5rin7fdc5SlFrPn8Xx_KSoX94o14Kfw3Vw'
-const DELAY_MS         = 300  // 300 ms entre búsquedas → ~200/min máx
+const _supabaseUrl     = process.env.NEXT_PUBLIC_SUPABASE_URL
+const SUPABASE_SVC_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY
+const DEFAULT_YOUTUBE_API_KEY = process.env.YOUTUBE_API_KEY ?? ''
+if (!_supabaseUrl)     throw new Error('NEXT_PUBLIC_SUPABASE_URL no definida en .env.local')
+if (!SUPABASE_SVC_KEY) throw new Error('SUPABASE_SERVICE_ROLE_KEY no definida en .env.local')
+const SUPABASE_HOST = new URL(_supabaseUrl).hostname
+const DELAY_MS      = 300  // 300 ms entre búsquedas → ~200/min máx
 
 // ── CLI args ──────────────────────────────────────────────────────────────────
 const nivelArg = (() => {
