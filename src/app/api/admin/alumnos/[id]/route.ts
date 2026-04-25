@@ -3,6 +3,7 @@ import { createClient } from '@/lib/supabase/server'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { verifyAdmin } from '@/lib/supabase/verify-admin'
 import { getMesesByModalidad, getDefaultModalidadId } from '@/lib/modalidades'
+import { CONFIG } from '@/lib/config'
 
 export async function GET(
   _request: NextRequest,
@@ -69,7 +70,7 @@ export async function GET(
 
     return NextResponse.json({
       id:                  a.id,
-      matricula:           a.matricula ?? 'CJVB-0000',
+      matricula:           a.matricula ?? `${CONFIG.prefijoMatricula}-0000`,
       nivel:               a.nivel ?? null,
       modalidad:           (a.modalidad as string | null) ?? getDefaultModalidadId(),
       duracion_meses:      duracion,

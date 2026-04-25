@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
+import { CONFIG } from '@/lib/config'
 
 function buildNombre(nombre?: string | null, apellidos?: string | null, fallback?: string | null) {
   return [nombre, apellidos].filter(Boolean).join(' ') || fallback || 'Alumno'
@@ -39,7 +40,7 @@ export async function GET() {
 
       return NextResponse.json({
         id:                  a.id,
-        matricula:           a.matricula ?? 'CJVB-0000',
+        matricula:           a.matricula ?? `${CONFIG.prefijoMatricula}-0000`,
         meses_desbloqueados: a.meses_desbloqueados ?? 0,
         inscripcion_pagada:  a.inscripcion_pagada ?? false,
         nivel:               a.nivel ?? null,
@@ -90,7 +91,7 @@ export async function GET() {
 
       return NextResponse.json({
         id:                  a.id,
-        matricula:           a.matricula ?? 'CJVB-0000',
+        matricula:           a.matricula ?? `${CONFIG.prefijoMatricula}-0000`,
         meses_desbloqueados: a.meses_desbloqueados ?? 0,
         inscripcion_pagada:  a.inscripcion_pagada ?? false,
         nivel:               a.nivel ?? null,
@@ -121,7 +122,7 @@ export async function GET() {
 
     return NextResponse.json({
       id:                  user.id,
-      matricula:           'CJVB-0000',
+      matricula:           `${CONFIG.prefijoMatricula}-0000`,
       meses_desbloqueados: 0,
       inscripcion_pagada:  false,
       nivel:               null,
