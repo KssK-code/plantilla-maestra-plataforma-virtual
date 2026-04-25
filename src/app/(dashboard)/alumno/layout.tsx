@@ -1,7 +1,9 @@
 import { redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
 import { DashboardLayout } from '@/components/layout/dashboard-layout'
-import PageTransition from '@/components/ui/PageTransition'
+import dynamic from 'next/dynamic'
+
+const PageTransition = dynamic(() => import('@/components/ui/PageTransition'), { ssr: false })
 
 export default async function AlumnoLayout({
   children,

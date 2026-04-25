@@ -55,18 +55,20 @@ export async function GET(
 
     const { data: matRow } = await supabase
       .from('materias')
-      .select('nivel')
+      .select('nivel, nombre')
       .eq('id', ev.materia_id ?? '')
       .maybeSingle()
 
-    const nivelMat = (matRow as { nivel?: string } | null)?.nivel
-    const esDemo   = nivelMat === 'demo'
+    const nivelMat   = (matRow as { nivel?: string; nombre?: string } | null)?.nivel
+    const nombreMat  = (matRow as { nivel?: string; nombre?: string } | null)?.nombre ?? ''
+    const esDemo     = nivelMat === 'demo'
+    const esTutorial = nombreMat.toLowerCase().includes('tutor')
 
-    if (!esDemo && ev.materia_id && nivelMat && nivelMat !== alumno.nivel) {
+    if (!esDemo && !esTutorial && ev.materia_id && nivelMat && nivelMat !== alumno.nivel) {
       return NextResponse.json({ error: 'No tienes acceso a esta evaluación' }, { status: 403 })
     }
 
-    if (!esDemo) {
+    if (!esDemo && !esTutorial) {
       if (alumno.meses_desbloqueados <= 0) {
         return NextResponse.json({ error: 'No tienes acceso a esta evaluación' }, { status: 403 })
       }

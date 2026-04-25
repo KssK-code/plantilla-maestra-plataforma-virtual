@@ -49,8 +49,10 @@ export async function GET(
     }
 
     // ── 3. Control de acceso ──────────────────────────────────────────────────
-    // Demo: siempre. Mismo nivel: según meses desbloqueados × materias por mes (3m→4, 6m→2).
-    if (materia.nivel === 'demo') {
+    // Demo: siempre. Tutorial (nombre contiene 'tutor'): siempre.
+    // Mismo nivel: según meses desbloqueados × materias por mes (3m→4, 6m→2).
+    const esTutorial = materia.nombre.toLowerCase().includes('tutor')
+    if (materia.nivel === 'demo' || esTutorial) {
       // permitir
     } else if (materia.nivel !== alumno.nivel) {
       return Response.json({ error: 'Esta materia no corresponde a tu nivel' }, { status: 403 })

@@ -175,28 +175,28 @@ async function upsertCalificacion(
   alumnoId: string,
   semanaId: string,
   respuestas: Record<string, number>
-) {
+): Promise<{ ok: boolean; motivo?: string; materia_id?: string; acreditado?: boolean; correctas?: number; total?: number }> {
   // semana → mes → materia
-  const { data: semana } = await supabase
+  const { data: semana, error: semanaErr } = await supabase
     .from('semanas')
     .select('mes_id')
     .eq('id', semanaId)
     .maybeSingle()
-  if (!semana?.mes_id) return
+  if (semanaErr || !semana?.mes_id) return { ok: false, motivo: `semana sin mes_id semanaErr=${semanaErr?.message}` }
 
-  const { data: mes } = await supabase
+  const { data: mes, error: mesErr } = await supabase
     .from('meses_contenido')
     .select('materia_id')
     .eq('id', semana.mes_id)
     .maybeSingle()
-  if (!mes?.materia_id) return
+  if (mesErr || !mes?.materia_id) return { ok: false, motivo: `mes sin materia_id mesErr=${mesErr?.message}` }
 
   // calificar
-  const { data: preguntas } = await supabase
+  const { data: preguntas, error: pregErr } = await supabase
     .from('quiz_semana')
     .select('id, respuesta_correcta')
     .eq('semana_id', semanaId)
-  if (!preguntas?.length) return
+  if (pregErr || !preguntas?.length) return { ok: false, motivo: `sin preguntas pregErr=${pregErr?.message}` }
 
   let correctas = 0
   for (const p of preguntas) {
@@ -208,23 +208,27 @@ async function upsertCalificacion(
   // adminClient para bypasear RLS en escrituras (política solo permite admin)
   const admin = createAdminClient()
 
-  const { data: existing } = await admin
+  const { data: existing, error: existErr } = await admin
     .from('calificaciones')
     .select('id, acreditado')
     .eq('alumno_id', alumnoId)
     .eq('materia_id', mes.materia_id)
     .maybeSingle()
 
+  if (existErr) return { ok: false, motivo: `error leyendo calificaciones: ${existErr.message}` }
+
   if (existing) {
     const row = existing as { id: string; acreditado: boolean }
     if (!row.acreditado && acreditado) {
-      await admin
+      const { error: updErr } = await admin
         .from('calificaciones')
         .update({ acreditado: true, fecha_acreditacion: new Date().toISOString() })
         .eq('id', row.id)
+      return { ok: !updErr, motivo: updErr?.message, materia_id: mes.materia_id, acreditado, correctas, total: preguntas.length }
     }
+    return { ok: true, motivo: 'ya existe, sin cambio', materia_id: mes.materia_id, acreditado: row.acreditado, correctas, total: preguntas.length }
   } else {
-    await admin.from('calificaciones').upsert(
+    const { error: upsErr } = await admin.from('calificaciones').upsert(
       {
         alumno_id: alumnoId,
         materia_id: mes.materia_id,
@@ -233,6 +237,7 @@ async function upsertCalificacion(
       },
       { onConflict: 'alumno_id,materia_id' }
     )
+    return { ok: !upsErr, motivo: upsErr?.message, materia_id: mes.materia_id, acreditado, correctas, total: preguntas.length }
   }
 }
 
@@ -367,7 +372,9 @@ export async function POST(
 
     const jsonb = await saveRespuestasJsonb(supabase, alumnoId, semanaId, respuestas)
     if (!jsonb.error) {
-      await upsertCalificacion(supabase, alumnoId, semanaId, respuestas)
+      console.log('[quiz POST] jsonb OK, iniciando upsertCalificacion semana:', semanaId)
+      const califResult = await upsertCalificacion(supabase, alumnoId, semanaId, respuestas)
+      console.log('[quiz POST] upsertCalificacion resultado:', JSON.stringify(califResult))
       return NextResponse.json({ ok: true })
     }
 
@@ -390,7 +397,9 @@ export async function POST(
       return NextResponse.json({ error: 'Error al guardar respuestas' }, { status: 500 })
     }
 
-    await upsertCalificacion(supabase, alumnoId, semanaId, respuestas)
+    console.log('[quiz POST] legacy OK, iniciando upsertCalificacion semana:', semanaId)
+    const califResult2 = await upsertCalificacion(supabase, alumnoId, semanaId, respuestas)
+    console.log('[quiz POST] upsertCalificacion resultado:', JSON.stringify(califResult2))
     return NextResponse.json({ ok: true })
   } catch (e) {
     console.error('[quiz POST]', e)

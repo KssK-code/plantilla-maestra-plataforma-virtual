@@ -138,21 +138,46 @@ export async function POST(
       return NextResponse.json({ error: intentoError.message }, { status: 500 })
     }
 
-    if (acreditado && ev.materia_id) {
+    if (ev.materia_id) {
       const admin = createAdminClient()
-      const { error: califErr } = await admin.from('calificaciones').upsert(
-        {
+      console.log('[evaluacion/enviar] actualizando calificacion materia:', ev.materia_id, 'acreditado:', acreditado)
+
+      const { data: existingCalif, error: califCheckErr } = await admin
+        .from('calificaciones')
+        .select('id, acreditado')
+        .eq('alumno_id', alumno.id)
+        .eq('materia_id', ev.materia_id)
+        .maybeSingle()
+
+      if (califCheckErr) {
+        console.error('[evaluacion/enviar] calificaciones check falló:', califCheckErr.message)
+      } else if (!existingCalif) {
+        const { error: califInsErr } = await admin.from('calificaciones').insert({
           alumno_id:          alumno.id,
           materia_id:         ev.materia_id,
           evaluacion_id:      params.id,
-          acreditado:         true,
-          fecha_acreditacion: new Date().toISOString(),
-        },
-        { onConflict: 'alumno_id,materia_id' }
-      )
-      if (califErr) {
-        // No abortar: el intento ya fue guardado. Solo registrar para diagnóstico.
-        console.error('[evaluacion/enviar] calificaciones upsert falló:', califErr.code, califErr.message)
+          acreditado,
+          fecha_acreditacion: acreditado ? new Date().toISOString() : null,
+        })
+        if (califInsErr) {
+          console.error('[evaluacion/enviar] calificaciones insert falló:', califInsErr.code, califInsErr.message)
+        } else {
+          console.log('[evaluacion/enviar] calificaciones insert OK acreditado:', acreditado)
+        }
+      } else {
+        const row = existingCalif as { id: string; acreditado: boolean }
+        if (!row.acreditado && acreditado) {
+          const { error: califUpdErr } = await admin.from('calificaciones')
+            .update({ acreditado: true, evaluacion_id: params.id, fecha_acreditacion: new Date().toISOString() })
+            .eq('id', row.id)
+          if (califUpdErr) {
+            console.error('[evaluacion/enviar] calificaciones update falló:', califUpdErr.code, califUpdErr.message)
+          } else {
+            console.log('[evaluacion/enviar] calificaciones actualizada a acreditado: true')
+          }
+        } else {
+          console.log('[evaluacion/enviar] calificaciones sin cambio, acreditado existente:', row.acreditado)
+        }
       }
     }
 
