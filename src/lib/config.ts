@@ -1,86 +1,100 @@
 export const CONFIG = {
-  nombre: 'CJVB',
-  nombreCompleto: 'CJVB Académico',
-  logo: '/logo-cjvb.png',
-  logoOscuro: '/logo-cliente-dark.png',
+  // === IDENTIDAD DEL CLIENTE ===
+  nombre:          'MEV',                    // nombre corto: 'IVS', 'CJVB', 'ADE'
+  nombreCompleto:  'Mi Escuela Virtual',     // nombre completo legal
+  prefijoMatricula:'MEV',                    // prefijo de matrícula: 'IVS-0001', 'CJVB-0001'
+  tagline:         'Tu certificado oficial desde casa',  // subtítulo hero
 
-  whatsapp: '2212312340',
-  whatsappUrl: 'https://wa.me/522212312340',
-  email: 'cjbvacademico@outlook.com',
+  // === ASSETS ===
+  logo:            '/logo.png',              // logo principal (público)
+  logoOscuro:      '/logo.png',              // logo para fondo oscuro
 
-  dominio: 'cjvbacademico.online',
-  urlBase: 'https://cjvbacademico.online',
+  // === CONTACTO ===
+  whatsapp:        '5212345678901',
+  whatsappUrl:     'https://wa.me/5212345678901',
+  whatsappDisplay: '521 234-567-8901',         // formato legible para UI
+  email:           'contacto@mev.com',
+  contactoEmail:   'contacto@mev.com',         // alias para footer y perfil
+  contactoTelefono:'5212345678901',            // número completo para wa.me
 
+  // === DOMINIO ===
+  dominio:         'mev-edu.online',
+  urlBase:         'https://mev-edu.online',
+
+  // === BRANDING (cliente personaliza con sus colores) ===
   colores: {
-    primario: '#1565C0',
-    secundario: '#0D47A1',
-    acento: '#1E88E5',
-    acentoClaro: '#BBDEFB',
-    texto: '#1A1A2E',
-    fondo: '#F8F9FF',
+    primario:    '#0F172A',  // slate-900 — neutro, cliente cambia
+    secundario:  '#1E293B',  // slate-800
+    acento:      '#3B82F6',  // blue-500 — neutro, cliente cambia
+    acentoClaro: '#DBEAFE',  // blue-100
+    texto:       '#0F172A',
+    fondo:       '#F8FAFC',  // slate-50
   },
 
+  // === NIVELES ACADÉMICOS ===
   niveles: ['secundaria', 'preparatoria'] as const,
 
+  // === MODALIDADES (cliente activa/desactiva) ===
+  // Si solo 3 meses: poner activa:false en 6meses
+  // Si solo 6 meses: poner activa:false en 3meses
+  // Si ambas: ambas activa:true
+  modalidades: [
+    { id: '3meses', label: '3 meses — Express',  meses: 3, mensualidad: 2000, activa: true  },
+    { id: '6meses', label: '6 meses — Estándar', meses: 6, mensualidad: 1000, activa: true  },
+  ] as const,
+
+  // === PRECIOS ===
   precios: {
-    inscripcion: 599,
-    plan6mMensualidad: 1000,
-    plan3mMensualidad: 2000,
-    certificacionSecundaria: 4900,
-    certificacionPreparatoria: 5900,
-    preparatoria_6meses_normal: 1000,
+    inscripcion:                       599,
+    plan6mMensualidad:                 1000,
+    plan3mMensualidad:                 2000,
+    certificacionSecundaria:           4900,
+    certificacionPreparatoria:         5900,
+    preparatoria_6meses_normal:        1000,
     preparatoria_6meses_sindicalizado: 1000,
-    preparatoria_3meses_normal: 2000,
+    preparatoria_3meses_normal:        2000,
     preparatoria_3meses_sindicalizado: 2000,
-    secundaria_6meses_normal: 1000,
-    secundaria_6meses_sindicalizado: 1000,
-    secundaria_3meses_normal: 2000,
-    secundaria_3meses_sindicalizado: 2000,
-    certificacion_preparatoria: 5900,
-    certificacion_secundaria: 4900,
+    secundaria_6meses_normal:          1000,
+    secundaria_6meses_sindicalizado:   1000,
+    secundaria_3meses_normal:          2000,
+    secundaria_3meses_sindicalizado:   2000,
+    certificacion_preparatoria:        5900,
+    certificacion_secundaria:          4900,
   },
 
+  // === DOCUMENTOS REQUERIDOS POR NIVEL ===
   documentosRequeridos: {
-    secundaria: [
-      'Certificado de Primaria',
-      'CURP',
-      'Acta de Nacimiento',
-      'Identificación Oficial',
-      'Foto de Perfil (fondo blanco)',
-    ],
-    preparatoria: [
-      'Certificado de Secundaria',
-      'CURP',
-      'Acta de Nacimiento',
-      'Identificación Oficial',
-      'Foto de Perfil (fondo blanco)',
-    ],
+    secundaria:   ['Certificado de Primaria', 'CURP', 'Acta de Nacimiento', 'Identificación Oficial', 'Foto de Perfil (fondo blanco)'],
+    preparatoria: ['Certificado de Secundaria', 'CURP', 'Acta de Nacimiento', 'Identificación Oficial', 'Foto de Perfil (fondo blanco)'],
   },
 
+  // === LANDING ===
   landing: {
-    hero_titulo: 'Obtén tu certificado oficial',
-    hero_highlight: 'desde casa',
-    hero_subtitulo: 'Estudia Secundaria o Preparatoria en línea con validez oficial SEP. Avanza a tu ritmo desde Puebla.',
-    hero_badges: ['SEP Oficial', 'Sin salir de casa', 'Puebla, México'],
-    años_experiencia: 5,
-    convenios: [],
-    respaldo_titulo: 'Respaldados por instituciones educativas de confianza',
-    respaldo_badges: [],
-    certificacion_secundaria: 4900,
+    hero_titulo:                'Obtén tu certificado oficial',
+    hero_highlight:             'desde casa',
+    hero_subtitulo:             'Estudia Secundaria o Preparatoria en línea con validez oficial SEP. Avanza a tu ritmo.',
+    hero_badges:                ['SEP Oficial', 'Sin salir de casa', '100% en línea'],
+    años_experiencia:           5,
+    convenios:                  [],
+    respaldo_titulo:            'Respaldados por instituciones educativas de confianza',
+    respaldo_badges:            [],
+    certificacion_secundaria:   4900,
     certificacion_preparatoria: 5900,
-    cct: '',
+    cct:                        '',
   },
 
   cct: '',
 
   redes: {
-    facebook: '',
+    facebook:  '',
     instagram: '',
   },
 } as const
 
+// === COMPATIBILIDAD ===
 export const ESCUELA_CONFIG = CONFIG
 export const config = CONFIG
 export default CONFIG
 
 export type Nivel = typeof CONFIG.niveles[number]
+export type Modalidad = typeof CONFIG.modalidades[number]
