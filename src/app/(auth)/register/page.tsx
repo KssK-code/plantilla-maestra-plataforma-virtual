@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import Link from 'next/link'
 import Image from 'next/image'
 import { useRouter } from 'next/navigation'
@@ -196,6 +196,8 @@ export default function RegisterPage() {
   const [modalidad,       setModalidad]       = useState('')
   const [error,           setError]           = useState<string | null>(null)
   const [loading,         setLoading]         = useState(false)
+
+  useEffect(() => { setModalidad('') }, [nivel])
 
   // Derive current progress step
   const filledStep1 = !!(nombre && apellidoPat && apellidoMat && telefono)
@@ -405,7 +407,7 @@ export default function RegisterPage() {
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-3">
                 <div>
                   <Label text="Nivel educativo" required />
-                  <select value={nivel} onChange={e => setNivel(e.target.value)} required
+                  <select value={nivel} onChange={e => { setNivel(e.target.value); setModalidad('') }} required
                     style={selectStyle} onFocus={onFocus} onBlur={onBlur}>
                     <option value="">Selecciona…</option>
                     <option value="secundaria">Secundaria</option>
@@ -415,8 +417,9 @@ export default function RegisterPage() {
                 <div>
                   <Label text="Modalidad" required />
                   <select value={modalidad} onChange={e => setModalidad(e.target.value)} required
-                    style={selectStyle} onFocus={onFocus} onBlur={onBlur}>
-                    <option value="">Selecciona…</option>
+                    style={{ ...selectStyle, opacity: nivel ? 1 : 0.5 }}
+                    onFocus={onFocus} onBlur={onBlur} disabled={!nivel}>
+                    <option value="">{nivel ? 'Selecciona…' : 'Primero elige nivel'}</option>
                     <option value="6_meses">6 meses — Estándar</option>
                     <option value="3_meses">3 meses — Express</option>
                   </select>

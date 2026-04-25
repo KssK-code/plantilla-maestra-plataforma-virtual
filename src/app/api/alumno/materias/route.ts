@@ -70,7 +70,8 @@ export async function GET() {
     const result = sorted.map((mat, idx) => {
       const meses        = mat.meses_contenido ?? []
       const totalSemanas = meses.reduce((acc, mes) => acc + (mes.semanas?.length ?? 0), 0)
-      const disponible   = mesesDesbloqueados > 0 && idx < limiteMaterias
+      const esTutorial   = mat.nombre.toLowerCase().includes('tutor')
+      const disponible   = esTutorial || (mesesDesbloqueados > 0 && idx < limiteMaterias)
 
       return {
         id:             mat.id,

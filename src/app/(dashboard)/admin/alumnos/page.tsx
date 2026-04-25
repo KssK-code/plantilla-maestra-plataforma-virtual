@@ -547,7 +547,7 @@ export default function AlumnosPage() {
                 <select
                   required
                   value={form.nivel}
-                  onChange={e => setForm(prev => ({ ...prev, nivel: e.target.value }))}
+                  onChange={e => setForm(prev => ({ ...prev, nivel: e.target.value, modalidad: '' }))}
                   className="w-full px-3 py-2.5 rounded-lg text-sm outline-none"
                   style={INPUT_STYLE}
                 >
@@ -563,10 +563,11 @@ export default function AlumnosPage() {
                   required
                   value={form.modalidad}
                   onChange={e => setForm(prev => ({ ...prev, modalidad: e.target.value }))}
+                  disabled={!form.nivel}
                   className="w-full px-3 py-2.5 rounded-lg text-sm outline-none"
-                  style={INPUT_STYLE}
+                  style={{ ...INPUT_STYLE, opacity: form.nivel ? 1 : 0.5 }}
                 >
-                  <option value="">Selecciona modalidad...</option>
+                  <option value="">{form.nivel ? 'Selecciona modalidad...' : 'Primero elige nivel'}</option>
                   <option value="6_meses">6 meses (Estándar)</option>
                   <option value="3_meses">3 meses (Express)</option>
                 </select>
