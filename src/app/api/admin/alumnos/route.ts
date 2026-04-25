@@ -227,7 +227,7 @@ export async function POST(request: NextRequest) {
     const { error: usuarioError } = await admin
       .from('usuarios')
       .upsert(
-        { id: newUserId, nombre, apellidos, email, rol: 'ALUMNO' },
+        { id: newUserId, nombre, apellidos, email, rol: 'alumno' },
         { onConflict: 'id' }
       )
 
