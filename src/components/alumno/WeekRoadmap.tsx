@@ -4,6 +4,8 @@ import { useRef } from 'react'
 import { Check, Lock } from 'lucide-react'
 import gsap from 'gsap'
 import { useGSAP } from '@gsap/react'
+import { CONFIG } from '@/lib/config'
+import { withAlpha } from '@/lib/utils'
 
 gsap.registerPlugin(useGSAP)
 
@@ -97,20 +99,24 @@ export default function WeekRoadmap({
                 disabled={!clickable}
                 aria-label={`${labelPrefijo} ${semana.numero}: ${loc(semana.titulo, semana.titulo_en)}`}
                 className={[
-                  'w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0 transition-all duration-500 relative z-10',
-                  estado === 'completado'
-                    ? 'bg-indigo-500 border-2 border-indigo-500'
-                    : estado === 'activo'
-                    ? 'bg-indigo-500/10 border-2 border-indigo-500 animate-pulse'
-                    : 'bg-transparent border-2 border-slate-600',
+                  'w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0 transition-all duration-500 relative z-10 border-2',
+                  estado === 'activo' ? 'animate-pulse' : '',
+                  estado === 'bloqueado' ? 'bg-transparent border-slate-600' : '',
                   clickable ? 'cursor-pointer hover:scale-110' : 'cursor-not-allowed',
                 ].join(' ')}
+                style={
+                  estado === 'completado'
+                    ? { backgroundColor: CONFIG.colores.primario, borderColor: CONFIG.colores.primario }
+                    : estado === 'activo'
+                    ? { backgroundColor: withAlpha(CONFIG.colores.primario, 0.10), borderColor: CONFIG.colores.primario }
+                    : undefined
+                }
               >
                 {estado === 'completado' && (
                   <Check className="w-5 h-5" style={{ color: '#fff' }} strokeWidth={2.5} />
                 )}
                 {estado === 'activo' && (
-                  <span className="text-sm font-bold" style={{ color: '#1565C0' }}>
+                  <span className="text-sm font-bold" style={{ color: CONFIG.colores.primario }}>
                     {semana.numero}
                   </span>
                 )}
@@ -125,9 +131,10 @@ export default function WeekRoadmap({
                   className={[
                     'roadmap-line w-0.5 flex-1 min-h-[2rem] my-0.5 transition-all duration-500',
                     estado === 'completado'
-                      ? 'bg-indigo-500'
+                      ? ''
                       : 'border-l-2 border-dashed border-slate-600 bg-transparent w-0',
                   ].join(' ')}
+                  style={estado === 'completado' ? { backgroundColor: CONFIG.colores.primario } : undefined}
                 />
               )}
             </div>
@@ -146,7 +153,7 @@ export default function WeekRoadmap({
               <div className="flex items-center gap-2 mb-0.5 mt-1.5">
                 <span
                   className="text-xs font-mono transition-all duration-500"
-                  style={{ color: estado === 'bloqueado' ? '#475569' : '#1565C0' }}
+                  style={{ color: estado === 'bloqueado' ? '#475569' : CONFIG.colores.primario }}
                 >
                   {labelPrefijo} {semana.numero}
                 </span>
@@ -154,7 +161,7 @@ export default function WeekRoadmap({
                 {estado === 'activo' && (
                   <span
                     className="text-xs px-2 py-0.5 rounded-full font-medium"
-                    style={{ background: 'rgba(99,102,241,0.15)', color: '#818CF8' }}
+                    style={{ background: withAlpha(CONFIG.colores.primario, 0.15), color: withAlpha(CONFIG.colores.primario, 0.65) }}
                   >
                     {lang === 'en' ? 'In progress' : 'En curso'}
                   </span>

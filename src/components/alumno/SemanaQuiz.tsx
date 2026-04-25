@@ -3,6 +3,8 @@
 import { useEffect, useState, useRef } from 'react'
 import gsap from 'gsap'
 import { useGSAP } from '@gsap/react'
+import { CONFIG } from '@/lib/config'
+import { withAlpha } from '@/lib/utils'
 
 gsap.registerPlugin(useGSAP)
 
@@ -190,7 +192,7 @@ export default function SemanaQuiz({ semanaId, lang }: SemanaQuizProps) {
         </div>
         <span
           className="text-xs px-2 py-1 rounded-full flex-shrink-0"
-          style={{ background: 'rgba(99,102,241,0.15)', color: '#818CF8' }}
+          style={{ background: withAlpha(CONFIG.colores.primario, 0.15), color: withAlpha(CONFIG.colores.primario, 0.65) }}
         >
           {loc(`${currentIdx + 1} de ${total}`, `${currentIdx + 1} of ${total}`)}
         </span>
@@ -200,7 +202,7 @@ export default function SemanaQuiz({ semanaId, lang }: SemanaQuizProps) {
       <div className="h-1.5 rounded-full overflow-hidden" style={{ background: '#2A2F3E' }}>
         <div
           className="h-full rounded-full transition-all duration-300"
-          style={{ width: `${((currentIdx + 1) / total) * 100}%`, background: '#818CF8' }}
+          style={{ width: `${((currentIdx + 1) / total) * 100}%`, background: withAlpha(CONFIG.colores.primario, 0.65) }}
         />
       </div>
 
@@ -233,8 +235,8 @@ export default function SemanaQuiz({ semanaId, lang }: SemanaQuizProps) {
                 }
               }
             } else if (esSeleccionada) {
-              bg = 'rgba(99,102,241,0.15)'
-              borderColor = '#1B2A6B'
+              bg = withAlpha(CONFIG.colores.primario, 0.15)
+              borderColor = CONFIG.colores.primario
               textColor = '#E2E8F0'
             }
 
@@ -259,7 +261,7 @@ export default function SemanaQuiz({ semanaId, lang }: SemanaQuizProps) {
                         ? '#10B981'
                         : yaRespondida && esSeleccionada
                           ? '#EF4444'
-                          : '#818CF8',
+                          : withAlpha(CONFIG.colores.primario, 0.65),
                   }}
                 >
                   {String.fromCharCode(65 + i)}.
@@ -312,7 +314,7 @@ export default function SemanaQuiz({ semanaId, lang }: SemanaQuizProps) {
             onClick={handleNext}
             disabled={guardando}
             className="px-4 py-1.5 text-xs rounded-lg font-semibold transition-all disabled:opacity-60"
-            style={{ background: '#1B2A6B', color: '#fff', border: 'none' }}
+            style={{ background: CONFIG.colores.primario, color: '#fff', border: 'none' }}
           >
             {guardando
               ? '...'

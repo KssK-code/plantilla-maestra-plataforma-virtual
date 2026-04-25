@@ -412,8 +412,8 @@ export default function MateriaPage() {
                     className="rounded-xl p-6 flex flex-col items-center text-center gap-4"
                     style={{
                       background: '#1E2535',
-                      border: '1px solid rgba(99,102,241,0.35)',
-                      boxShadow: '0 0 24px rgba(99,102,241,0.08)',
+                      border: `1px solid ${withAlpha(CONFIG.colores.primario, 0.35)}`,
+                      boxShadow: `0 0 24px ${withAlpha(CONFIG.colores.primario, 0.08)}`,
                     }}
                   >
                     <span style={{ fontSize: '2.5rem', lineHeight: 1 }}>🎯</span>
@@ -652,9 +652,9 @@ export default function MateriaPage() {
                           target="_blank"
                           rel="noopener noreferrer"
                           className="text-sm transition-colors"
-                          style={{ color: '#60A5FA' }}
+                          style={{ color: withAlpha(CONFIG.colores.primario, 0.65) }}
                           onMouseEnter={e => { e.currentTarget.style.color = CONFIG.colores.acento }}
-                          onMouseLeave={e => { e.currentTarget.style.color = '#60A5FA' }}
+                          onMouseLeave={e => { e.currentTarget.style.color = withAlpha(CONFIG.colores.primario, 0.65) }}
                         >
                           {etiqueta}
                         </a>

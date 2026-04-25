@@ -1,6 +1,8 @@
 'use client'
 
 import { useState } from 'react'
+import { CONFIG } from '@/lib/config'
+import { withAlpha } from '@/lib/utils'
 
 interface BadgesGridProps {
   logros: Array<{ tipo_logro: string; fecha_obtenido: string }>
@@ -10,19 +12,23 @@ interface BadgesGridProps {
 /** Acento por tipo: borde claro, fondo del ícono y check (badges obtenidos). */
 const ACCENT_BY_TIPO: Record<
   string,
-  { border: string; iconBg: string; iconTint: string; check: string }
+  { border: string; iconBg: string; iconTint: string; check: string; colorInline?: string; borderColorInline?: string; iconBgInline?: string }
 > = {
   primera_semana: {
-    border: 'border-blue-200',
+    border: '',
     iconBg: 'bg-[#E3F2FD]',
     iconTint: 'text-[#1565C0]',
     check: 'text-[#1565C0]',
+    borderColorInline: withAlpha(CONFIG.colores.primario, 0.30),
   },
   materia_completada: {
-    border: 'border-indigo-200',
-    iconBg: 'bg-indigo-50',
-    iconTint: 'text-indigo-600',
-    check: 'text-indigo-600',
+    border: '',
+    iconBg: '',
+    iconTint: '',
+    check: '',
+    colorInline: CONFIG.colores.primario,
+    borderColorInline: withAlpha(CONFIG.colores.primario, 0.30),
+    iconBgInline: withAlpha(CONFIG.colores.primario, 0.08),
   },
   racha_3_dias: {
     border: 'border-orange-200',
@@ -178,6 +184,7 @@ export default function BadgesGrid({ logros, lang }: BadgesGridProps) {
                   ? `border bg-white shadow-md ${accent.border}`
                   : 'bg-gray-800 border border-gray-700',
               ].join(' ')}
+              style={obtenido && accent.borderColorInline ? { borderColor: accent.borderColorInline } : undefined}
               onMouseEnter={() => setHoveredTipo(badge.tipo)}
               onMouseLeave={() => setHoveredTipo(null)}
             >
@@ -185,6 +192,7 @@ export default function BadgesGrid({ logros, lang }: BadgesGridProps) {
               {obtenido && (
                 <span
                   className={`absolute top-2 right-2 text-xs font-bold leading-none ${accent.check}`}
+                  style={accent.colorInline ? { color: accent.colorInline } : undefined}
                 >
                   ✓
                 </span>
@@ -196,7 +204,15 @@ export default function BadgesGrid({ logros, lang }: BadgesGridProps) {
                   'flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl text-4xl leading-none',
                   obtenido ? `${accent.iconBg} ${accent.iconTint}` : 'text-gray-600 opacity-50',
                 ].join(' ')}
-                style={obtenido ? undefined : { filter: 'grayscale(1)' }}
+                style={obtenido
+                  ? ((accent.colorInline || accent.iconBgInline)
+                      ? {
+                          ...(accent.colorInline ? { color: accent.colorInline } : {}),
+                          ...(accent.iconBgInline ? { backgroundColor: accent.iconBgInline } : {}),
+                        }
+                      : undefined)
+                  : { filter: 'grayscale(1)' }
+                }
               >
                 {badge.emoji}
               </span>
@@ -222,7 +238,10 @@ export default function BadgesGrid({ logros, lang }: BadgesGridProps) {
                     {desc}
                   </p>
                   {obtenido && fecha && (
-                    <p className={`text-xs mt-1 font-medium ${accent.check}`}>
+                    <p
+                      className={`text-xs mt-1 font-medium ${accent.check}`}
+                      style={accent.colorInline ? { color: accent.colorInline } : undefined}
+                    >
                       {formatFecha(fecha, lang)}
                     </p>
                   )}
