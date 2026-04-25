@@ -34,13 +34,13 @@ export async function GET() {
     // ── Calificaciones ────────────────────────────────────────────────────────
     const { data: califs } = await supabase
       .from('calificaciones')
-      .select('materia_id, aprobada')
+      .select('materia_id, acreditado')
       .eq('alumno_id', user.id)
 
     const califMap = new Map<string, boolean>()
     for (const c of (califs ?? [])) {
-      const row = c as { materia_id: string; aprobada: boolean }
-      califMap.set(row.materia_id, row.aprobada)
+      const row = c as { materia_id: string; acreditado: boolean }
+      califMap.set(row.materia_id, row.acreditado)
     }
 
     // ── Materias de meses desbloqueados via meses_contenido ───────────────────

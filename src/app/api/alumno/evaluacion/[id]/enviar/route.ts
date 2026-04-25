@@ -151,7 +151,8 @@ export async function POST(
         { onConflict: 'alumno_id,materia_id' }
       )
       if (califErr) {
-        console.error('[evaluacion/enviar] calificaciones upsert:', califErr.message)
+        // No abortar: el intento ya fue guardado. Solo registrar para diagnóstico.
+        console.error('[evaluacion/enviar] calificaciones upsert falló:', califErr.code, califErr.message)
       }
     }
 

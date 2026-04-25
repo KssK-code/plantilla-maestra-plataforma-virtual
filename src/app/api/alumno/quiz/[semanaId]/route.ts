@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
+import { createAdminClient } from '@/lib/supabase/admin'
 import type { SupabaseClient } from '@supabase/supabase-js'
 
 /**
@@ -169,6 +170,72 @@ async function saveRespuestasJsonb(
   )
 }
 
+async function upsertCalificacion(
+  supabase: SupabaseClient,
+  alumnoId: string,
+  semanaId: string,
+  respuestas: Record<string, number>
+) {
+  // semana → mes → materia
+  const { data: semana } = await supabase
+    .from('semanas')
+    .select('mes_id')
+    .eq('id', semanaId)
+    .maybeSingle()
+  if (!semana?.mes_id) return
+
+  const { data: mes } = await supabase
+    .from('meses_contenido')
+    .select('materia_id')
+    .eq('id', semana.mes_id)
+    .maybeSingle()
+  if (!mes?.materia_id) return
+
+  // calificar
+  const { data: preguntas } = await supabase
+    .from('quiz_semana')
+    .select('id, respuesta_correcta')
+    .eq('semana_id', semanaId)
+  if (!preguntas?.length) return
+
+  let correctas = 0
+  for (const p of preguntas) {
+    const rc = (p as { id: string; respuesta_correcta?: unknown }).respuesta_correcta
+    if (respuestas[(p as { id: string }).id] === respuestaCorrectaToIndex(rc)) correctas++
+  }
+  const acreditado = correctas / preguntas.length >= 0.6
+
+  // adminClient para bypasear RLS en escrituras (política solo permite admin)
+  const admin = createAdminClient()
+
+  const { data: existing } = await admin
+    .from('calificaciones')
+    .select('id, acreditado')
+    .eq('alumno_id', alumnoId)
+    .eq('materia_id', mes.materia_id)
+    .maybeSingle()
+
+  if (existing) {
+    const row = existing as { id: string; acreditado: boolean }
+    if (!row.acreditado && acreditado) {
+      await admin
+        .from('calificaciones')
+        .update({ acreditado: true, fecha_acreditacion: new Date().toISOString() })
+        .eq('id', row.id)
+    }
+  } else {
+    await admin.from('calificaciones').upsert(
+      {
+        alumno_id: alumnoId,
+        materia_id: mes.materia_id,
+        acreditado,
+        fecha_acreditacion: acreditado ? new Date().toISOString() : null,
+      },
+      { onConflict: 'alumno_id,materia_id' }
+    )
+  }
+}
+
 async function saveRespuestasLegacy(
   supabase: SupabaseClient,
   alumnoId: string,
@@ -299,7 +366,10 @@ export async function POST(
     const { id: alumnoId } = alumnoData as { id: string }
 
     const jsonb = await saveRespuestasJsonb(supabase, alumnoId, semanaId, respuestas)
-    if (!jsonb.error) return NextResponse.json({ ok: true })
+    if (!jsonb.error) {
+      await upsertCalificacion(supabase, alumnoId, semanaId, respuestas)
+      return NextResponse.json({ ok: true })
+    }
 
     const msg = (jsonb.error.message ?? '').toLowerCase()
     const isSchemaMismatch =
@@ -320,6 +390,7 @@ export async function POST(
       return NextResponse.json({ error: 'Error al guardar respuestas' }, { status: 500 })
     }
 
+    await upsertCalificacion(supabase, alumnoId, semanaId, respuestas)
     return NextResponse.json({ ok: true })
   } catch (e) {
     console.error('[quiz POST]', e)
