@@ -4,6 +4,7 @@ import { useState, useEffect, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
 import { Users, Search, Plus, X, Loader2, Eye, MessageSquare, CheckCheck, Clock, AlertCircle } from 'lucide-react'
 import { useToast, ToastContainer } from '@/components/ui/toast'
+import { CONFIG } from '@/lib/config'
 
 interface Alumno {
   id: string
@@ -34,7 +35,7 @@ const CARD_STYLE = {
 const WA_NUMERO = '5256543225636'
 
 function waContactarUrl(nombre: string) {
-  const texto = `Hola ${nombre} 👋, soy de Control Escolar de CJVB Académico. Vi que te registraste y quería darte la bienvenida y resolver cualquier duda que tengas 🎓`
+  const texto = `Hola ${nombre} 👋, soy de Control Escolar de ${CONFIG.nombreCompleto}. Vi que te registraste y quería darte la bienvenida y resolver cualquier duda que tengas 🎓`
   return `https://wa.me/${WA_NUMERO}?text=${encodeURIComponent(texto)}`
 }
 

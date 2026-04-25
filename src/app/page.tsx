@@ -171,6 +171,7 @@ const WaIcon = () => (
 export default function LandingPage() {
   const p = CONFIG.precios
   const wa = CONFIG.whatsappUrl
+  const testimonios = CONFIG.landing.testimonios
   useScrollReveal()
 
   return (
@@ -222,7 +223,7 @@ export default function LandingPage() {
           {/* Watermark */}
           <div aria-hidden className={`pointer-events-none absolute inset-0 flex items-center justify-center select-none ${playfair.className}`}
             style={{ fontSize: 'clamp(140px,32vw,420px)', fontWeight: 900, color: 'rgba(21,101,192,0.042)', letterSpacing: '-0.06em', lineHeight: 1 }}>
-            CJVB
+            {CONFIG.nombre}
           </div>
 
           {/* Content */}
@@ -413,7 +414,7 @@ export default function LandingPage() {
                 <div className="flex items-center gap-3 mb-6">
                   <div className="w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold"
                     style={{ background: '#FEE2E2', color: '#DC2626' }}>✕</div>
-                  <span className="font-bold text-sm uppercase tracking-wider" style={{ color: '#DC2626' }}>Sin CJVB</span>
+                  <span className="font-bold text-sm uppercase tracking-wider" style={{ color: '#DC2626' }}>{`Sin ${CONFIG.nombre}`}</span>
                 </div>
                 {['Sin certificado oficial para avanzar profesionalmente.','Bloqueado por horarios que no se adaptan a tu vida.','Años postergando tu sueño de terminar tus estudios.','Oportunidades de trabajo que se te escapan sin el papel.'].map(t => (
                   <div key={t} className="flex items-start gap-3 mb-4">
@@ -428,7 +429,7 @@ export default function LandingPage() {
                 <div className="flex items-center gap-3 mb-6">
                   <div className="w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold"
                     style={{ background: 'rgba(66,165,245,0.2)', color: C.azure }}>✓</div>
-                  <span className="font-bold text-sm uppercase tracking-wider" style={{ color: C.azure }}>Con CJVB</span>
+                  <span className="font-bold text-sm uppercase tracking-wider" style={{ color: C.azure }}>{`Con ${CONFIG.nombre}`}</span>
                 </div>
                 {['Certificado oficial SEP reconocido en todo México.','Estudias a tu ritmo, desde tu celular, sin salir de casa.','En 3 o 6 meses terminas lo que llevas años posponiendo.','Abre puertas: trabajo, universidad, trámites oficiales.'].map(t => (
                   <div key={t} className="flex items-start gap-3 mb-4">
@@ -471,6 +472,7 @@ export default function LandingPage() {
         </section>
 
         {/* ── TESTIMONIOS ──────────────────────────────────────────── */}
+        {testimonios.length > 0 && (
         <section className="py-24 sm:py-32 px-4 sm:px-8 bg-white">
           <div className="max-w-5xl mx-auto">
             <div data-reveal className="text-center mb-14">
@@ -484,14 +486,7 @@ export default function LandingPage() {
               </p>
             </div>
             <div className="grid sm:grid-cols-3 gap-6">
-              {[
-                { name: 'Carlos M.', age: '34 años', nivel: 'Preparatoria · 6 meses', initials: 'CM',
-                  quote: 'Trabajaba de mañana y estudiaba en las noches desde mi celular. En 6 meses terminé mi prepa. El certificado llegó con sello oficial SEP.' },
-                { name: 'Lupita R.', age: '28 años', nivel: 'Secundaria · 3 meses', initials: 'LR',
-                  quote: 'Soy mamá soltera y no podía ir a la escuela. CJVB me dio la flexibilidad que necesitaba. Ahora tengo mi secundaria y mejores oportunidades.' },
-                { name: 'Javier O.', age: '41 años', nivel: 'Preparatoria · 3 meses', initials: 'JO',
-                  quote: 'Llevaba 20 años queriendo terminar mi prepa. Lo hice en 3 meses desde casa. Mis hijos me vieron recibirla. Vale cada peso.' },
-              ].map((t, i) => (
+              {testimonios.map((t, i) => (
                 <div key={t.name} className="testi-card" data-reveal data-d={String(i+1)}>
                   {/* Stars */}
                   <div className="flex gap-1">
@@ -519,6 +514,7 @@ export default function LandingPage() {
             </div>
           </div>
         </section>
+        )}
 
         {/* ── BENEFICIOS ───────────────────────────────────────────── */}
         <section className="py-24 sm:py-32 px-4 sm:px-8 relative overflow-hidden" style={{ background: C.navy }}>
@@ -584,7 +580,7 @@ export default function LandingPage() {
             style={{ background: `radial-gradient(ellipse 55% 65% at 50% 50%,${C.bright}1a,transparent 70%)` }} />
           <div aria-hidden className={`pointer-events-none absolute inset-0 flex items-center justify-center select-none ${playfair.className}`}
             style={{ fontSize: 'clamp(100px,22vw,300px)', fontWeight: 900, color: 'rgba(21,101,192,0.04)', letterSpacing: '-0.06em' }}>
-            CJVB
+            {CONFIG.nombre}
           </div>
           <div className="max-w-2xl mx-auto relative z-10">
             <div data-reveal>

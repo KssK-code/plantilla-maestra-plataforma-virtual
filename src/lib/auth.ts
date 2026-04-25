@@ -1,5 +1,5 @@
 /**
- * IVS Virtual — Helpers de autenticación
+ * Helpers de autenticación
  * Funciones reutilizables para sign-up, sign-in, sign-out y obtener el usuario.
  */
 

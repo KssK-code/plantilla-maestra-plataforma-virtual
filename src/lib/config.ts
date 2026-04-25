@@ -78,6 +78,7 @@ export const CONFIG = {
     convenios:                  [],
     respaldo_titulo:            'Respaldados por instituciones educativas de confianza',
     respaldo_badges:            [],
+    testimonios: [] as Array<{ name: string; age: string; nivel: string; initials: string; quote: string }>,
     certificacion_secundaria:   4900,
     certificacion_preparatoria: 5900,
     cct:                        '',

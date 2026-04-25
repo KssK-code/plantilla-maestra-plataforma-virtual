@@ -17,7 +17,7 @@ import type { SupabaseClient } from '@supabase/supabase-js'
  * un select fijo sin `opciones` dejaba preguntas vacías en sec/prepa.
  */
 
-/** Fila cruda de quiz_semana (CJVB: opcion_a/b/c; seeds alternos: opciones JSONB) */
+/** Fila cruda de quiz_semana (schema usa columnas opcion_a/b/c en lugar de array — compatibilidad histórica) */
 type QuizSemanaRow = {
   id: string
   semana_id?: string
