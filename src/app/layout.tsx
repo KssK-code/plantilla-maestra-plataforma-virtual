@@ -26,7 +26,7 @@ export const viewport: Viewport = {
 
 export const metadata: Metadata = {
   title: {
-    default: `${ESCUELA_CONFIG.nombre} | Tu Prepa en 6 meses`,
+    default: `${ESCUELA_CONFIG.nombre} | ${ESCUELA_CONFIG.tagline}`,
     template: `%s | ${ESCUELA_CONFIG.nombre}`,
   },
   description,

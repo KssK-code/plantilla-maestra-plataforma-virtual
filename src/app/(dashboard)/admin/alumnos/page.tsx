@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation'
 import { Users, Search, Plus, X, Loader2, Eye, MessageSquare, CheckCheck, Clock, AlertCircle } from 'lucide-react'
 import { useToast, ToastContainer } from '@/components/ui/toast'
 import { CONFIG } from '@/lib/config'
+import { getModalidadesActivas } from '@/lib/modalidades'
 
 interface Alumno {
   id: string
@@ -569,8 +570,9 @@ export default function AlumnosPage() {
                   style={{ ...INPUT_STYLE, opacity: form.nivel ? 1 : 0.5 }}
                 >
                   <option value="">{form.nivel ? 'Selecciona modalidad...' : 'Primero elige nivel'}</option>
-                  <option value="6_meses">6 meses (Estándar)</option>
-                  <option value="3_meses">3 meses (Express)</option>
+                  {getModalidadesActivas().map(m => (
+                    <option key={m.id} value={m.id}>{m.label}</option>
+                  ))}
                 </select>
               </div>
 

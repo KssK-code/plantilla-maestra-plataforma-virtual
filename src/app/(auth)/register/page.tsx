@@ -6,6 +6,7 @@ import Image from 'next/image'
 import { useRouter } from 'next/navigation'
 import { Mail, Lock, Loader2, Eye, EyeOff, Phone, User, CheckCircle2 } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
+import { getModalidadesActivas } from '@/lib/modalidades'
 import { CONFIG } from '@/lib/config'
 
 const WA_URL = `https://wa.me/${CONFIG.whatsapp}`
@@ -420,8 +421,9 @@ export default function RegisterPage() {
                     style={{ ...selectStyle, opacity: nivel ? 1 : 0.5 }}
                     onFocus={onFocus} onBlur={onBlur} disabled={!nivel}>
                     <option value="">{nivel ? 'Selecciona…' : 'Primero elige nivel'}</option>
-                    <option value="6_meses">6 meses — Estándar</option>
-                    <option value="3_meses">3 meses — Express</option>
+                    {getModalidadesActivas().map(m => (
+                      <option key={m.id} value={m.id}>{m.label}</option>
+                    ))}
                   </select>
                 </div>
               </div>

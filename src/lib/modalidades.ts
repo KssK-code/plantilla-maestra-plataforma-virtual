@@ -99,3 +99,78 @@ export function getDefaultModalidadId(): string {
   const firstActive = CONFIG.modalidades.find(m => m.activa)
   return firstActive?.id ?? '6_meses'
 }
+
+/**
+ * Construye una frase legible con los meses de las modalidades activas.
+ * Auto-adapta singular/plural y conjunción "o" para 2+ modalidades.
+ *
+ * @example
+ *   modalidades activas [3 meses] → "3 meses"
+ *   modalidades activas [3, 6 meses] → "3 o 6 meses"
+ *   modalidades activas [3, 6, 12 meses] → "3, 6 o 12 meses"
+ *   modalidades vacías → ""
+ */
+export function getDuracionLabel(): string {
+  const activas = CONFIG.modalidades.filter(m => m.activa)
+  if (activas.length === 0) return ''
+  if (activas.length === 1) return `${activas[0].meses} meses`
+
+  const numeros = activas.map(m => m.meses).sort((a, b) => a - b)
+  if (numeros.length === 2) return `${numeros[0]} o ${numeros[1]} meses`
+
+  const ultimo = numeros.pop()
+  return `${numeros.join(', ')} o ${ultimo} meses`
+}
+
+/**
+ * Construye una frase legible con los niveles académicos del cliente.
+ * Capitaliza la primera letra y maneja singular/plural.
+ *
+ * @example
+ *   niveles ['preparatoria'] → "Preparatoria"
+ *   niveles ['secundaria'] → "Secundaria"
+ *   niveles ['secundaria', 'preparatoria'] → "Prepa o Secundaria"
+ *   niveles vacíos → ""
+ */
+export function getNivelLabel(): string {
+  const niveles = CONFIG.niveles as readonly string[]
+  if (niveles.length === 0) return ''
+
+  const capitalize = (s: string) => s.charAt(0).toUpperCase() + s.slice(1)
+
+  if (niveles.length === 1) {
+    return capitalize(niveles[0])
+  }
+
+  const tienePrepa = niveles.includes('preparatoria')
+  const tieneSecu  = niveles.includes('secundaria')
+  if (tienePrepa && tieneSecu && niveles.length === 2) {
+    return 'Prepa o Secundaria'
+  }
+
+  const capitalizadas = niveles.map(capitalize)
+  if (capitalizadas.length === 2) return `${capitalizadas[0]} o ${capitalizadas[1]}`
+
+  const ultimo = capitalizadas[capitalizadas.length - 1]
+  const resto = capitalizadas.slice(0, -1).join(', ')
+  return `${resto} o ${ultimo}`
+}
+
+/**
+ * Devuelve el label de plan adaptado al contexto de modalidades activas.
+ * Si solo hay 1 modalidad activa, omite el sufijo descriptivo (ej: "— Express").
+ * Si hay múltiples, conserva el label completo de CONFIG.
+ *
+ * @example
+ *   1 modalidad activa: { id: '3_meses', label: '3 meses — Express' }
+ *     → "3 meses"   (sin sufijo, no hay competencia)
+ *   2 modalidades activas:
+ *     → "3 meses — Express" / "6 meses — Estándar"  (label completo)
+ */
+export function getPlanLabel(modalidad: Modalidad): string {
+  const activas = CONFIG.modalidades.filter(m => m.activa)
+  if (activas.length <= 1) {
+    return modalidad.label.split(' — ')[0].trim()
+  }
+  return modalidad.label
+}

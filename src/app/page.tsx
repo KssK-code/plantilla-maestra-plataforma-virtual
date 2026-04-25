@@ -5,6 +5,7 @@ import Image from 'next/image'
 import Link from 'next/link'
 import { Playfair_Display, DM_Sans } from 'next/font/google'
 import { CONFIG } from '@/lib/config'
+import { getModalidadesActivas, getDuracionLabel, getPlanLabel } from '@/lib/modalidades'
 
 const playfair = Playfair_Display({ subsets: ['latin'], weight: ['500', '600', '700', '900'], display: 'swap' })
 const dmSans   = DM_Sans({ subsets: ['latin'], weight: ['400', '500', '600', '700'], display: 'swap' })
@@ -332,7 +333,7 @@ export default function LandingPage() {
               </p>
             </div>
             <div className="grid md:grid-cols-2 gap-8">
-              {/* Preparatoria — dark */}
+              {(CONFIG.niveles as readonly string[]).includes('preparatoria') && (
               <div data-reveal data-d="1">
                 <Card3D className="rounded-2xl p-8 sm:p-10 h-full flex flex-col"
                   style={{ background: `linear-gradient(150deg,${C.navy} 0%,#091830 100%)`,
@@ -345,8 +346,7 @@ export default function LandingPage() {
                   <p className="text-xs font-semibold mb-6" style={{ color: C.azure }}>Inscripción: {fmt(p.inscripcion)}</p>
                   <div className="space-y-3 flex-1">
                     {[
-                      { label: 'Plan 6 meses', price: p.plan6mMensualidad, unit: '/mes' },
-                      { label: 'Plan 3 meses', price: p.plan3mMensualidad, unit: '/mes' },
+                      ...getModalidadesActivas().map(m => ({ label: `Plan ${getPlanLabel(m)}`, price: m.mensualidad, unit: '/mes' })),
                       { label: 'Certificación', price: p.certificacionPreparatoria, unit: ' único' },
                     ].map(row => (
                       <div key={row.label} className="flex items-center justify-between rounded-xl px-4 py-3"
@@ -364,7 +364,8 @@ export default function LandingPage() {
                   </Link>
                 </Card3D>
               </div>
-              {/* Secundaria — light */}
+              )}
+              {(CONFIG.niveles as readonly string[]).includes('secundaria') && (
               <div data-reveal data-d="2">
                 <Card3D className="rounded-2xl p-8 sm:p-10 h-full flex flex-col"
                   style={{ background: C.white, boxShadow: `0 24px 60px ${C.navy}12`, border: `1px solid rgba(21,101,192,0.12)` }}>
@@ -374,8 +375,7 @@ export default function LandingPage() {
                   <p className="text-xs font-semibold mb-6" style={{ color: C.royal }}>Inscripción: {fmt(p.inscripcion)}</p>
                   <div className="space-y-3 flex-1">
                     {[
-                      { label: 'Plan 6 meses', price: p.plan6mMensualidad, unit: '/mes' },
-                      { label: 'Plan 3 meses', price: p.plan3mMensualidad, unit: '/mes' },
+                      ...getModalidadesActivas().map(m => ({ label: `Plan ${getPlanLabel(m)}`, price: m.mensualidad, unit: '/mes' })),
                       { label: 'Certificación', price: p.certificacionSecundaria, unit: ' único' },
                     ].map(row => (
                       <div key={row.label} className="flex items-center justify-between rounded-xl px-4 py-3"
@@ -393,6 +393,7 @@ export default function LandingPage() {
                   </Link>
                 </Card3D>
               </div>
+              )}
             </div>
           </div>
         </section>
@@ -431,7 +432,7 @@ export default function LandingPage() {
                     style={{ background: 'rgba(66,165,245,0.2)', color: C.azure }}>✓</div>
                   <span className="font-bold text-sm uppercase tracking-wider" style={{ color: C.azure }}>{`Con ${CONFIG.nombre}`}</span>
                 </div>
-                {['Certificado oficial SEP reconocido en todo México.','Estudias a tu ritmo, desde tu celular, sin salir de casa.','En 3 o 6 meses terminas lo que llevas años posponiendo.','Abre puertas: trabajo, universidad, trámites oficiales.'].map(t => (
+                {['Certificado oficial SEP reconocido en todo México.','Estudias a tu ritmo, desde tu celular, sin salir de casa.',`En ${getDuracionLabel()} terminas lo que llevas años posponiendo.`,'Abre puertas: trabajo, universidad, trámites oficiales.'].map(t => (
                   <div key={t} className="flex items-start gap-3 mb-4">
                     <span className="mt-0.5 flex-shrink-0" style={{ color: '#4ade80', fontSize: 14 }}>✓</span>
                     <p className="text-sm leading-relaxed" style={{ color: 'rgba(227,242,253,0.8)' }}>{t}</p>
@@ -535,7 +536,7 @@ export default function LandingPage() {
                 { title: '100% en línea', desc: 'Estudia desde Puebla u otro punto del país sin trasladarte.' },
                 { title: 'Materias estructuradas', desc: 'Contenidos organizados por meses con progresión clara y alcanzable.' },
                 { title: 'Acompañamiento directo', desc: 'Seguimiento personalizado y canal de atención por WhatsApp.' },
-                { title: 'Planes flexibles', desc: 'Elige entre plan de 6 meses o de 3 meses según tu disponibilidad.' },
+                { title: 'Planes flexibles', desc: `Elige entre planes de ${getDuracionLabel()} según tu disponibilidad.` },
                 { title: 'Plataforma moderna', desc: 'Accede a tu constancia y avance desde cualquier dispositivo, 24 h.' },
               ].map((b, i) => (
                 <div key={b.title} className="benefit-card" data-reveal data-d={String((i%3)+1)}>
@@ -563,7 +564,7 @@ export default function LandingPage() {
             </div>
             <div data-reveal>
               {[
-                { q: '¿Cuánto tiempo tengo para terminar?', a: 'Depende del plan: el plan de 6 meses te da 6 meses de acceso a tus materias, y el de 3 meses, 3 meses. Puedes estudiar a tu ritmo dentro de ese período, sin horarios fijos.' },
+                { q: '¿Cuánto tiempo tengo para terminar?', a: `Depende del plan elegido: tienes acceso a tus materias durante el período contratado (${getDuracionLabel()}) y puedes estudiar a tu ritmo, sin horarios fijos.` },
                 { q: '¿El certificado tiene validez oficial en todo México?', a: 'Sí. Nuestro certificado está incorporado a la SEP y tiene validez oficial en todo el territorio nacional, por lo que es reconocido para trámites laborales, universitarios y gubernamentales.' },
                 { q: '¿Qué documentos necesito para inscribirme?', a: `Secundaria: Certificado de Primaria, CURP, Acta de Nacimiento, Identificación Oficial y foto de perfil fondo blanco. Preparatoria: los mismos más Certificado de Secundaria.` },
                 { q: '¿Puedo estudiar desde mi celular?', a: 'Sí, la plataforma está optimizada para móvil. Puedes acceder desde cualquier dispositivo con conexión a internet, en cualquier momento del día o de la noche.' },

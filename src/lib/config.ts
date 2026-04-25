@@ -46,8 +46,8 @@ export const CONFIG = {
   // === PRECIOS ===
   precios: {
     inscripcion:                       599,
-    plan6mMensualidad:                 1000,
-    plan3mMensualidad:                 2000,
+    plan6mMensualidad:                 1000, // @deprecated — usar modalidad.mensualidad via getModalidadesActivas()
+    plan3mMensualidad:                 2000, // @deprecated — usar modalidad.mensualidad via getModalidadesActivas()
     certificacionSecundaria:           4900,
     certificacionPreparatoria:         5900,
     preparatoria_6meses_normal:        1000,
