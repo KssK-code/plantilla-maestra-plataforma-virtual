@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
+import { getMesesByModalidad } from '@/lib/modalidades'
 
 export async function GET() {
   try {
@@ -26,7 +27,7 @@ export async function GET() {
       }
       alumnoId           = row.id
       mesesDesbloqueados = row.meses_desbloqueados ?? 0
-      duracionMeses      = row.modalidad === '3_meses' ? 3 : 6
+      duracionMeses      = getMesesByModalidad(row.modalidad)
     }
 
     if (!alumnoId) {

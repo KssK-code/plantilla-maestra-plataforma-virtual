@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { verifyAdmin } from '@/lib/supabase/verify-admin'
+import { getMesesByModalidad, getDefaultModalidadId } from '@/lib/modalidades'
 
 export async function GET(
   _request: NextRequest,
@@ -64,13 +65,13 @@ export async function GET(
       .select('*')
       .eq('alumno_id', params.id)
 
-    const duracion = (a.modalidad as string) === '3_meses' ? 3 : 6
+    const duracion = getMesesByModalidad(a.modalidad as string | null)
 
     return NextResponse.json({
       id:                  a.id,
       matricula:           a.matricula ?? 'CJVB-0000',
       nivel:               a.nivel ?? null,
-      modalidad:           a.modalidad ?? '6_meses',
+      modalidad:           (a.modalidad as string | null) ?? getDefaultModalidadId(),
       duracion_meses:      duracion,
       meses_desbloqueados: a.meses_desbloqueados ?? 0,
       inscripcion_pagada:  a.inscripcion_pagada ?? false,

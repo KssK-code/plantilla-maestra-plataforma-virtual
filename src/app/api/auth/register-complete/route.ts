@@ -22,7 +22,7 @@ export async function POST(request: Request) {
     const apellidos        = (body.apellidos        ?? '').trim()
     const telefono         = (body.telefono         ?? '').trim()
     const nivel            = body.nivel             ?? null   // 'secundaria' | 'preparatoria'
-    const modalidad        = body.modalidad         ?? null   // '6_meses' | '3_meses'
+    const modalidad        = body.modalidad         ?? null   // ModalidadId — ver src/lib/modalidades.ts
     const es_sindicalizado = Boolean(body.es_sindicalizado)
     const sindicato        = body.sindicato         ?? null
 
@@ -50,7 +50,7 @@ export async function POST(request: Request) {
     const alumnoPayload = {
       id:                  user.id,
       nivel,               // 'secundaria' | 'preparatoria' | null
-      modalidad,           // '6_meses' | '3_meses' | null
+      modalidad,           // ModalidadId | null
       es_sindicalizado,
       sindicato:           es_sindicalizado ? sindicato : null,
       inscripcion_pagada:  false,

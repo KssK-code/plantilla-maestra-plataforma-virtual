@@ -39,8 +39,8 @@ export const CONFIG = {
   // Si solo 6 meses: poner activa:false en 3meses
   // Si ambas: ambas activa:true
   modalidades: [
-    { id: '3meses', label: '3 meses — Express',  meses: 3, mensualidad: 2000, activa: true  },
-    { id: '6meses', label: '6 meses — Estándar', meses: 6, mensualidad: 1000, activa: true  },
+    { id: '3_meses', label: '3 meses — Express',  meses: 3, mensualidad: 2000, materiasPorMes: 4, activa: true  },
+    { id: '6_meses', label: '6 meses — Estándar', meses: 6, mensualidad: 1000, materiasPorMes: 2, activa: true  },
   ] as const,
 
   // === PRECIOS ===

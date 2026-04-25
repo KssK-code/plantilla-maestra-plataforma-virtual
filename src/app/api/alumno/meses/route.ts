@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
+import { getMesesByModalidad, getMateriasPorMesByModalidad } from '@/lib/modalidades'
 
 const DEMO_MATERIA_ID = 'e3f004d8-4451-4a65-9c91-bac3f87d2378' // TUT101 — Tutoría de ingreso I
 
@@ -16,6 +17,7 @@ export async function GET() {
     let alumnoEncontrado   = false
 
     let nivelAlumno: string | null = null
+    let modalidadAlumno: string | undefined
 
     // Intento 1: schema antiguo (alumnos.usuario_id)
     const { data: a1 } = await supabase
@@ -57,8 +59,9 @@ export async function GET() {
         }
         mesesDesbloqueados = row.meses_desbloqueados ?? 0
         inscripcionPagada  = row.inscripcion_pagada  ?? false
-        duracionMeses      = row.duracion_meses ?? (row.modalidad === '3_meses' ? 3 : 6)
+        duracionMeses      = row.duracion_meses ?? getMesesByModalidad(row.modalidad)
         nivelAlumno        = row.nivel ?? null
+        modalidadAlumno    = row.modalidad
       }
     }
 
@@ -72,7 +75,7 @@ export async function GET() {
       return NextResponse.json({ demo: true, materia_demo_id: DEMO_MATERIA_ID })
     }
 
-    const materiasPorMes = duracionMeses === 3 ? 4 : 2
+    const materiasPorMes = getMateriasPorMesByModalidad(modalidadAlumno)
 
     // ── Obtener meses del contenido (filtrado por nivel del alumno) ───────────
     let mesesQuery = supabase

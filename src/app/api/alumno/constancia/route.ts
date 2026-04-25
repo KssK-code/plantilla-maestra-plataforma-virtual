@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { CONFIG } from '@/lib/config'
+import { getMesesByModalidad, getDefaultModalidadId } from '@/lib/modalidades'
 
 export async function GET() {
   try {
@@ -29,7 +30,7 @@ export async function GET() {
       .filter(Boolean)
       .join(' ') || 'Alumno'
 
-    const duracionMeses = alumno.modalidad === '3_meses' ? 3 : 6
+    const duracionMeses = getMesesByModalidad(alumno.modalidad)
 
     // ── Calificaciones ────────────────────────────────────────────────────────
     const { data: califs } = await supabase
@@ -120,7 +121,7 @@ export async function GET() {
       foto_url:            fotoPerfilUrl,
       matricula:           alumno.matricula   ?? `${CONFIG.nombre}-0000`,
       nivel:               alumno.nivel       ?? null,
-      modalidad:           alumno.modalidad   ?? '6_meses',
+      modalidad:           alumno.modalidad   ?? getDefaultModalidadId(),
       meses_desbloqueados: mesesDesbloqueados,
       duracion_meses:      duracionMeses,
       plan_nombre:         duracionMeses === 3 ? '3 Meses' : '6 Meses',

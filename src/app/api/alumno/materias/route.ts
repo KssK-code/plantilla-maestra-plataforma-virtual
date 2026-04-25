@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
+import { getMesesByModalidad, getMateriasPorMesByModalidad } from '@/lib/modalidades'
 
 export async function GET() {
   try {
@@ -24,8 +25,8 @@ export async function GET() {
     }
     const nivel              = row.nivel
     const mesesDesbloqueados = row.meses_desbloqueados ?? 0
-    const duracionMeses      = row.duracion_meses ?? (row.modalidad === '3_meses' ? 3 : 6)
-    const materiasPorMes     = duracionMeses === 3 ? 4 : 2
+    const duracionMeses      = row.duracion_meses ?? getMesesByModalidad(row.modalidad)
+    const materiasPorMes     = getMateriasPorMesByModalidad(row.modalidad)
     const limiteMaterias     = Math.max(0, mesesDesbloqueados * materiasPorMes)
 
     // ── Materias del nivel del alumno con meses y semanas ───────────────────

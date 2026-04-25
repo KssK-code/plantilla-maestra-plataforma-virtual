@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
+import { getMesesByModalidad, getMateriasPorMesByModalidad } from '@/lib/modalidades'
 
 export async function GET(
   _request: NextRequest,
@@ -26,8 +27,8 @@ export async function GET(
       duracion_meses?: number | null
     }
 
-    const duracionMeses  = alumno.duracion_meses ?? (alumno.modalidad === '3_meses' ? 3 : 6)
-    const materiasPorMes = duracionMeses === 3 ? 4 : 2
+    const duracionMeses  = alumno.duracion_meses ?? getMesesByModalidad(alumno.modalidad)
+    const materiasPorMes = getMateriasPorMesByModalidad(alumno.modalidad)
     const limiteMaterias = Math.max(0, alumno.meses_desbloqueados * materiasPorMes)
 
     const { data: evaluacion, error: evalError } = await supabase

@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { createClient as createServiceClient } from '@supabase/supabase-js'
+import { getMesesByModalidad } from '@/lib/modalidades'
 
 export async function POST(
   _request: NextRequest,
@@ -40,7 +41,7 @@ export async function POST(
     }
 
     const a = alumno as { id: string; meses_desbloqueados: number; modalidad?: string }
-    const duracion = a.modalidad === '3_meses' ? 3 : 6
+    const duracion = getMesesByModalidad(a.modalidad)
 
     if (a.meses_desbloqueados >= duracion) {
       return NextResponse.json({ error: 'Todos los meses ya están desbloqueados' }, { status: 400 })

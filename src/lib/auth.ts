@@ -4,6 +4,7 @@
  */
 
 import { createClient } from '@/lib/supabase/client'
+import type { ModalidadId } from './modalidades'
 
 // ─── Tipos ────────────────────────────────────────────────────────────────────
 
@@ -15,7 +16,7 @@ export interface SignUpData {
   password:         string
   telefono:         string
   nivel:            'secundaria' | 'preparatoria'
-  modalidad:        '6_meses' | '3_meses'
+  modalidad:        ModalidadId
   esSindicalizado:  boolean
   sindicato?:       string | null
 }

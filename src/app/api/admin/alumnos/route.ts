@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { CONFIG } from '@/lib/config'
+import { getMesesByModalidad, getDefaultModalidadId } from '@/lib/modalidades'
 
 // ─── Verificar rol ADMIN (normaliza mayúsculas) ───────────────────────────────
 async function checkAdmin(userId: string): Promise<boolean> {
@@ -63,11 +64,11 @@ export async function GET() {
           id:                   a.id,
           matricula:            a.matricula ?? `${CONFIG.nombre}-0000`,
           nivel:                a.nivel ?? null,
-          modalidad:            a.modalidad ?? '6_meses',
+          modalidad:            a.modalidad ?? getDefaultModalidadId(),
           sindicalizado:        a.sindicalizado ?? false,
           activo:               a.activo ?? false,
           meses_desbloqueados:  a.meses_desbloqueados ?? 0,
-          duracion_meses:       a.modalidad === '3_meses' ? 3 : 6,
+          duracion_meses:       getMesesByModalidad(a.modalidad),
           inscripcion_pagada:   a.inscripcion_pagada ?? false,
           created_at:           a.created_at,
           nombre_completo:      [u?.nombre, u?.apellidos].filter(Boolean).join(' ') || '—',
@@ -117,11 +118,11 @@ export async function GET() {
           id:                   a.id,
           matricula:            a.matricula ?? `${CONFIG.nombre}-0000`,
           nivel:                a.nivel ?? null,
-          modalidad:            a.modalidad ?? '6_meses',
+          modalidad:            a.modalidad ?? getDefaultModalidadId(),
           sindicalizado:        a.sindicalizado ?? false,
           activo:               a.activo ?? false,
           meses_desbloqueados:  a.meses_desbloqueados ?? 0,
-          duracion_meses:       a.modalidad === '3_meses' ? 3 : 6,
+          duracion_meses:       getMesesByModalidad(a.modalidad),
           inscripcion_pagada:   a.inscripcion_pagada ?? false,
           created_at:           a.created_at,
           nombre_completo:      [u?.nombre, u?.apellidos].filter(Boolean).join(' ') || '—',
@@ -158,11 +159,11 @@ export async function GET() {
         id:                   a.id,
         matricula:            a.matricula ?? `${CONFIG.nombre}-0000`,
         nivel:                a.nivel ?? null,
-        modalidad:            a.modalidad ?? '6_meses',
+        modalidad:            a.modalidad ?? getDefaultModalidadId(),
         sindicalizado:        a.sindicalizado ?? false,
         activo:               a.activo ?? false,
         meses_desbloqueados:  a.meses_desbloqueados ?? 0,
-        duracion_meses:       a.modalidad === '3_meses' ? 3 : 6,
+        duracion_meses:       getMesesByModalidad(a.modalidad),
         inscripcion_pagada:   a.inscripcion_pagada ?? false,
         created_at:           a.created_at,
         nombre_completo:      [(u as {nombre?:string}|null)?.nombre, (u as {apellidos?:string}|null)?.apellidos].filter(Boolean).join(' ') || '—',
@@ -243,7 +244,7 @@ export async function POST(request: NextRequest) {
         id:                  newUserId,
         matricula,
         nivel:               nivel as 'secundaria' | 'preparatoria' | 'excel',
-        modalidad:           modalidad ?? '6_meses',
+        modalidad:           modalidad ?? getDefaultModalidadId(),
         meses_desbloqueados: 0,
       })
       .select()

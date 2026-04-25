@@ -1,6 +1,7 @@
 import Link from 'next/link'
 import { createClient as createServiceClient } from '@supabase/supabase-js'
 import { CONFIG } from '@/lib/config'
+import { getMesesByModalidad } from '@/lib/modalidades'
 
 // ─── helpers ──────────────────────────────────────────────────────────────────
 function getServiceClient() {
@@ -116,7 +117,7 @@ export default async function AdminDashboardPage() {
     alumnosConNombre.push({ ...a, nombre, email })
   }
 
-  const duracion = (a: AlumnoRow) => a.modalidad === '3_meses' ? 3 : 6
+  const duracion = (a: AlumnoRow) => getMesesByModalidad(a.modalidad)
 
   return (
     <div className="space-y-6">
