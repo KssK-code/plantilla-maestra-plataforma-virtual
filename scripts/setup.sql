@@ -39,3 +39,33 @@
 \echo '  3. node scripts/update-videos.mjs --nivel demo   (videos demo)'
 \echo '  4. node scripts/update-videos.mjs                (todos los videos)'
 \echo '============================================================'
+
+-- ============================================================================
+-- CONSTRAINTS ADICIONALES (idempotentes)
+-- ============================================================================
+
+ALTER TABLE documentos_alumno ADD COLUMN IF NOT EXISTS tipo_documento TEXT;
+ALTER TABLE documentos_alumno ADD COLUMN IF NOT EXISTS url_archivo TEXT;
+ALTER TABLE documentos_alumno ADD COLUMN IF NOT EXISTS verificado BOOLEAN DEFAULT false;
+
+DO $$ 
+BEGIN 
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_constraint 
+    WHERE conname = 'documentos_alumno_alumno_tipo_unique'
+  ) THEN 
+    ALTER TABLE documentos_alumno 
+    ADD CONSTRAINT documentos_alumno_alumno_tipo_unique 
+    UNIQUE (alumno_id, tipo_documento); 
+  END IF; 
+EXCEPTION WHEN undefined_column THEN
+  RAISE NOTICE 'Skipping: tipo_documento column not found';
+END $$;
+
+-- ============================================================================
+-- LIMPIEZA FINAL
+-- ============================================================================
+
+NOTIFY pgrst, 'reload schema';
+
+DROP TRIGGER IF EXISTS on_auth_user_created ON auth.users;
