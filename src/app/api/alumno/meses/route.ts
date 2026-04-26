@@ -2,7 +2,7 @@ import { NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { getMesesByModalidad, getMateriasPorMesByModalidad } from '@/lib/modalidades'
 
-const DEMO_MATERIA_ID = 'e3f004d8-4451-4a65-9c91-bac3f87d2378' // TUT101 — Tutoría de ingreso I
+const DEMO_MATERIA_ID = 'f0551b82-1c3e-4286-bfb4-878842bc6eff' // nivel='demo' — Tutoría de Ingreso I
 
 export async function GET() {
   try {

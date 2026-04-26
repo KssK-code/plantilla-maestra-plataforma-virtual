@@ -1,0 +1,41 @@
+-- ============================================================
+-- setup.sql — Seed inicial completo para un nuevo cliente MEV
+--
+-- Prerequisito: schema.sql ya aplicado en la BD.
+--
+-- Uso desde la raíz del proyecto:
+--   psql "$DATABASE_URL" -f scripts/setup.sql
+--
+-- O desde el directorio scripts/:
+--   psql "$DATABASE_URL" -f setup.sql
+--
+-- Orden de ejecución (respeta dependencias FK):
+--   1. seed-contenido-ivs.sql     — INSERT materias/meses/semanas base
+--   2. seed-demo-materia.sql      — UPDATE demo + INSERT meses/semanas/quiz demo
+--   3. seed-contenido-semanas.sql — UPDATE semanas.contenido (texto didáctico)
+--   4. seed-materias-ejemplo.sql  — INSERT placeholders para materias del cliente
+--
+-- Pasos manuales POSTERIORES a este script:
+--   - create-admin.sql            — Crear usuario administrador (requiere UUID real)
+--   - node scripts/update-videos.mjs   — Poblar video_url via YouTube API
+-- ============================================================
+
+\echo '=== PASO 1/4: seed-contenido-ivs.sql ==='
+\i seed-contenido-ivs.sql
+
+\echo '=== PASO 2/4: seed-demo-materia.sql ==='
+\i seed-demo-materia.sql
+
+\echo '=== PASO 3/4: seed-contenido-semanas.sql ==='
+\i seed-contenido-semanas.sql
+
+\echo '=== PASO 4/4: seed-materias-ejemplo.sql ==='
+\i seed-materias-ejemplo.sql
+
+\echo '============================================================'
+\echo 'Setup completo. Próximos pasos:'
+\echo '  1. Edita src/lib/config.ts con los datos del cliente'
+\echo '  2. Ejecuta create-admin.sql manualmente (requiere UUID real)'
+\echo '  3. node scripts/update-videos.mjs --nivel demo   (videos demo)'
+\echo '  4. node scripts/update-videos.mjs                (todos los videos)'
+\echo '============================================================'

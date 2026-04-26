@@ -1,6 +1,6 @@
 -- ============================================================
--- IVS Virtual — Seed de contenido académico completo
--- Ejecutar DESPUÉS de EDVEX-SUPABASE-SETUP.sql
+-- Seed de contenido académico base (materias, meses, semanas)
+-- Ejecutar DESPUÉS de schema.sql via setup.sql
 -- ============================================================
 INSERT INTO public.materias (id, nombre, descripcion, nivel, orden, icono, color, activa) VALUES ('f0551b82-1c3e-4286-bfb4-878842bc6eff','Tutoría de Ingreso I','Esta materia te acompaña en tu transición al bachillerato virtual.','demo',0,'🎓','#8B5CF6',true) ON CONFLICT (id) DO NOTHING;
 INSERT INTO public.materias (id, nombre, descripcion, nivel, orden, icono, color, activa) VALUES ('2a87142b-cccc-483d-bdd7-55c760783b4f','Conocimiento matemático I','Conocimiento matemático I — Preparatoria IVS Virtual','preparatoria',1,'','#3B82F6',true) ON CONFLICT (id) DO NOTHING;
