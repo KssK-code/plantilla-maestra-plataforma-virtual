@@ -32,6 +32,10 @@
 \echo '=== PASO 4/4: seed-materias-ejemplo.sql ==='
 \i seed-materias-ejemplo.sql
 
+\echo '=== PASO 5/5: seed-evaluaciones-y-quiz.sql ==='
+\echo '── Sembrando evaluaciones y quizzes (10 preguntas/materia + 3 preguntas/semana) ──'
+\i seed-evaluaciones-y-quiz.sql
+
 \echo '============================================================'
 \echo 'Setup completo. Próximos pasos:'
 \echo '  1. Edita src/lib/config.ts con los datos del cliente'

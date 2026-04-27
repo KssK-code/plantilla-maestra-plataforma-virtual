@@ -16,6 +16,8 @@ import gsap from 'gsap'
 import { useGSAP } from '@gsap/react'
 import { CONFIG } from '@/lib/config'
 import { withAlpha } from '@/lib/utils'
+import ReactMarkdown from 'react-markdown'
+import remarkGfm from 'remark-gfm'
 
 gsap.registerPlugin(useGSAP)
 
@@ -312,12 +314,13 @@ export default function MateriaPage() {
                         })()}
                       </div>
 
-                      {/* Contenido — HTML renderizado */}
+                      {/* Contenido — Markdown renderizado */}
                       {contenidoSemana && (
-                        <div
-                          className="prose prose-invert max-w-none"
-                          dangerouslySetInnerHTML={{ __html: contenidoSemana }}
-                        />
+                        <div className="prose prose-invert max-w-none prose-headings:text-white prose-headings:font-bold prose-h1:text-2xl prose-h2:text-xl prose-h3:text-lg prose-strong:text-white prose-strong:font-semibold prose-p:text-slate-200 prose-li:text-slate-200 prose-ul:my-4 prose-ol:my-4 prose-a:text-cyan-400 prose-blockquote:border-cyan-500">
+                          <ReactMarkdown remarkPlugins={[remarkGfm]}>
+                            {contenidoSemana}
+                          </ReactMarkdown>
+                        </div>
                       )}
 
                       {/* Videos — embebidos (YouTube iframe) */}
