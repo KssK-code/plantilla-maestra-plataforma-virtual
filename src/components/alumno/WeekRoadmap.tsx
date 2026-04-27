@@ -108,7 +108,7 @@ export default function WeekRoadmap({
                   estado === 'completado'
                     ? { backgroundColor: CONFIG.colores.primario, borderColor: CONFIG.colores.primario }
                     : estado === 'activo'
-                    ? { backgroundColor: withAlpha(CONFIG.colores.primario, 0.10), borderColor: CONFIG.colores.primario }
+                    ? { backgroundColor: withAlpha(CONFIG.colores.acento, 0.15), borderColor: CONFIG.colores.acento }
                     : undefined
                 }
               >
@@ -116,7 +116,7 @@ export default function WeekRoadmap({
                   <Check className="w-5 h-5" style={{ color: '#fff' }} strokeWidth={2.5} />
                 )}
                 {estado === 'activo' && (
-                  <span className="text-sm font-bold" style={{ color: CONFIG.colores.primario }}>
+                  <span className="text-sm font-bold" style={{ color: CONFIG.colores.acento }}>
                     {semana.numero}
                   </span>
                 )}
@@ -153,7 +153,7 @@ export default function WeekRoadmap({
               <div className="flex items-center gap-2 mb-0.5 mt-1.5">
                 <span
                   className="text-xs font-mono transition-all duration-500"
-                  style={{ color: estado === 'bloqueado' ? '#475569' : CONFIG.colores.primario }}
+                  style={{ color: estado === 'bloqueado' ? '#475569' : CONFIG.colores.acento }}
                 >
                   {labelPrefijo} {semana.numero}
                 </span>
@@ -161,7 +161,7 @@ export default function WeekRoadmap({
                 {estado === 'activo' && (
                   <span
                     className="text-xs px-2 py-0.5 rounded-full font-medium"
-                    style={{ background: withAlpha(CONFIG.colores.primario, 0.15), color: withAlpha(CONFIG.colores.primario, 0.65) }}
+                    style={{ background: withAlpha(CONFIG.colores.acento, 0.15), color: CONFIG.colores.acento }}
                   >
                     {lang === 'en' ? 'In progress' : 'En curso'}
                   </span>

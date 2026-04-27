@@ -352,3 +352,39 @@ INSERT INTO public.preguntas (id, evaluacion_id, pregunta, opcion_a, opcion_b, o
 ('dd000014-0000-4000-a000-000000000001','bb000000-0000-4000-a000-000000000001','¿Verdadero o Falso? En la educación virtual, la responsabilidad del aprendizaje es 100% del alumno.','Verdadero','Falso','—','—','a',14),
 ('dd000015-0000-4000-a000-000000000001','bb000000-0000-4000-a000-000000000001','Si un día no tienes ganas de estudiar, ¿qué es lo mejor que puedes hacer?','No estudiar y esperar a que regrese la motivación','Comprometerte a solo 5 minutos y empezar','Estudiar 4 horas para compensar','Dejar la materia para el mes siguiente','b',15)
 ON CONFLICT (id) DO NOTHING;
+
+-- ─────────────────────────────────────────────────────────────────────────────
+-- 6. QUIZ SEMANAL — 2 preguntas por semana, 16 total
+--    Tabla: quiz_semana  (opcion_a/b/c + respuesta_correcta TEXT 'a'|'b'|'c')
+--    Sin esto SemanaQuiz muestra placeholder vacio en el tutorial.
+-- ─────────────────────────────────────────────────────────────────────────────
+
+DELETE FROM quiz_semana
+WHERE semana_id IN (
+  'cc000001-0000-4000-a000-000000000001',
+  'cc000002-0000-4000-a000-000000000001',
+  'cc000003-0000-4000-a000-000000000001',
+  'cc000004-0000-4000-a000-000000000001',
+  'cc000005-0000-4000-a000-000000000001',
+  'cc000006-0000-4000-a000-000000000001',
+  'cc000007-0000-4000-a000-000000000001',
+  'cc000008-0000-4000-a000-000000000001'
+);
+
+INSERT INTO quiz_semana (semana_id, pregunta, opcion_a, opcion_b, opcion_c, respuesta_correcta, orden, explicacion) VALUES
+('cc000001-0000-4000-a000-000000000001','Cual es la principal ventaja del bachillerato virtual frente al presencial?','Tiene examenes mas faciles','Permite estudiar con flexibilidad de horario y lugar','Otorga mas materias por semestre','b',1,'La educacion virtual te permite organizar tu propio tiempo y estudiar desde cualquier lugar.'),
+('cc000001-0000-4000-a000-000000000001','En el bachillerato virtual, quien es el principal responsable del aprendizaje?','El tutor en linea','La plataforma educativa','El alumno mismo','c',2,'En la educacion a distancia, el alumno toma el rol activo: organiza su tiempo y avanza a su propio ritmo.'),
+('cc000002-0000-4000-a000-000000000001','Segun la teoria VAK, cuantos estilos de aprendizaje principales existen?','2 (visual y auditivo)','3 (visual, auditivo y kinestesico)','4 (visual, auditivo, kinestesico y lector)','b',1,'La teoria VAK identifica tres estilos: Visual, Auditivo y Kinestesico.'),
+('cc000002-0000-4000-a000-000000000001','Una persona con estilo kinestesico aprende mejor mediante:','Videos y presentaciones visuales','Clases magistrales y podcasts','Practicas, ejercicios y experiencias directas','c',2,'El estilo kinestesico se basa en aprender haciendo: experimentos, practicas y actividades manuales.'),
+('cc000003-0000-4000-a000-000000000001','En que consiste la tecnica Pomodoro?','Estudiar en bloques de 25 minutos con descansos breves','Repasar el material 25 veces seguidas','Leer 25 paginas diarias sin interrupciones','a',1,'La tecnica Pomodoro divide el estudio en bloques de 25 minutos seguidos de descansos de 5 minutos.'),
+('cc000003-0000-4000-a000-000000000001','Que es el Active Recall o recuerdo activo?','Releer los apuntes varias veces hasta memorizarlos','Recuperar informacion de la memoria sin ver el material','Escuchar grabaciones de clase mientras duermes','b',2,'El Active Recall consiste en intentar recordar activamente el contenido, lo que fortalece la memoria a largo plazo.'),
+('cc000004-0000-4000-a000-000000000001','Para que sirve la Matriz de Eisenhower?','Para calcular el tiempo necesario por materia','Para clasificar tareas segun su urgencia e importancia','Para registrar las calificaciones obtenidas','b',1,'La Matriz de Eisenhower divide las tareas en cuadrantes urgente/importante para priorizar mejor.'),
+('cc000004-0000-4000-a000-000000000001','Cual es la primera accion recomendada para organizar el tiempo de estudio?','Comenzar con las tareas mas dificiles sin planear','Estudiar solo cuando se tenga motivacion','Definir metas claras y dividirlas en pasos pequenos','c',2,'Tener metas claras y desglosarlas en pasos concretos es el punto de partida para administrar el tiempo.'),
+('cc000005-0000-4000-a000-000000000001','Cual es la diferencia entre motivacion intrinseca y extrinseca?','La intrinseca viene del exterior; la extrinseca, del interior','La intrinseca nace del deseo propio; la extrinseca, de recompensas externas','No hay diferencia, son sinonimos','b',1,'La motivacion intrinseca surge del interes personal; la extrinseca viene de factores externos como calificaciones.'),
+('cc000005-0000-4000-a000-000000000001','Que estrategia es mas efectiva para mantener la disciplina en el estudio a distancia?','Estudiar unicamente cuando se siente motivacion','Establecer rutinas y horarios fijos de estudio','Esperar a tener toda la informacion antes de comenzar','b',2,'Las rutinas y horarios fijos crean habitos solidos que no dependen del estado de animo.'),
+('cc000006-0000-4000-a000-000000000001','Para que sirven herramientas como Notion o Google Keep en el estudio?','Solo para crear presentaciones visuales','Para organizar notas, tareas y proyectos en un solo lugar','Para editar y publicar videos educativos','b',1,'Estas herramientas permiten centralizar apuntes, listas de tareas y calendarios, facilitando la organizacion.'),
+('cc000006-0000-4000-a000-000000000001','Que ventaja tienen los mapas conceptuales digitales sobre los apuntes lineales?','Se crean mas rapido sin necesidad de pensar','Permiten visualizar conexiones entre ideas de forma estructurada','No requieren conexion a internet para funcionar','b',2,'Los mapas conceptuales muestran relaciones entre conceptos, facilitando la comprension y el repaso visual.'),
+('cc000007-0000-4000-a000-000000000001','Que elemento es indispensable en un plan de accion academico?','Una lista de metas sin fecha limite','Objetivos especificos, medibles y con plazos definidos','Solo la motivacion personal','b',1,'Un buen plan requiere objetivos SMART: Especificos, Medibles, Alcanzables, Relevantes y con Tiempo definido.'),
+('cc000007-0000-4000-a000-000000000001','Por que es importante definir metas a corto, mediano y largo plazo?','Para impresionar a los tutores y coordinadores','Porque la plataforma lo exige obligatoriamente','Para mantener el enfoque y medir el progreso gradualmente','c',2,'Tener metas en distintos horizontes ayuda a mantener el enfoque y celebrar logros del dia a dia.'),
+('cc000008-0000-4000-a000-000000000001','Cual es el proposito del repaso espaciado (spaced repetition)?','Estudiar todo el material en un unico dia intensivo','Repasar el contenido en intervalos crecientes para consolidar la memoria','Leer en voz alta repetidamente cada noche','b',1,'El repaso espaciado aprovecha el efecto de espaciado: repasar en intervalos crecientes fija mejor la informacion.'),
+('cc000008-0000-4000-a000-000000000001','Cual es la estrategia mas efectiva antes de un examen final?','Estudiar toda la noche sin dormir para repasar mas','Repasar los puntos clave con anticipacion y descansar bien antes del examen','Memorizar solo fechas y nombres importantes','b',2,'Descansar bien es fundamental: el sueno consolida la memoria y mejora el rendimiento cognitivo.');
