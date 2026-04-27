@@ -307,7 +307,7 @@ export default function MateriaPage() {
                           if (minVideos > 0) partes.push(`🎬 ${minVideos} min de videos`)
                           if (partes.length === 0) return null
                           return (
-                            <p className="text-xs mt-1.5" style={{ color: '#64748B' }}>
+                            <p className="text-xs mt-1.5" style={{ color: '#94A3B8' }}>
                               {partes.join(' · ')}
                             </p>
                           )
