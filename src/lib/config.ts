@@ -6,9 +6,7 @@ export const CONFIG = {
   tagline:         'Tu certificado oficial desde casa',  // subtítulo hero
 
   // === ASSETS ===
-  // IMPORTANTE: Reemplazar /public/logo.png y /public/firma-direccion.png
-  // con los archivos reales del cliente antes de producción.
-  // Ver public/README.md para detalles.
+  // REEMPLAZAR /public/logo.png con el logo del cliente. Ver public/README.md
   logo:            '/logo.png',              // logo principal (público)
   logoOscuro:      '/logo.png',              // logo para fondo oscuro
 

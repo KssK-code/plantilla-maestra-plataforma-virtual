@@ -1,31 +1,26 @@
-# Assets del cliente — REEMPLAZAR antes de producción
+# Assets del cliente
 
-Esta carpeta contiene placeholders genéricos. Cada cliente debe reemplazarlos
-con sus archivos propios ANTES de habilitar funciones en producción.
+Esta carpeta contiene archivos genéricos. Algunos deben reemplazarse para cada cliente.
 
-## Archivos obligatorios por cliente
+## Reemplazar SIEMPRE para cada cliente nuevo
 
 | Archivo | Descripción | Si NO se reemplaza |
 |---|---|---|
-| `logo.png` | Logo del cliente (PNG con transparencia, mín. 200x80px) | Plataforma muestra placeholder vacío |
-| `firma-direccion.png` | Firma del director del cliente (PNG, recomendado fondo blanco o transparente) | ⚠️ Constancias se generan SIN firma — NO emitir certificaciones |
-| `favicon.svg` | Favicon del cliente (opcional — placeholder genérico MEV funciona) | — |
+| `logo.png` | Logo del cliente (PNG con transparencia, mín. 200x80px) | Plataforma muestra placeholder transparente |
 
-## Reemplazo para cada cliente nuevo
+## Genéricos (mantener)
+
+| Archivo | Descripción |
+|---|---|
+| `favicon.svg` | Favicon genérico MEV — opcional reemplazar |
+| `firma-direccion.png` | Firma genérica de dirección — sirve para todos los clientes hasta que pidan personalizarla |
+
+## Reemplazo de logo
+
+Desde la raíz del repo del cliente:
 
 ```bash
-# Desde la raíz del repo del cliente:
-cp /ruta/a/logos-cliente/logo.png public/logo.png
-cp /ruta/a/firmas/director.png public/firma-direccion.png
-git add public/ && git commit -m "feat(assets): logos y firma del cliente"
+cp /ruta/al/logo-cliente.png public/logo.png
+git add public/logo.png && git commit -m "feat(assets): logo del cliente"
 git push
 ```
-
-## Por qué placeholders y no archivos hardcoded
-
-Antes esta plantilla traía logos y firmas de IVS hardcoded. Eso causaba que
-clientes nuevos arrancaran con identidad de IVS visible y, peor aún, que sus
-constancias se firmaran con la firma del director de IVS (problema legal).
-
-Los placeholders transparentes hacen visible la falta de assets del cliente
-sin contaminar la identidad cruzada.
