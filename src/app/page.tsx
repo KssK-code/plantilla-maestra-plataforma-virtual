@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState, useCallback } from 'react'
 import Image from 'next/image'
 import Link from 'next/link'
+import { LogIn } from 'lucide-react'
 import { Playfair_Display, DM_Sans } from 'next/font/google'
 import { CONFIG } from '@/lib/config'
 import { getModalidadesActivas, getDuracionLabel, getPlanLabel } from '@/lib/modalidades'
@@ -184,15 +185,15 @@ export default function LandingPage() {
       <header className="fixed top-0 left-0 right-0 z-50 flex items-center justify-between px-4 sm:px-10 h-[68px]"
         style={{ background: 'rgba(8,15,30,0.85)', backdropFilter: 'blur(20px)', borderBottom: '1px solid rgba(66,165,245,0.1)' }}>
         <Link href="/" className="flex items-center gap-3 min-w-0">
-          <Image src={CONFIG.logo} alt={CONFIG.nombreCompleto} width={44} height={44} className="h-10 w-auto object-contain flex-shrink-0" priority />
+          <Image src={CONFIG.logoOscuro || CONFIG.logo} alt={CONFIG.nombreCompleto} width={180} height={60} className="h-12 md:h-14 w-auto object-contain flex-shrink-0" priority />
           <span className={`hidden sm:inline font-semibold text-[15px] ${playfair.className}`} style={{ color: C.white, letterSpacing: '.02em' }}>
             {CONFIG.nombreCompleto}
           </span>
         </Link>
         <nav className="flex items-center gap-2">
-          <Link href="/login" className="px-4 py-2 rounded-lg text-sm font-semibold transition-all"
+          <Link href="/login" className="flex items-center gap-1.5 px-4 py-2 rounded-lg text-sm font-semibold transition-all"
             style={{ color: C.azure, border: '1px solid rgba(66,165,245,.22)', background: 'transparent' }}>
-            Iniciar sesión
+            <LogIn size={15} />Iniciar sesión
           </Link>
           <Link href="/register" className="px-4 sm:px-5 py-2 rounded-lg text-sm font-bold text-white transition-all"
             style={{ background: `linear-gradient(135deg,${C.royal},${C.bright})`, boxShadow: `0 4px 14px ${C.royal}55` }}>
@@ -229,6 +230,19 @@ export default function LandingPage() {
 
           {/* Content */}
           <div className="relative z-10 max-w-3xl mx-auto w-full">
+            {/* Logo con glow premium */}
+            <div className="flex justify-center mb-8">
+              <div className="relative inline-block">
+                <div className="absolute inset-0 blur-3xl bg-white/30 rounded-full scale-90" />
+                <Image
+                  src={CONFIG.logoOscuro || CONFIG.logo}
+                  alt={CONFIG.nombreCompleto}
+                  width={500} height={500} priority
+                  className="relative w-[260px] md:w-[380px] lg:w-[480px] h-auto drop-shadow-[0_0_40px_rgba(255,255,255,0.4)]"
+                />
+              </div>
+            </div>
+
             <div className="flex justify-center mb-7">
               <span className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full text-xs font-semibold tracking-wider uppercase"
                 style={{ background: 'rgba(21,101,192,0.22)', color: C.azure, border: '1px solid rgba(66,165,245,0.22)' }}>
@@ -608,7 +622,7 @@ export default function LandingPage() {
         {/* ── FOOTER ───────────────────────────────────────────────── */}
         <footer className="py-12 px-4 sm:px-8 text-center" style={{ background: '#050a14', color: 'rgba(227,242,253,0.45)' }}>
           <div className="flex justify-center mb-4">
-            <Image src={CONFIG.logo} alt={CONFIG.nombreCompleto} width={40} height={40} className="opacity-90 object-contain" />
+            <Image src={CONFIG.logoOscuro || CONFIG.logo} alt={CONFIG.nombreCompleto} width={200} height={80} className="h-16 md:h-20 w-auto brightness-0 invert drop-shadow-[0_0_20px_rgba(255,255,255,0.2)] object-contain" />
           </div>
           <p className="text-sm font-semibold" style={{ color: C.ice }}>{CONFIG.nombreCompleto}</p>
           <p className="text-xs mt-1.5">Puebla, México · {CONFIG.dominio}</p>
