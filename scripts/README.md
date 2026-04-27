@@ -35,7 +35,6 @@ DDL completo extraído de IVS Virtual:
 ### setup.sql (ejecutar SEGUNDO)
 Combina vía `\i` los seeds esenciales:
 - seed-demo-materia.sql → Tutorial Demo (CRÍTICO para modo prueba)
-- seed-materias-ejemplo.sql → Materias placeholder
 - seed-contenido-ivs.sql → Estructura de meses + semanas
 - seed-contenido-semanas.sql → Contenido académico
 
@@ -45,6 +44,7 @@ Más constraints adicionales y limpieza (NOTIFY pgrst, DROP TRIGGER).
 
 | Archivo | Razón |
 |---------|-------|
+| seed-materias-ejemplo.sql | **DEPRECATED** — Bug: desplazaba materias reales a orden 13-24, bloqueando acceso a contenido (26-abr-2026) |
 | videos-update.sql | Usa columna 'videos' JSONB no presente en schema canónico |
 | quiz-data.sql | Usa columnas 'opciones' JSONB no presentes en schema canónico |
 | add-bilingual-columns.sql | Migration EDVEX |
