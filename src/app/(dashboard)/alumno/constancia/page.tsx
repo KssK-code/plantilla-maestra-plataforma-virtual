@@ -154,8 +154,8 @@ export default function ConstanciaPage() {
                 }}>{CONFIG.nombreCompleto}</span>
                 <span style={{ fontSize: 9, letterSpacing: '0.2em', color: '#64748b', fontWeight: 500, textTransform: 'uppercase', marginTop: 4 }}>
                   {CONFIG.cct?.trim()
-                    ? <>Incorporado a la SEP &nbsp;·&nbsp; CCT: {CONFIG.cct.trim()}</>
-                    : <>Incorporado a la SEP</>}
+                    ? <>Centro de Apoyo para la Acreditación de Conocimientos &nbsp;·&nbsp; CCT: {CONFIG.cct.trim()}</>
+                    : <>Centro de Apoyo para la Acreditación de Conocimientos</>}
                 </span>
                 <span style={{
                   fontSize: 8, letterSpacing: '0.12em', color: '#94a3b8', fontWeight: 400,
@@ -267,10 +267,7 @@ export default function ConstanciaPage() {
                 ...(CONFIG.cct?.trim()
                   ? [{ label: 'CCT' as const, value: CONFIG.cct.trim() }]
                   : []),
-                { label: 'Autoridad educativa', value: 'Incorporado a la SEP' },
-                { label: 'Sistema', value: datos.duracion_meses <= 6 && datos.plan_nombre?.toLowerCase().includes('prepa')
-                    ? 'Sistema Nacional de Educación Media Superior'
-                    : 'Sistema Educativo Nacional' },
+                { label: 'Tipo de documento', value: 'Constancia de progreso académico (uso informativo)' },
               ].map(item => (
                 <div key={item.label} style={{ fontSize: 11, color: '#475569' }}>
                   <span style={{ color: '#64748b', fontWeight: 600 }}>{item.label}: </span>
@@ -380,6 +377,15 @@ export default function ConstanciaPage() {
                 {CONFIG.nombre}
               </div>
             </div>
+          </div>
+
+          {/* Nota legal */}
+          <div style={{ padding: '0 48px 24px', textAlign: 'center' }}>
+            <p style={{ fontSize: 10, color: '#64748b', fontStyle: 'italic', lineHeight: 1.7 }}>
+              Este documento es de carácter informativo y refleja el avance académico del alumno dentro de la plataforma.{' '}
+              <strong style={{ fontWeight: 700 }}>No constituye certificación oficial ni es válido para trámites ante la SEP u otras instituciones.</strong>{' '}
+              Para obtener el certificado oficial con validez SEP, debe completar el proceso de certificación correspondiente.
+            </p>
           </div>
 
           {/* Barra inferior */}
