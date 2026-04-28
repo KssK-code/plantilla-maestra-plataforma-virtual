@@ -247,7 +247,7 @@ export default function LandingPage() {
               <span className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full text-xs font-semibold tracking-wider uppercase"
                 style={{ background: 'rgba(21,101,192,0.22)', color: C.azure, border: '1px solid rgba(66,165,245,0.22)' }}>
                 <span style={{ width: 6, height: 6, borderRadius: '50%', background: '#4ade80', flexShrink: 0 }} />
-                Incorporado a la SEP · Puebla, México
+                Centro de Apoyo para la Acreditación de Conocimientos · [Ciudad, México]
               </span>
             </div>
 
@@ -264,7 +264,7 @@ export default function LandingPage() {
 
             <p className="text-base sm:text-lg max-w-xl mx-auto mb-10 leading-relaxed" style={{ color: 'rgba(227,242,253,0.75)' }}>
               Sin ir a la escuela. Sin perder tu trabajo.
-              <br className="hidden sm:block" /> Con certificado oficial SEP.
+              <br className="hidden sm:block" /> Con apoyo en tu certificado SEP.
             </p>
 
             <div className="flex flex-col sm:flex-row items-center justify-center gap-4 mb-16">
@@ -275,11 +275,10 @@ export default function LandingPage() {
             </div>
 
             {/* Counters */}
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-6 border-t pt-10" style={{ borderColor: 'rgba(66,165,245,0.14)' }}>
+            <div className="grid grid-cols-2 sm:grid-cols-3 gap-6 border-t pt-10" style={{ borderColor: 'rgba(66,165,245,0.14)' }}>
               {[
                 { to: 2, suffix: '', label: 'Niveles', sub: 'Sec · Prepa' },
                 { to: 100, suffix: '%', label: 'En línea', sub: 'A tu ritmo' },
-                { to: 5, suffix: '+', label: 'Años', sub: 'De experiencia' },
                 { to: 24, suffix: 'h', label: 'Acceso', sub: 'Plataforma' },
               ].map(s => (
                 <div key={s.label}>
@@ -431,7 +430,7 @@ export default function LandingPage() {
                     style={{ background: '#FEE2E2', color: '#DC2626' }}>✕</div>
                   <span className="font-bold text-sm uppercase tracking-wider" style={{ color: '#DC2626' }}>{`Sin ${CONFIG.nombre}`}</span>
                 </div>
-                {['Sin certificado oficial para avanzar profesionalmente.','Bloqueado por horarios que no se adaptan a tu vida.','Años postergando tu sueño de terminar tus estudios.','Oportunidades de trabajo que se te escapan sin el papel.'].map(t => (
+                {['Sin acceso a tu certificado para avanzar profesionalmente.','Bloqueado por horarios que no se adaptan a tu vida.','Años postergando tu sueño de terminar tus estudios.','Oportunidades de trabajo que se te escapan sin el papel.'].map(t => (
                   <div key={t} className="flex items-start gap-3 mb-4">
                     <span className="mt-0.5 flex-shrink-0 text-red-400 text-sm">✕</span>
                     <p className="text-sm leading-relaxed" style={{ color: '#7f1d1d' }}>{t}</p>
@@ -446,7 +445,7 @@ export default function LandingPage() {
                     style={{ background: 'rgba(66,165,245,0.2)', color: C.azure }}>✓</div>
                   <span className="font-bold text-sm uppercase tracking-wider" style={{ color: C.azure }}>{`Con ${CONFIG.nombre}`}</span>
                 </div>
-                {['Certificado oficial SEP reconocido en todo México.','Estudias a tu ritmo, desde tu celular, sin salir de casa.',`En ${getDuracionLabel()} terminas lo que llevas años posponiendo.`,'Abre puertas: trabajo, universidad, trámites oficiales.'].map(t => (
+                {['Te apoyamos en la gestión de tu certificado oficial SEP.','Estudias a tu ritmo, desde tu celular, sin salir de casa.',`En ${getDuracionLabel()} terminas lo que llevas años posponiendo.`,'Abre puertas: trabajo, universidad, trámites oficiales.'].map(t => (
                   <div key={t} className="flex items-start gap-3 mb-4">
                     <span className="mt-0.5 flex-shrink-0" style={{ color: '#4ade80', fontSize: 14 }}>✓</span>
                     <p className="text-sm leading-relaxed" style={{ color: 'rgba(227,242,253,0.8)' }}>{t}</p>
@@ -546,7 +545,7 @@ export default function LandingPage() {
             </div>
             <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-5">
               {[
-                { title: 'Certificado oficial SEP', desc: 'Validez nacional reconocida por el sistema educativo mexicano.' },
+                { title: 'Gestión de tu certificado SEP', desc: 'Validez nacional reconocida por el sistema educativo mexicano.' },
                 { title: '100% en línea', desc: 'Estudia desde Puebla u otro punto del país sin trasladarte.' },
                 { title: 'Materias estructuradas', desc: 'Contenidos organizados por meses con progresión clara y alcanzable.' },
                 { title: 'Acompañamiento directo', desc: 'Seguimiento personalizado y canal de atención por WhatsApp.' },
@@ -579,7 +578,7 @@ export default function LandingPage() {
             <div data-reveal>
               {[
                 { q: '¿Cuánto tiempo tengo para terminar?', a: `Depende del plan elegido: tienes acceso a tus materias durante el período contratado (${getDuracionLabel()}) y puedes estudiar a tu ritmo, sin horarios fijos.` },
-                { q: '¿El certificado tiene validez oficial en todo México?', a: 'Sí. Nuestro certificado está incorporado a la SEP y tiene validez oficial en todo el territorio nacional, por lo que es reconocido para trámites laborales, universitarios y gubernamentales.' },
+                { q: '¿El certificado tiene validez oficial en todo México?', a: 'Te acompañamos en el proceso para obtener tu certificado oficial SEP, el cual es reconocido a nivel nacional para trámites laborales, universitarios y gubernamentales. Fungimos como Centro de Apoyo para la Acreditación de Conocimientos: facilitamos el camino, mientras la validez oficial corresponde a la SEP.' },
                 { q: '¿Qué documentos necesito para inscribirme?', a: `Secundaria: Certificado de Primaria, CURP, Acta de Nacimiento, Identificación Oficial y foto de perfil fondo blanco. Preparatoria: los mismos más Certificado de Secundaria.` },
                 { q: '¿Puedo estudiar desde mi celular?', a: 'Sí, la plataforma está optimizada para móvil. Puedes acceder desde cualquier dispositivo con conexión a internet, en cualquier momento del día o de la noche.' },
                 { q: '¿Qué pasa si tengo dudas durante el curso?', a: `Contamos con canal directo de atención por WhatsApp al ${CONFIG.whatsapp}. Nuestro equipo te responde para orientarte en cualquier momento del proceso.` },

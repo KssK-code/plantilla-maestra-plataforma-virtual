@@ -3,7 +3,7 @@ export const CONFIG = {
   nombre:          'MEV',                    // nombre corto: 'IVS', 'CJVB', 'ADE'
   nombreCompleto:  'Mi Escuela Virtual',     // nombre completo legal
   prefijoMatricula:'MEV',                    // prefijo de matrícula: 'IVS-0001', 'CJVB-0001'
-  tagline:         'Tu certificado oficial desde casa',  // subtítulo hero
+  tagline:         'Tu certificación con apoyo desde casa',  // subtítulo hero
 
   // === ASSETS ===
   // REEMPLAZAR /public/logo.png con el logo del cliente. Ver public/README.md
@@ -71,11 +71,10 @@ export const CONFIG = {
 
   // === LANDING ===
   landing: {
-    hero_titulo:                'Obtén tu certificado oficial',
+    hero_titulo:                'Obtén tu certificación con apoyo',
     hero_highlight:             'desde casa',
-    hero_subtitulo:             'Estudia Secundaria o Preparatoria en línea con validez oficial SEP. Avanza a tu ritmo.',
-    hero_badges:                ['SEP Oficial', 'Sin salir de casa', '100% en línea'],
-    años_experiencia:           5,
+    hero_subtitulo:             'Estudia Secundaria o Preparatoria en línea con acompañamiento certificado. Avanza a tu ritmo.',
+    hero_badges:                ['Acompañamiento Certificado', 'Sin salir de casa', '100% en línea'],
     convenios:                  [],
     respaldo_titulo:            'Respaldados por instituciones educativas de confianza',
     respaldo_badges:            [],

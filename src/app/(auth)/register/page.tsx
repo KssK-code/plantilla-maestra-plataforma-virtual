@@ -12,9 +12,9 @@ import { CONFIG } from '@/lib/config'
 const WA_URL = `https://wa.me/${CONFIG.whatsapp}`
 
 const BENEFITS = [
-  'Certificado oficial con validez SEP',
+  'Acompañamiento para tu certificado SEP',
   'Estudia desde casa, a tu ritmo',
-  'Incorporado a Sistema Educativo Nacional',
+  'Centro de Apoyo para la Acreditación de Conocimientos',
   'Secundaria y Preparatoria',
 ]
 
@@ -154,10 +154,10 @@ function LeftPanel() {
       <div className="relative z-10">
         <h2 className="text-3xl font-bold leading-tight mb-3" style={{ color: '#fff', fontFamily: 'Syne, sans-serif' }}>
           Comienza hoy<br />
-          <span style={{ color: '#42A5F5' }}>tu certificado oficial</span>
+          <span style={{ color: '#42A5F5' }}>tu camino educativo</span>
         </h2>
         <p className="text-sm mb-8" style={{ color: 'rgba(255,255,255,0.75)', lineHeight: 1.7 }}>
-          Únete a miles de alumnos que ya obtuvieron su certificado con validez SEP.
+          Únete a alumnos que han completado su trayectoria educativa con nosotros.
         </p>
 
         <div className="flex flex-col gap-3">
@@ -172,8 +172,8 @@ function LeftPanel() {
 
       <div className="relative z-10">
         <div style={{ background: 'rgba(255,255,255,0.1)', border: '1px solid rgba(255,255,255,0.2)', borderRadius: 12, padding: '12px 16px' }}>
-          <p className="text-xs font-semibold" style={{ color: 'rgba(255,255,255,0.6)', marginBottom: 2 }}>INCORPORADO A</p>
-          <p className="text-sm font-bold" style={{ color: '#fff' }}>Sistema Educativo Nacional</p>
+          <p className="text-xs font-semibold" style={{ color: 'rgba(255,255,255,0.6)', marginBottom: 2 }}>CENTRO DE APOYO</p>
+          <p className="text-sm font-bold" style={{ color: '#fff' }}>Acreditación de Conocimientos</p>
         </div>
       </div>
     </div>
