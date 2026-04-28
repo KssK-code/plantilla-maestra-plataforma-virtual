@@ -105,3 +105,19 @@ FROM semanas;
 \echo '  Si algo sale ❌, REVISAR antes de avanzar.'
 \echo '════════════════════════════════════════════════════════'
 \echo ''
+
+-- ─── CHECK 11: RLS SELECT policy en tabla usuarios ──────────
+-- Sin esta policy el frontend recibe null silenciosamente al
+-- consultar rol → fallback ALUMNO → admin entra como alumno.
+-- Bug detectado en cliente Santa Barbara (28-abr-2026).
+SELECT
+  'RLS SELECT policy en usuarios' AS check_name,
+  COUNT(*)::text AS valor,
+  CASE
+    WHEN COUNT(*) >= 1 THEN '✅ OK'
+    ELSE '❌ FAIL — admin entrará como alumno (ver fix/rls-usuarios-select-policy)'
+  END AS resultado
+FROM pg_policies
+WHERE schemaname = 'public'
+  AND tablename = 'usuarios'
+  AND cmd = 'SELECT';
