@@ -105,3 +105,55 @@ FROM semanas;
 \echo '  Si algo sale ❌, REVISAR antes de avanzar.'
 \echo '════════════════════════════════════════════════════════'
 \echo ''
+
+-- ─── CHECK 11: RLS SELECT policy en tabla usuarios ──────────
+-- Sin esta policy el frontend recibe null silenciosamente al
+-- consultar rol → fallback ALUMNO → admin entra como alumno.
+-- Bug detectado en cliente Santa Barbara (28-abr-2026).
+SELECT
+  'RLS SELECT policy en usuarios' AS check_name,
+  COUNT(*)::text AS valor,
+  CASE
+    WHEN COUNT(*) >= 1 THEN '✅ OK'
+    ELSE '❌ FAIL — admin entrará como alumno (ver fix/rls-usuarios-select-policy)'
+  END AS resultado
+FROM pg_policies
+WHERE schemaname = 'public'
+  AND tablename = 'usuarios'
+  AND cmd = 'SELECT';
+
+-- ─── CHECK 12: Función is_admin() existe (evita recursión RLS) ──
+-- La política "admin lee todos" en usuarios necesita is_admin() con
+-- SECURITY DEFINER para evitar recursión infinita (error 500 en login).
+-- Bug detectado en cliente Santa Barbara (28-abr-2026).
+SELECT
+  'Funcion is_admin() con SECURITY DEFINER' AS check_name,
+  COUNT(*)::text AS valor,
+  CASE
+    WHEN COUNT(*) = 1 THEN '✅ OK'
+    ELSE '❌ FALTA is_admin() — riesgo de recursion RLS infinita'
+  END AS resultado
+FROM pg_proc p
+JOIN pg_namespace n ON p.pronamespace = n.oid
+WHERE n.nspname = 'public' AND p.proname = 'is_admin';
+
+-- ─── CHECK 13: Cobertura de SELECT policies en todas las tablas ─
+-- Detecta el bug historico donde el setup aplica politicas incompletas.
+-- Afecto a Santa Barbara (28-abr-2026): 10 tablas con RLS sin SELECT.
+WITH tablas_sin_policy AS (
+  SELECT c.relname AS tabla
+  FROM pg_class c
+  LEFT JOIN pg_policy p ON p.polrelid = c.oid AND p.polcmd = 'r'
+  WHERE c.relnamespace = 'public'::regnamespace
+    AND c.relkind = 'r'
+    AND c.relrowsecurity = true
+  GROUP BY c.relname
+  HAVING COUNT(p.oid) = 0
+)
+SELECT
+  CASE
+    WHEN COUNT(*) = 0
+      THEN 'CHECK 13: Todas las tablas con RLS tienen SELECT policy'
+    ELSE 'FAIL CHECK 13: ' || COUNT(*) || ' tablas sin SELECT: ' || string_agg(tabla, ', ')
+  END AS resultado
+FROM tablas_sin_policy;
