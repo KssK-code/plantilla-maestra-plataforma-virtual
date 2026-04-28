@@ -13,9 +13,9 @@ import { CONFIG } from '@/lib/config'
 const WA_URL = `https://wa.me/${CONFIG.whatsapp}`
 
 const BENEFITS = [
-  'Certificado oficial con validez SEP',
+  'Acompañamiento para tu certificado SEP',
   'Estudia desde casa, a tu ritmo',
-  'Incorporado a Sistema Educativo Nacional',
+  'Centro de Apoyo para la Acreditación de Conocimientos',
   'Secundaria y Preparatoria',
 ]
 
@@ -94,7 +94,7 @@ function LeftPanel() {
           <span style={{ color: '#42A5F5' }}>a tu ritmo</span>
         </h2>
         <p className="text-base mb-8" style={{ color: 'rgba(255,255,255,0.75)', lineHeight: 1.6 }}>
-          Obtén tu certificado con validez oficial SEP desde la comodidad de tu hogar.
+          Estudia desde la comodidad de tu hogar y obtén acompañamiento en tu certificación.
         </p>
 
         <div className="flex flex-col gap-3">
@@ -116,10 +116,10 @@ function LeftPanel() {
           padding: '12px 16px',
         }}>
           <p className="text-xs font-semibold" style={{ color: 'rgba(255,255,255,0.6)', marginBottom: 2 }}>
-            INCORPORADO A
+            CENTRO DE APOYO
           </p>
           <p className="text-sm font-bold" style={{ color: '#fff' }}>
-            Sistema Educativo Nacional
+            Acreditación de Conocimientos
           </p>
         </div>
       </div>
