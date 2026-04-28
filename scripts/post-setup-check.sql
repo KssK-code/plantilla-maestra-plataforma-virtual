@@ -121,3 +121,18 @@ FROM pg_policies
 WHERE schemaname = 'public'
   AND tablename = 'usuarios'
   AND cmd = 'SELECT';
+
+-- ─── CHECK 12: Función is_admin() existe (evita recursión RLS) ──
+-- La política "admin lee todos" en usuarios necesita is_admin() con
+-- SECURITY DEFINER para evitar recursión infinita (error 500 en login).
+-- Bug detectado en cliente Santa Barbara (28-abr-2026).
+SELECT
+  'Funcion is_admin() con SECURITY DEFINER' AS check_name,
+  COUNT(*)::text AS valor,
+  CASE
+    WHEN COUNT(*) = 1 THEN '✅ OK'
+    ELSE '❌ FALTA is_admin() — riesgo de recursion RLS infinita'
+  END AS resultado
+FROM pg_proc p
+JOIN pg_namespace n ON p.pronamespace = n.oid
+WHERE n.nspname = 'public' AND p.proname = 'is_admin';
