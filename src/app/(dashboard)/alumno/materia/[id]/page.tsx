@@ -317,7 +317,14 @@ export default function MateriaPage() {
                       {/* Contenido — Markdown renderizado */}
                       {contenidoSemana && (
                         <div className="prose prose-invert max-w-none prose-headings:text-white prose-headings:font-bold prose-h1:text-2xl prose-h2:text-xl prose-h3:text-lg prose-strong:text-white prose-strong:font-semibold prose-p:text-slate-200 prose-li:text-slate-200 prose-ul:my-4 prose-ol:my-4 prose-a:text-cyan-400 prose-blockquote:border-cyan-500">
-                          <ReactMarkdown remarkPlugins={[remarkGfm]}>
+                          <ReactMarkdown
+                            remarkPlugins={[remarkGfm]}
+                            components={{
+                              h1: ({ children }) => <h1 className="text-2xl font-bold mt-4 mb-2" style={{ color: '#F1F5F9' }}>{children}</h1>,
+                              h2: ({ children }) => <h2 className="text-xl font-bold mt-3 mb-2" style={{ color: '#F1F5F9' }}>{children}</h2>,
+                              h3: ({ children }) => <h3 className="text-lg font-bold mt-3 mb-1" style={{ color: '#F1F5F9' }}>{children}</h3>,
+                            }}
+                          >
                             {contenidoSemana}
                           </ReactMarkdown>
                         </div>
