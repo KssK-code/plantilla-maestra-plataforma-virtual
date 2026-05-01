@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback } from 'react'
 import { useRouter, useParams } from 'next/navigation'
-import { ArrowLeft, X, Loader2, Key, Eye, EyeOff, Download, FileText, StickyNote, Save, LockOpen, CheckCircle2, CreditCard } from 'lucide-react'
+import { ArrowLeft, X, Loader2, Key, Eye, EyeOff, Download, FileText, StickyNote, Save, LockOpen, Lock, CheckCircle2, CreditCard } from 'lucide-react'
 import { useToast, ToastContainer } from '@/components/ui/toast'
 import { config } from '@/lib/config'
 
@@ -16,6 +16,14 @@ interface AlumnoDetalle {
   usuario: { id: string; nombre_completo: string; email: string; activo: boolean }
   plan: { id: string; nombre: string; duracion_meses: number; precio_mensual: number }
   calificaciones: { id: string; calificacion_final: number; aprobada: boolean; materias: { nombre: string; codigo: string } }[]
+  intentos: {
+    id: string
+    numero_intento: number
+    puntaje: number
+    acreditado: boolean
+    fecha_intento: string
+    evaluaciones: { id: string; titulo: string; materias: { nombre: string } | null } | null
+  }[]
 }
 
 type DocTipo =
@@ -68,6 +76,9 @@ export default function AlumnoDetallePage() {
   const [togglingActivo, setTogglingActivo] = useState(false)
   const [marcandoInscripcion, setMarcandoInscripcion] = useState(false)
   const [modalInscripcion, setModalInscripcion] = useState(false)
+  const [modalCerrarMes, setModalCerrarMes] = useState(false)
+  const [cerrandoMes, setCerrandoMes] = useState(false)
+  const [cerrarMesError, setCerrarMesError] = useState<string | null>(null)
   const [desbloquearError, setDesbloquearError] = useState<string | null>(null)
   const [resetError, setResetError] = useState<string | null>(null)
   const [resetSuccess, setResetSuccess] = useState<string | null>(null)
@@ -135,6 +146,31 @@ export default function AlumnoDetallePage() {
       setDesbloquearError('Error inesperado. Intenta de nuevo.')
     } finally {
       setSubmitting(false)
+    }
+  }
+
+  async function handleCerrarMes() {
+    setCerrarMesError(null)
+    setCerrandoMes(true)
+    try {
+      const res = await fetch(`/api/admin/alumnos/${id}/cerrar-mes`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({}),
+      })
+      const data = await res.json()
+      if (!res.ok) { setCerrarMesError(data.error ?? 'Error al cerrar mes'); return }
+      setModalCerrarMes(false)
+      const { mes_cerrado, materias_cerradas, datos_borrados } = data
+      await cargar()
+      showToast(
+        `🔒 Mes ${mes_cerrado} (${(materias_cerradas as string[]).join(', ')}) cerrado — borrados: ${datos_borrados.calificaciones} cal, ${datos_borrados.intentos} intentos, ${datos_borrados.progreso} semanas, ${datos_borrados.quizzes} quizzes`,
+        'success'
+      )
+    } catch {
+      setCerrarMesError('Error inesperado. Intenta de nuevo.')
+    } finally {
+      setCerrandoMes(false)
     }
   }
 
@@ -378,26 +414,40 @@ export default function AlumnoDetallePage() {
               {alumno.meses_desbloqueados} de {alumno.plan.duracion_meses} meses desbloqueados
             </p>
           </div>
-          {todosBloqueados ? (
-            <div
-              className="flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-semibold"
-              style={{ background: 'rgba(34,197,94,0.12)', border: '1px solid rgba(34,197,94,0.25)', color: '#22C55E' }}
-            >
-              <CheckCircle2 className="w-4 h-4" />
-              Todos los meses desbloqueados
-            </div>
-          ) : (
-            <button
-              onClick={() => { setModalPago(true); setDesbloquearError(null) }}
-              className="flex items-center gap-2 px-6 py-3 rounded-xl text-base font-bold transition-all shadow-lg"
-              style={{ background: '#1565C0', color: '#fff', boxShadow: '0 4px 20px rgba(21,101,192,0.4)' }}
-              onMouseEnter={e => { e.currentTarget.style.background = '#2D8C87'; e.currentTarget.style.transform = 'translateY(-1px)' }}
-              onMouseLeave={e => { e.currentTarget.style.background = '#1565C0'; e.currentTarget.style.transform = 'translateY(0)' }}
-            >
-              <LockOpen className="w-5 h-5" />
-              Abrir Mes {alumno.meses_desbloqueados + 1}
-            </button>
-          )}
+          <div className="flex items-center gap-2 flex-wrap">
+            {alumno.meses_desbloqueados > 0 && (
+              <button
+                onClick={() => { setModalCerrarMes(true); setCerrarMesError(null) }}
+                className="flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-semibold transition-all"
+                style={{ background: 'rgba(239,68,68,0.12)', color: '#EF4444', border: '1px solid rgba(239,68,68,0.25)' }}
+                onMouseEnter={e => { e.currentTarget.style.background = 'rgba(239,68,68,0.22)' }}
+                onMouseLeave={e => { e.currentTarget.style.background = 'rgba(239,68,68,0.12)' }}
+              >
+                <Lock className="w-4 h-4" />
+                Cerrar Mes {alumno.meses_desbloqueados}
+              </button>
+            )}
+            {todosBloqueados ? (
+              <div
+                className="flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-semibold"
+                style={{ background: 'rgba(34,197,94,0.12)', border: '1px solid rgba(34,197,94,0.25)', color: '#22C55E' }}
+              >
+                <CheckCircle2 className="w-4 h-4" />
+                Todos los meses desbloqueados
+              </div>
+            ) : (
+              <button
+                onClick={() => { setModalPago(true); setDesbloquearError(null) }}
+                className="flex items-center gap-2 px-6 py-3 rounded-xl text-base font-bold transition-all shadow-lg"
+                style={{ background: '#1565C0', color: '#fff', boxShadow: '0 4px 20px rgba(21,101,192,0.4)' }}
+                onMouseEnter={e => { e.currentTarget.style.background = '#1976D2'; e.currentTarget.style.transform = 'translateY(-1px)' }}
+                onMouseLeave={e => { e.currentTarget.style.background = '#1565C0'; e.currentTarget.style.transform = 'translateY(0)' }}
+              >
+                <LockOpen className="w-5 h-5" />
+                Abrir Mes {alumno.meses_desbloqueados + 1}
+              </button>
+            )}
+          </div>
         </div>
 
         <div className="flex flex-wrap gap-2">
@@ -455,6 +505,67 @@ export default function AlumnoDetallePage() {
                       >
                         {c.aprobada ? 'Aprobada' : 'Reprobada'}
                       </span>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </div>
+
+      {/* Intentos de Evaluaciones */}
+      <div className="rounded-xl overflow-hidden" style={CARD_STYLE}>
+        <div className="px-5 py-4" style={{ borderBottom: '1px solid #2A2F3E' }}>
+          <h3 className="text-sm font-semibold text-gray-100">Intentos de Evaluaciones</h3>
+          <p className="text-xs mt-0.5" style={{ color: '#94A3B8' }}>
+            {(alumno.intentos?.length ?? 0)} intento{(alumno.intentos?.length ?? 0) !== 1 ? 's' : ''} registrado{(alumno.intentos?.length ?? 0) !== 1 ? 's' : ''}
+          </p>
+        </div>
+        {(alumno.intentos?.length ?? 0) === 0 ? (
+          <div className="px-5 py-8 text-center text-sm" style={{ color: '#94A3B8' }}>
+            Sin intentos registrados todavía
+          </div>
+        ) : (
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm">
+              <thead>
+                <tr style={{ background: 'rgba(15,20,25,0.6)', borderBottom: '1px solid #2A2F3E' }}>
+                  {['Materia', 'Evaluación', 'Intento', 'Calificación', 'Estado', 'Fecha'].map(h => (
+                    <th key={h} className="px-4 py-3 text-left text-xs font-semibold" style={{ color: '#94A3B8' }}>{h}</th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody>
+                {alumno.intentos.map(intento => (
+                  <tr key={intento.id} style={{ borderBottom: '1px solid rgba(42,47,62,0.6)' }}>
+                    <td className="px-4 py-3" style={{ color: '#F1F5F9' }}>
+                      {intento.evaluaciones?.materias?.nombre ?? '—'}
+                    </td>
+                    <td className="px-4 py-3" style={{ color: '#F1F5F9' }}>
+                      {intento.evaluaciones?.titulo ?? '—'}
+                    </td>
+                    <td className="px-4 py-3 text-center font-mono text-xs" style={{ color: '#94A3B8' }}>
+                      #{intento.numero_intento}
+                    </td>
+                    <td className="px-4 py-3 text-center font-bold" style={{ color: intento.acreditado ? '#10B981' : '#EF4444' }}>
+                      {intento.puntaje}/100
+                    </td>
+                    <td className="px-4 py-3 text-center">
+                      <span
+                        className="px-2 py-1 rounded text-xs font-semibold"
+                        style={intento.acreditado
+                          ? { background: 'rgba(16,185,129,0.15)', color: '#10B981' }
+                          : { background: 'rgba(239,68,68,0.15)', color: '#EF4444' }
+                        }
+                      >
+                        {intento.acreditado ? 'Acreditado' : 'No acreditado'}
+                      </span>
+                    </td>
+                    <td className="px-4 py-3 text-xs" style={{ color: '#94A3B8' }}>
+                      {new Date(intento.fecha_intento).toLocaleDateString('es-MX', {
+                        year: 'numeric', month: 'short', day: 'numeric',
+                      })}
                     </td>
                   </tr>
                 ))}
@@ -587,6 +698,79 @@ export default function AlumnoDetallePage() {
           })}
         </div>
       </div>
+
+      {/* Modal Cerrar Mes */}
+      {modalCerrarMes && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4" style={{ background: 'rgba(0,0,0,0.7)' }}>
+          <div className="w-full max-w-sm rounded-2xl p-6 shadow-2xl" style={CARD_STYLE}>
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-lg font-bold text-gray-100">
+                ⚠️ ¿Cerrar el Mes {alumno.meses_desbloqueados}?
+              </h3>
+              <button
+                onClick={() => { setModalCerrarMes(false); setCerrarMesError(null) }}
+                className="p-1.5 rounded-lg"
+                style={{ color: '#94A3B8' }}
+                onMouseEnter={e => { e.currentTarget.style.background = 'rgba(255,255,255,0.06)' }}
+                onMouseLeave={e => { e.currentTarget.style.background = 'transparent' }}
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            <div
+              className="rounded-xl p-4 mb-4 space-y-2"
+              style={{ background: 'rgba(239,68,68,0.08)', border: '1px solid rgba(239,68,68,0.25)' }}
+            >
+              <p className="text-sm leading-relaxed" style={{ color: '#FCA5A5' }}>
+                Se <strong>REVERTIRÁ</strong> el desbloqueo del Mes {alumno.meses_desbloqueados} y se{' '}
+                <strong>BORRARÁN</strong> permanentemente las calificaciones, intentos de evaluación,
+                progreso de semanas y respuestas de quizzes del alumno de <strong>todas las materias del mes</strong>.
+              </p>
+              <p className="text-sm font-bold pt-1" style={{ color: '#EF4444' }}>
+                Esta acción NO se puede deshacer.
+              </p>
+              <p className="text-xs pt-1" style={{ color: '#94A3B8' }}>
+                Si el alumno paga el siguiente mes, deberá empezar las materias desde cero.
+              </p>
+            </div>
+
+            {cerrarMesError && (
+              <div
+                className="rounded-lg px-3 py-2.5 text-sm mb-4"
+                style={{ background: 'rgba(239,68,68,0.1)', border: '1px solid rgba(239,68,68,0.25)', color: '#FCA5A5' }}
+              >
+                {cerrarMesError}
+              </div>
+            )}
+
+            <div className="flex gap-3">
+              <button
+                type="button"
+                onClick={() => { setModalCerrarMes(false); setCerrarMesError(null) }}
+                className="flex-1 py-2.5 rounded-lg text-sm font-medium"
+                style={{ background: 'rgba(255,255,255,0.05)', color: '#94A3B8', border: '1px solid #2A2F3E' }}
+              >
+                Cancelar
+              </button>
+              <button
+                type="button"
+                onClick={handleCerrarMes}
+                disabled={cerrandoMes}
+                className="flex-1 flex items-center justify-center gap-2 py-2.5 rounded-lg text-sm font-semibold disabled:opacity-60 transition-all"
+                style={{ background: '#EF4444', color: '#fff' }}
+                onMouseEnter={e => { if (!cerrandoMes) e.currentTarget.style.background = '#DC2626' }}
+                onMouseLeave={e => { if (!cerrandoMes) e.currentTarget.style.background = '#EF4444' }}
+              >
+                {cerrandoMes
+                  ? <><Loader2 className="w-4 h-4 animate-spin" />Cerrando...</>
+                  : <><Lock className="w-4 h-4" />Sí, cerrar y borrar datos</>
+                }
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Modal Resetear Contraseña */}
       {modalReset && (
