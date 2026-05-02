@@ -48,7 +48,7 @@ export async function GET() {
           semanas ( id )
         )
       `)
-      .eq('nivel', nivel)
+      .or(`nivel.eq.${nivel},nivel.eq.demo`)
       .eq('activa', true)
       .order('orden')
 
