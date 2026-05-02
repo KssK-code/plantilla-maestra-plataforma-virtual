@@ -377,10 +377,11 @@ CREATE TABLE public.quiz_semana (
     opcion_a text NOT NULL,
     opcion_b text NOT NULL,
     opcion_c text NOT NULL,
+    opcion_d text,
     respuesta_correcta text NOT NULL,
     orden integer,
     explicacion text,
-    CONSTRAINT quiz_semana_respuesta_correcta_check CHECK ((respuesta_correcta = ANY (ARRAY['a'::text, 'b'::text, 'c'::text])))
+    CONSTRAINT quiz_semana_respuesta_correcta_check CHECK ((respuesta_correcta = ANY (ARRAY['a'::text, 'b'::text, 'c'::text, 'd'::text])))
 );
 
 --
