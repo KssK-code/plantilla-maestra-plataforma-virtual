@@ -5,7 +5,7 @@
 
 ---
 
-## 🐛 Bug 21 — `seed-evaluaciones-y-quiz.sql` no crea evaluaciones
+## ✅ Bug 21 (RESUELTO PR #12) — `seed-evaluaciones-y-quiz.sql` no crea evaluaciones
 
 **Síntoma:**
 Al ejecutar `seed-evaluaciones-y-quiz.sql` en cliente nuevo, el archivo asume que las evaluaciones ya existen en la tabla `public.evaluaciones`. Si no existen, los INSERTs en `public.preguntas` fallan silenciosamente o asocian preguntas a NULL.
@@ -109,7 +109,7 @@ Aplicar migración `2026-05-add-opcion-d-quiz-semana.sql` + ejecutar `seed-quiz-
 
 ---
 
-## 🐛 Bug 25 — API `/api/alumno/materias` excluye nivel "demo"
+## ✅ Bug 25 (RESUELTO PR #12) — API `/api/alumno/materias` excluye nivel "demo"
 
 **Síntoma:**
 Alumnos con `nivel = 'preparatoria'` (o `secundaria`) no ven la materia demo del tutorial inicial.
