@@ -29,6 +29,7 @@
 - En Supabase SQL Editor del cliente, ejecutar SUPABASE-SCHEMA.sql
 - Ejecutar los 6 archivos SEED de contenido académico
 - Ejecutar los 2 archivos UPDATE-VIDEOS
+- Ejecutar `scripts/seed-crear-evaluaciones.sql` (crea 1 evaluación por materia activa — Bug 21)
 - Ejecutar `scripts/seed-evaluaciones-y-quiz.sql` (250 preguntas evaluaciones de materia, match por nombre)
 - Ejecutar `scripts/seed-quiz-semanal-universal.sql` (576 preguntas quiz semanal: 12 mat prepa × 8 sem × 3 preg + 12 mat sec × 8 sem × 3 preg, distribución 6/6/6/6 a/b/c/d)
 
