@@ -147,8 +147,10 @@ CREATE TABLE IF NOT EXISTS public.quiz_semana (
   opcion_a            TEXT  NOT NULL,
   opcion_b            TEXT  NOT NULL,
   opcion_c            TEXT  NOT NULL,
-  respuesta_correcta  TEXT  NOT NULL CHECK (respuesta_correcta IN ('a','b','c')),
-  orden               INTEGER
+  opcion_d            TEXT,
+  respuesta_correcta  TEXT  NOT NULL CHECK (respuesta_correcta IN ('a','b','c','d')),
+  orden               INTEGER,
+  explicacion         TEXT
 );
 
 -- ── QUIZ_RESPUESTAS ─────────────────────────────────────────

@@ -17,7 +17,7 @@ import type { SupabaseClient } from '@supabase/supabase-js'
  * un select fijo sin `opciones` dejaba preguntas vacías en sec/prepa.
  */
 
-/** Fila cruda de quiz_semana (schema usa columnas opcion_a/b/c en lugar de array — compatibilidad histórica) */
+/** Fila cruda de quiz_semana (schema usa columnas opcion_a/b/c/d en lugar de array — compatibilidad histórica) */
 type QuizSemanaRow = {
   id: string
   semana_id?: string
@@ -29,25 +29,29 @@ type QuizSemanaRow = {
   opcion_a?: string | null
   opcion_b?: string | null
   opcion_c?: string | null
+  opcion_d?: string | null
 }
 
 function letterToIndex(letter: string): number {
   const c = letter.trim().toLowerCase()
   if (c === 'a') return 0
   if (c === 'b') return 1
-  return 2
+  if (c === 'c') return 2
+  if (c === 'd') return 3
+  return 0
 }
 
-/** Índice 0..2: acepta letra a/b/c, número 0–2 o string "0".."2". */
+/** Índice 0..3: acepta letra a/b/c/d, número 0–3 o string "0".."3". */
 function respuestaCorrectaToIndex(rc: unknown): number {
   if (typeof rc === 'number' && Number.isFinite(rc)) {
     const n = Math.trunc(rc)
-    if (n >= 0 && n <= 2) return n
+    if (n >= 0 && n <= 3) return n
   }
   const s = String(rc ?? 'a').trim().toLowerCase()
   if (s === '0' || s === 'a') return 0
   if (s === '1' || s === 'b') return 1
   if (s === '2' || s === 'c') return 2
+  if (s === '3' || s === 'd') return 3
   return letterToIndex(s)
 }
 
@@ -63,10 +67,14 @@ function mapQuizSemanaRow(row: QuizSemanaRow) {
       : undefined
 
   if (row.opcion_a != null && row.opcion_b != null && row.opcion_c != null) {
+    // opcion_d es opcional (preguntas legacy de 3 opciones); filter(Boolean) elimina null/undefined
+    const opciones = [row.opcion_a, row.opcion_b, row.opcion_c, row.opcion_d]
+      .filter((o): o is string => o != null && o !== '')
+      .map(String)
     return {
       id,
       pregunta,
-      opciones: [String(row.opcion_a), String(row.opcion_b), String(row.opcion_c)],
+      opciones,
       respuesta_correcta: respuestaCorrectaToIndex(row.respuesta_correcta),
       explicacion,
       orden,
@@ -77,7 +85,7 @@ function mapQuizSemanaRow(row: QuizSemanaRow) {
     const opciones = row.opciones.map(String)
     const rc = row.respuesta_correcta
     const respuesta_correcta =
-      typeof rc === 'number' && rc >= 0 && rc <= 2 ? rc : respuestaCorrectaToIndex(rc)
+      typeof rc === 'number' && rc >= 0 && rc <= 3 ? rc : respuestaCorrectaToIndex(rc)
     return {
       id,
       pregunta,
@@ -269,7 +277,7 @@ async function saveRespuestasLegacy(
 
   const inserts = ids.map(quizId => {
     const idx = respuestas[quizId] ?? 0
-    const letter = String.fromCharCode(97 + Math.min(2, Math.max(0, idx)))
+    const letter = String.fromCharCode(97 + Math.min(3, Math.max(0, idx)))
     const exp = expected.get(quizId) ?? 'a'
     return {
       alumno_id: alumnoId,
