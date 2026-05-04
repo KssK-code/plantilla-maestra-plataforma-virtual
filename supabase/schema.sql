@@ -691,3 +691,24 @@ ON CONFLICT DO NOTHING;
 -- ============================================================
 -- Para verificar que todo quedó bien:
 -- SELECT table_name FROM information_schema.tables WHERE table_schema = 'public' ORDER BY 1;
+
+
+-- =============================================================
+-- FIX Issue #15 — is_admin() wrapper para compatibilidad smoke test
+-- =============================================================
+-- post-setup-check.sql busca is_admin(), schema histórico crea es_admin().
+-- Wrapper mantiene compatibilidad con ambos nombres sin duplicar lógica.
+-- SECURITY DEFINER + STABLE evita recursión infinita en RLS policies.
+-- =============================================================
+
+CREATE OR REPLACE FUNCTION public.is_admin()
+RETURNS BOOLEAN
+LANGUAGE sql
+SECURITY DEFINER
+STABLE
+SET search_path = public
+AS $$
+  SELECT public.es_admin();
+$$;
+
+GRANT EXECUTE ON FUNCTION public.is_admin() TO anon, authenticated;
