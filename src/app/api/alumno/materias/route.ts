@@ -11,7 +11,7 @@ export async function GET() {
     // ── Alumno: nivel + meses desbloqueados + duración (modalidad) ────────────
     const { data: alumno } = await supabase
       .from('alumnos')
-      .select('nivel, meses_desbloqueados, modalidad, duracion_meses')
+      .select('nivel, meses_desbloqueados, modalidad, duracion_meses, inscripcion_pagada')
       .eq('id', user.id)
       .single()
 
@@ -22,12 +22,14 @@ export async function GET() {
       meses_desbloqueados: number
       modalidad?: string | null
       duracion_meses?: number | null
+      inscripcion_pagada?: boolean | null
     }
     const nivel              = row.nivel
     const mesesDesbloqueados = row.meses_desbloqueados ?? 0
     const duracionMeses      = row.duracion_meses ?? getMesesByModalidad(row.modalidad)
     const materiasPorMes     = getMateriasPorMesByModalidad(row.modalidad)
     const limiteMaterias     = Math.max(0, mesesDesbloqueados * materiasPorMes)
+    const inscripcionPagada  = row.inscripcion_pagada ?? false
 
     // ── Materias del nivel del alumno con meses y semanas ───────────────────
     const { data: materias, error } = await supabase
@@ -48,7 +50,7 @@ export async function GET() {
           semanas ( id )
         )
       `)
-      .or(`nivel.eq.${nivel},nivel.eq.demo`)
+      .or(inscripcionPagada ? `nivel.eq.${nivel}` : `nivel.eq.${nivel},nivel.eq.demo`)
       .eq('activa', true)
       .order('orden')
 
@@ -72,7 +74,7 @@ export async function GET() {
       const meses        = mat.meses_contenido ?? []
       const totalSemanas = meses.reduce((acc, mes) => acc + (mes.semanas?.length ?? 0), 0)
       const esTutorial   = mat.nombre.toLowerCase().includes('tutor')
-      const disponible   = esTutorial || (mesesDesbloqueados > 0 && idx < limiteMaterias)
+      const disponible   = (esTutorial && !inscripcionPagada) || (mesesDesbloqueados > 0 && idx < limiteMaterias)
 
       return {
         id:             mat.id,
