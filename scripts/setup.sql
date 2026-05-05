@@ -10,10 +10,12 @@
 --   psql "$DATABASE_URL" -f setup.sql
 --
 -- Orden de ejecución (respeta dependencias FK):
---   1. seed-contenido-ivs.sql     — INSERT materias/meses/semanas base
---   2. seed-demo-materia.sql      — UPDATE demo + INSERT meses/semanas/quiz demo
---   3. seed-contenido-semanas.sql — UPDATE semanas.contenido (texto didáctico)
+--   1. seed-contenido-ivs.sql                    — INSERT materias/meses/semanas base
+--   2. seed-demo-materia.sql                     — UPDATE demo + INSERT meses/semanas/quiz demo
+--   3. seed-contenido-semanas.sql                — UPDATE semanas.contenido (texto didáctico)
 --   [seed-materias-ejemplo.sql eliminado — ver nota en PASO 4 abajo]
+--   4. seed-evaluaciones-y-quiz.sql              — Crea evaluaciones y quizzes
+--   5. seed-preguntas-evaluaciones-universal.sql — 265 preguntas reales (cierra Bug C)
 --
 -- Pasos manuales POSTERIORES a este script:
 --   - create-admin.sql            — Crear usuario administrador (requiere UUID real)
@@ -44,9 +46,13 @@
 -- \i seed-materias-ejemplo.sql
 -- ============================================================================
 
-\echo '=== PASO 4/4: seed-evaluaciones-y-quiz.sql ==='
-\echo '── Sembrando evaluaciones y quizzes (10 preguntas/materia + 3 preguntas/semana) ──'
+\echo '=== PASO 4/5: seed-evaluaciones-y-quiz.sql ==='
+\echo '── Sembrando evaluaciones y quizzes (estructura + quizzes semanales) ──'
 \i seed-evaluaciones-y-quiz.sql
+
+\echo '=== PASO 5/5: seed-preguntas-evaluaciones-universal.sql ==='
+\echo '── Sembrando 265 preguntas reales por evaluación (cierra Bug C) ──'
+\i seed-preguntas-evaluaciones-universal.sql
 
 \echo '============================================================'
 \echo 'Setup completo. Próximos pasos:'
