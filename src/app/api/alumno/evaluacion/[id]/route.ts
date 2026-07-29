@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
-import { getMesesByModalidad, getMateriasPorMesByModalidad } from '@/lib/modalidades'
+import { cargarAlumnoAcceso, tieneAccesoEvaluacion } from '@/lib/acceso-materias'
 
 export async function GET(
   _request: NextRequest,
@@ -11,25 +11,9 @@ export async function GET(
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) return NextResponse.json({ error: 'No autorizado' }, { status: 401 })
 
-    const { data: alumnoData } = await supabase
-      .from('alumnos')
-      .select('id, nivel, meses_desbloqueados, modalidad, duracion_meses')
-      .eq('id', user.id)
-      .single()
+    const alumno = await cargarAlumnoAcceso(supabase, user.id)
 
-    if (!alumnoData) return NextResponse.json({ error: 'Alumno no encontrado' }, { status: 404 })
-
-    const alumno = alumnoData as {
-      id: string
-      nivel: string
-      meses_desbloqueados: number
-      modalidad?: string | null
-      duracion_meses?: number | null
-    }
-
-    const duracionMeses  = alumno.duracion_meses ?? getMesesByModalidad(alumno.modalidad)
-    const materiasPorMes = getMateriasPorMesByModalidad(alumno.modalidad)
-    const limiteMaterias = Math.max(0, alumno.meses_desbloqueados * materiasPorMes)
+    if (!alumno) return NextResponse.json({ error: 'Alumno no encontrado' }, { status: 404 })
 
     const { data: evaluacion, error: evalError } = await supabase
       .from('evaluaciones')
@@ -54,81 +38,11 @@ export async function GET(
       return NextResponse.json({ error: 'Esta evaluación no está disponible' }, { status: 403 })
     }
 
-    const { data: matRow } = await supabase
-      .from('materias')
-      .select('nivel, nombre')
-      .eq('id', ev.materia_id ?? '')
-      .maybeSingle()
-
-    const nivelMat   = (matRow as { nivel?: string; nombre?: string } | null)?.nivel
-    const nombreMat  = (matRow as { nivel?: string; nombre?: string } | null)?.nombre ?? ''
-    const esDemo     = nivelMat === 'demo'
-    const esTutorial = nombreMat.toLowerCase().includes('tutor')
-
-    if (!esDemo && !esTutorial && ev.materia_id && nivelMat && nivelMat !== alumno.nivel) {
+    // ── Gate canon (lib/acceso-materias): el MISMO criterio que decide
+    // `disponible` en /api/alumno/materias, para que lista y gate no diverjan.
+    const acceso = await tieneAccesoEvaluacion(supabase, alumno, ev)
+    if (!acceso) {
       return NextResponse.json({ error: 'No tienes acceso a esta evaluación' }, { status: 403 })
-    }
-
-    if (!esDemo && !esTutorial) {
-      if (alumno.meses_desbloqueados <= 0) {
-        return NextResponse.json({ error: 'No tienes acceso a esta evaluación' }, { status: 403 })
-      }
-
-      if (ev.mes_id) {
-        const { data: mesRow } = await supabase
-          .from('meses_contenido')
-          .select('numero_mes')
-          .eq('id', ev.mes_id)
-          .maybeSingle()
-        const nm = (mesRow as { numero_mes?: number } | null)?.numero_mes ?? 0
-        if (nm > alumno.meses_desbloqueados) {
-          return NextResponse.json({ error: 'No tienes acceso a esta evaluación' }, { status: 403 })
-        }
-      }
-
-      if (ev.materia_id && nivelMat && nivelMat === alumno.nivel) {
-        // Acreditadas: bypass del gating de índice (no consumen lugar de la ventana)
-        const { data: califEv } = await supabase
-          .from('calificaciones')
-          .select('materia_id')
-          .eq('alumno_id', alumno.id)
-          .eq('acreditado', true)
-        const acreditadasSet = new Set(
-          ((califEv ?? []) as { materia_id: string }[]).map(c => c.materia_id)
-        )
-        const estaAcreditada = acreditadasSet.has(ev.materia_id ?? '')
-
-        if (!estaAcreditada) {
-          const { data: planMaterias } = await supabase
-            .from('materias')
-            .select('id, orden, nombre, nivel')
-            .eq('nivel', alumno.nivel)
-            .eq('activa', true)
-            .order('orden')
-
-          const ordenadas = ((planMaterias ?? []) as { id: string; orden: number | null; nombre: string; nivel: string }[])
-            .slice()
-            .sort((a, b) => (a.orden ?? 9999) - (b.orden ?? 9999))
-
-          // idxPendiente: MISMO conteo que el listado — tutoriales y acreditadas
-          // NO consumen lugar de la ventana; solo se cuentan materias pendientes.
-          let idxPendiente = 0
-          let disponible = false
-          for (const m of ordenadas) {
-            const esTut = m.nivel === 'demo' || m.nombre.toLowerCase().includes('tutor')
-            if (esTut || acreditadasSet.has(m.id)) continue
-            if (m.id === ev.materia_id) {
-              disponible = idxPendiente < limiteMaterias
-              break
-            }
-            idxPendiente++
-          }
-
-          if (!disponible) {
-            return NextResponse.json({ error: 'No tienes acceso a esta evaluación' }, { status: 403 })
-          }
-        }
-      }
     }
 
     const { count: intentosUsados } = await supabase

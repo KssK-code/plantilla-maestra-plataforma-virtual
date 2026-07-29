@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
+import { cargarAlumnoAcceso, tieneAccesoSemana } from '@/lib/acceso-materias'
 
 export async function POST(request: NextRequest) {
   try {
@@ -12,15 +13,20 @@ export async function POST(request: NextRequest) {
     if (!semana_id) return NextResponse.json({ error: 'semana_id requerido' }, { status: 400 })
 
     // Obtener alumno (schema nuevo: alumnos.id = user.id)
-    const { data: alumnoData } = await supabase
-      .from('alumnos')
-      .select('id')
-      .eq('id', user.id)
-      .single()
+    const alumno = await cargarAlumnoAcceso(supabase, user.id)
 
-    if (!alumnoData) return NextResponse.json({ error: 'Alumno no encontrado' }, { status: 404 })
+    if (!alumno) return NextResponse.json({ error: 'Alumno no encontrado' }, { status: 404 })
 
-    const alumno = alumnoData as { id: string }
+    // ── Gate canon (lib/acceso-materias): la semana debe pertenecer a una
+    // materia accesible; si no, marcar progreso sería registrar avance en
+    // contenido que la ventana de pago aún no abre ───────────────────────────
+    const gate = await tieneAccesoSemana(supabase, alumno, semana_id)
+    if (!gate.encontrada) {
+      return NextResponse.json({ error: 'Semana no encontrada' }, { status: 404 })
+    }
+    if (!gate.acceso) {
+      return NextResponse.json({ error: 'No tienes acceso a este contenido' }, { status: 403 })
+    }
 
     // Verificar si ya existía el progreso
     const { data: existente } = await supabase
@@ -63,33 +69,35 @@ export async function POST(request: NextRequest) {
         )
     }
 
-    // Logro: materia completada — obtener materia_id desde la semana
-    const { data: semanaData } = await supabase
-      .from('semanas')
-      .select('materia_id')
-      .eq('id', semana_id)
-      .single()
+    // Logro: materia completada — la materia ya viene resuelta por el gate.
+    // (Antes se consultaba `semanas.materia_id`, columna que no existe: el
+    // select fallaba en silencio y el logro nunca se otorgaba. La relación real
+    // es semanas.mes_id → meses_contenido.materia_id.)
+    if (gate.materiaId) {
+      const materia_id = gate.materiaId
 
-    if (semanaData) {
-      const { materia_id } = semanaData as { materia_id: string }
-
-      const { count: totalSemanas } = await supabase
-        .from('semanas')
-        .select('id', { count: 'exact', head: true })
+      const { data: mesesDeMateria } = await supabase
+        .from('meses_contenido')
+        .select('id')
         .eq('materia_id', materia_id)
+
+      const mesIds = ((mesesDeMateria ?? []) as { id: string }[]).map(m => m.id)
+
+      const { data: semanasDeMateria } = await supabase
+        .from('semanas')
+        .select('id')
+        .in('mes_id', mesIds.length > 0 ? mesIds : ['00000000-0000-0000-0000-000000000000'])
+
+      const semanaIds  = ((semanasDeMateria ?? []) as { id: string }[]).map(s => s.id)
+      const totalSemanas = semanaIds.length
 
       const { count: completadasEnMateria } = await supabase
         .from('progreso_semanas')
         .select('id', { count: 'exact', head: true })
         .eq('alumno_id', alumno.id)
-        .in(
-          'semana_id',
-          (
-            await supabase.from('semanas').select('id').eq('materia_id', materia_id)
-          ).data?.map((s: { id: string }) => s.id) ?? []
-        )
+        .in('semana_id', semanaIds.length > 0 ? semanaIds : ['00000000-0000-0000-0000-000000000000'])
 
-      if ((totalSemanas ?? 0) > 0 && completadasEnMateria === totalSemanas) {
+      if (totalSemanas > 0 && completadasEnMateria === totalSemanas) {
         await supabase
           .from('logros_alumno')
           .upsert(
