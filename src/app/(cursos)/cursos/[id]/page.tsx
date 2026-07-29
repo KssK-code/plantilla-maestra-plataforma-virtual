@@ -4,8 +4,10 @@ import { useCallback, useEffect, useMemo, useState } from 'react'
 import { useParams, useRouter } from 'next/navigation'
 import {
   ArrowLeft, Check, CheckCircle2, ChevronDown, ChevronLeft, ChevronRight,
-  Circle, Download, Eye, FileText, List, Loader2, PartyPopper, X,
+  Circle, Download, Eye, FileText, GraduationCap, List, Loader2, PartyPopper, X,
 } from 'lucide-react'
+import ReactMarkdown from 'react-markdown'
+import remarkGfm from 'remark-gfm'
 import { VideoPlayer } from '@/components/cursos/VideoPlayer'
 import { ProgressBar } from '@/components/cursos/ProgressBar'
 import { porcentajeProgreso, cursoCompletado } from '@/lib/cursos/progreso'
@@ -22,6 +24,8 @@ export default function VisorCursoPage() {
   const [expandidos, setExpandidos] = useState<Set<string>>(new Set())
   const [drawerOpen, setDrawerOpen] = useState(false)
   const [marcando, setMarcando] = useState(false)
+  // Examen final: null mientras carga, false si el curso no tiene examen.
+  const [examen, setExamen] = useState<{ total: number; mejor: number | null } | false | null>(null)
 
   // ── Carga inicial ──
   useEffect(() => {
@@ -52,6 +56,21 @@ export default function VisorCursoPage() {
       .finally(() => { if (!cancelled) setCargando(false) })
     return () => { cancelled = true }
   }, [cursoId, router])
+
+  // ── ¿Este curso tiene examen final? ──
+  // Va aparte de la carga del curso: un 404 aquí solo significa "sin examen",
+  // no debe tumbar el visor de lecciones.
+  useEffect(() => {
+    let cancelled = false
+    fetch(`/api/alumno/cursos/${cursoId}/examen`)
+      .then(async r => (r.ok ? r.json() : null))
+      .then((json: { total: number; mejor_porcentaje: number | null } | null) => {
+        if (cancelled) return
+        setExamen(json ? { total: json.total, mejor: json.mejor_porcentaje } : false)
+      })
+      .catch(() => { if (!cancelled) setExamen(false) })
+    return () => { cancelled = true }
+  }, [cursoId])
 
   // Lista plana de lecciones en orden (para prev/next y lookup)
   const enOrden = useMemo<LeccionAlumno[]>(
@@ -191,6 +210,29 @@ export default function VisorCursoPage() {
           </div>
         )
       })}
+      {/* Examen final — al final del temario, solo si el curso tiene uno */}
+      {examen && (
+        <button
+          onClick={() => { setDrawerOpen(false); router.push(`/cursos/${cursoId}/examen`) }}
+          className="w-full rounded-xl p-3 text-left"
+          style={{ border: '1px solid rgba(27,48,104,0.2)', background: 'rgba(27,48,104,0.06)' }}
+        >
+          <div className="flex items-center gap-2">
+            <GraduationCap className="w-4 h-4 flex-shrink-0" style={{ color: 'var(--color-primario)' }} />
+            <span className="text-sm font-semibold" style={{ color: 'var(--color-primario)' }}>Examen final</span>
+          </div>
+          <p className="text-[11px] mt-1" style={{ color: '#64748B' }}>
+            {examen.total} preguntas
+            {examen.mejor !== null && ` · mejor puntaje ${Math.round(examen.mejor)}%`}
+          </p>
+          <span
+            className="inline-block mt-2 px-3 py-1.5 rounded-lg text-xs font-semibold"
+            style={{ background: 'var(--color-acento)', color: '#fff' }}
+          >
+            {examen.mejor !== null ? 'Volver a intentar' : 'Presentar examen'}
+          </span>
+        </button>
+      )}
     </div>
   )
 
@@ -273,12 +315,42 @@ export default function VisorCursoPage() {
 
                 {activa.video_url && <VideoPlayer url={activa.video_url} titulo={activa.titulo} />}
 
+                {/* Contenido — Markdown renderizado.
+                    Mismo componente y misma config que el visor de materias
+                    (ReactMarkdown + remarkGfm + override de encabezados). Las
+                    clases de color SÍ cambian: allá la tarjeta es oscura y usa
+                    prose-invert; esta es clara, así que invertir dejaría el
+                    texto blanco sobre fondo blanco.
+                    El banco de Cursos de Ingreso entrega las lecciones en
+                    markdown; antes de esto se veían los ## y los ** en crudo. */}
                 {activa.contenido_texto && (
                   <div
-                    className="text-sm leading-relaxed rounded-2xl p-4 sm:p-5"
-                    style={{ background: 'var(--color-superficie)', border: '1px solid #E8F0F7', color: '#334155', whiteSpace: 'pre-wrap' }}
+                    className="text-sm leading-relaxed rounded-2xl p-4 sm:p-5 prose prose-sm max-w-none prose-headings:font-bold prose-h1:text-xl prose-h2:text-lg prose-h3:text-base prose-headings:mt-4 prose-headings:mb-2 prose-p:my-3 prose-ul:my-3 prose-ol:my-3 prose-li:my-1 prose-table:text-xs prose-table:my-3 prose-th:font-semibold prose-blockquote:not-italic"
+                    style={{ background: 'var(--color-superficie)', border: '1px solid #E8F0F7', color: '#334155' }}
                   >
-                    {activa.contenido_texto}
+                    <ReactMarkdown
+                      remarkPlugins={[remarkGfm]}
+                      components={{
+                        h1: ({ children }) => <h1 className="text-xl font-bold mt-4 mb-2" style={{ color: 'var(--color-primario)' }}>{children}</h1>,
+                        h2: ({ children }) => <h2 className="text-lg font-bold mt-4 mb-2" style={{ color: 'var(--color-primario)' }}>{children}</h2>,
+                        h3: ({ children }) => <h3 className="text-base font-bold mt-3 mb-1" style={{ color: 'var(--color-primario)' }}>{children}</h3>,
+                        strong: ({ children }) => <strong className="font-semibold" style={{ color: '#1E293B' }}>{children}</strong>,
+                        // Las tablas del banco (distribución de reactivos) se
+                        // desbordan en 390px si no pueden desplazarse solas.
+                        table: ({ children }) => (
+                          <div className="overflow-x-auto -mx-1">
+                            <table className="min-w-full text-xs">{children}</table>
+                          </div>
+                        ),
+                        th: ({ children }) => <th className="px-2 py-1 text-left font-semibold" style={{ background: 'rgba(27,48,104,0.06)', border: '1px solid #E8F0F7' }}>{children}</th>,
+                        td: ({ children }) => <td className="px-2 py-1 align-top" style={{ border: '1px solid #E8F0F7' }}>{children}</td>,
+                        blockquote: ({ children }) => (
+                          <blockquote className="pl-3 my-3" style={{ borderLeft: '3px solid var(--color-acento)', color: '#475569' }}>{children}</blockquote>
+                        ),
+                      }}
+                    >
+                      {activa.contenido_texto}
+                    </ReactMarkdown>
                   </div>
                 )}
 
