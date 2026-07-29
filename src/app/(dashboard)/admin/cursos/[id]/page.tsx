@@ -3,18 +3,20 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import Link from 'next/link'
 import { useParams, useRouter } from 'next/navigation'
-import { ArrowLeft, BookOpen, Globe, Users } from 'lucide-react'
+import { ArrowLeft, BookOpen, ClipboardCheck, Globe, Users } from 'lucide-react'
 import { CursoDatosForm } from '@/components/admin/cursos/CursoDatosForm'
 import { ModulosEditor } from '@/components/admin/cursos/ModulosEditor'
 import { AlumnosTab } from '@/components/admin/cursos/AlumnosTab'
+import { ExamenTab } from '@/components/admin/cursos/ExamenTab'
 import { PublicacionTab } from '@/components/admin/cursos/PublicacionTab'
 import { ToastContainer, useToast } from '@/components/ui/toast'
 import type { CursoDetalle } from '@/types/cursos'
 
-type Tab = 'contenido' | 'alumnos' | 'publicacion'
+type Tab = 'contenido' | 'examen' | 'alumnos' | 'publicacion'
 
 const TABS: { id: Tab; label: string; icon: React.ElementType }[] = [
   { id: 'contenido', label: 'Contenido', icon: BookOpen },
+  { id: 'examen', label: 'Examen final', icon: ClipboardCheck },
   { id: 'alumnos', label: 'Alumnos', icon: Users },
   { id: 'publicacion', label: 'Publicación', icon: Globe },
 ]
@@ -68,6 +70,11 @@ export default function EditorCursoPage() {
 
   const onError = useCallback((mensaje: string) => {
     showToast(mensaje, 'error')
+  }, [showToast])
+
+  // El examen no forma parte de CursoDetalle: avisa sin refetchear el curso.
+  const onExito = useCallback((mensaje: string) => {
+    showToast(mensaje, 'success')
   }, [showToast])
 
   if (noEncontrado) {
@@ -132,35 +139,37 @@ export default function EditorCursoPage() {
         </div>
       </div>
 
-      {/* Pestañas */}
-      <div className="flex gap-1 rounded-2xl p-1" style={{ background: 'rgba(27,48,104,0.06)', width: 'fit-content' }} role="tablist">
-        {TABS.map(t => {
-          const Icon = t.icon
-          const active = tab === t.id
-          return (
-            <button
-              key={t.id}
-              onClick={() => setTab(t.id)}
-              role="tab"
-              aria-selected={active}
-              className="flex items-center gap-1.5 px-4 py-2 rounded-xl text-sm font-semibold transition-all"
-              style={active
-                ? { background: 'var(--color-superficie)', color: 'var(--color-primario)', boxShadow: '0 1px 4px rgba(27,58,87,0.12)' }
-                : { background: 'transparent', color: '#64748B' }}
-            >
-              <Icon className="w-4 h-4" />
-              {t.label}
-              {t.id === 'alumnos' && (
-                <span
-                  className="ml-0.5 px-1.5 rounded-full text-[10px] font-bold"
-                  style={{ background: 'rgba(27,48,104,0.1)', color: 'var(--color-primario)' }}
-                >
-                  {inscritos.length}
-                </span>
-              )}
-            </button>
-          )
-        })}
+      {/* Pestañas — con scroll horizontal: las cuatro no caben en un móvil */}
+      <div className="overflow-x-auto">
+        <div className="flex gap-1 rounded-2xl p-1" style={{ background: 'rgba(27,48,104,0.06)', width: 'fit-content' }} role="tablist">
+          {TABS.map(t => {
+            const Icon = t.icon
+            const active = tab === t.id
+            return (
+              <button
+                key={t.id}
+                onClick={() => setTab(t.id)}
+                role="tab"
+                aria-selected={active}
+                className="flex items-center gap-1.5 px-4 py-2 rounded-xl text-sm font-semibold whitespace-nowrap flex-shrink-0 transition-all"
+                style={active
+                  ? { background: 'var(--color-superficie)', color: 'var(--color-primario)', boxShadow: '0 1px 4px rgba(27,58,87,0.12)' }
+                  : { background: 'transparent', color: '#64748B' }}
+              >
+                <Icon className="w-4 h-4" />
+                {t.label}
+                {t.id === 'alumnos' && (
+                  <span
+                    className="ml-0.5 px-1.5 rounded-full text-[10px] font-bold"
+                    style={{ background: 'rgba(27,48,104,0.1)', color: 'var(--color-primario)' }}
+                  >
+                    {inscritos.length}
+                  </span>
+                )}
+              </button>
+            )
+          })}
+        </div>
       </div>
 
       {/* Contenido de pestañas */}
@@ -174,6 +183,10 @@ export default function EditorCursoPage() {
             <ModulosEditor cursoId={curso.id} modulos={modulos} onChanged={onChanged} onError={onError} />
           </div>
         </div>
+      )}
+
+      {tab === 'examen' && (
+        <ExamenTab cursoId={curso.id} onExito={onExito} onError={onError} />
       )}
 
       {tab === 'alumnos' && (

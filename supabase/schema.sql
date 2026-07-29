@@ -985,3 +985,20 @@ REVOKE EXECUTE ON FUNCTION public.estado_cuenta_alumnos()             FROM PUBLI
 GRANT  EXECUTE ON FUNCTION public.reporte_ingresos_semanales(integer) TO service_role;
 GRANT  EXECUTE ON FUNCTION public.reporte_ingresos_mensuales(integer) TO service_role;
 GRANT  EXECUTE ON FUNCTION public.estado_cuenta_alumnos()             TO service_role;
+
+-- =============================================================
+-- MÓDULOS OPCIONALES (no viven en este archivo)
+-- =============================================================
+-- schema.sql define el esquema BASE y debe poder correrse solo. Estos módulos
+-- se aplican aparte, en este orden, y solo en los clientes que los contratan:
+--
+--   1. Cursos y Diplomados  → scripts/migracion-cursos-diplomados.sql
+--      Crea cursos, curso_modulos, curso_lecciones, curso_inscripciones,
+--      curso_progreso y el bucket privado 'cursos'.
+--
+--   2. Examen Final de Curso → supabase/migrations/20260728120000_examen_final_cursos.sql
+--      Crea curso_examen_preguntas y curso_examen_resultados. Depende de (1)
+--      porque ambas tienen FK a public.cursos, y por eso NO se declaran aquí:
+--      hacerlo dejaría este archivo con una FK a una tabla que él no crea.
+--      Requerido por la vertical "Cursos de Ingreso" (banco-cursos-ingreso).
+-- =============================================================
