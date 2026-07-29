@@ -1,6 +1,11 @@
 import { NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
-import { getMesesByModalidad, getMateriasPorMesByModalidad } from '@/lib/modalidades'
+import {
+  calcularDisponibilidad,
+  cargarAlumnoAcceso,
+  ordenarCanonico,
+  toMateriaVentana,
+} from '@/lib/acceso-materias'
 
 export async function GET() {
   try {
@@ -8,27 +13,12 @@ export async function GET() {
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) return NextResponse.json({ error: 'No autorizado' }, { status: 401 })
 
-    // ── Alumno: nivel + meses desbloqueados + duración (modalidad) ────────────
-    const { data: alumno } = await supabase
-      .from('alumnos')
-      .select('nivel, meses_desbloqueados, modalidad, duracion_meses, carrera')
-      .eq('id', user.id)
-      .single()
-
+    // ── Alumno: nivel + meses desbloqueados + plan ────────────────────────────
+    const alumno = await cargarAlumnoAcceso(supabase, user.id)
     if (!alumno) return NextResponse.json({ error: 'Alumno no encontrado' }, { status: 404 })
 
-    const row = alumno as {
-      nivel: string
-      meses_desbloqueados: number
-      modalidad?: string | null
-      duracion_meses?: number | null
-      carrera?: string | null
-    }
-    const nivel              = row.nivel
-    const mesesDesbloqueados = row.meses_desbloqueados ?? 0
-    const duracionMeses      = row.duracion_meses ?? getMesesByModalidad(row.modalidad)
-    const materiasPorMes     = getMateriasPorMesByModalidad(row.modalidad)
-    const limiteMaterias     = Math.max(0, mesesDesbloqueados * materiasPorMes)
+    const nivel              = alumno.nivel
+    const mesesDesbloqueados = alumno.meses_desbloqueados ?? 0
 
     // ── Calificaciones acreditadas del alumno ─────────────────────────────────
     const { data: califs } = await supabase
@@ -41,6 +31,9 @@ export async function GET() {
     )
 
     // ── Materias del nivel del alumno con meses y semanas ───────────────────
+    // Este universo debe ser IDÉNTICO al que carga lib/acceso-materias en los
+    // gates: si diverge, el índice de la ventana se corre y lista y gate dejan
+    // de coincidir (lección Bug 59).
     let materiasQuery = supabase
       .from('materias')
       .select(`
@@ -59,16 +52,15 @@ export async function GET() {
           semanas ( id )
         )
       `)
-      .or(`nivel.eq.${nivel},nivel.eq.demo`)
       .eq('activa', true)
 
+    materiasQuery = nivel
+      ? materiasQuery.or(`nivel.eq.${nivel},nivel.eq.demo`)
+      : materiasQuery.eq('nivel', 'demo')
+
     if (nivel === 'licenciatura') {
-      if (row.carrera) {
-        materiasQuery = materiasQuery.eq('carrera', row.carrera)
-      }
-      if (row.modalidad) {
-        materiasQuery = materiasQuery.eq('modalidad', row.modalidad)
-      }
+      if (alumno.carrera)   materiasQuery = materiasQuery.eq('carrera', alumno.carrera)
+      if (alumno.modalidad) materiasQuery = materiasQuery.eq('modalidad', alumno.modalidad)
     }
 
     const { data: materias, error } = await materiasQuery.order('orden')
@@ -85,33 +77,25 @@ export async function GET() {
       activa: boolean; meses_contenido: MesRow[]
     }
 
-    const sorted = ([...((materias ?? []) as unknown as MateriaRow[])] as MateriaRow[]).sort(
-      (a, b) => (a.orden ?? 0) - (b.orden ?? 0)
-    )
+    const allMaterias = (materias ?? []) as unknown as MateriaRow[]
+    const ventana     = allMaterias.map(toMateriaVentana)
 
-    // ── Gating "abrir mes = desbloquear siguientes pendientes" ────────────────
-    // Las acreditadas NO consumen lugares de la ventana: el límite
-    // (meses_desbloqueados × materiasPorMes) aplica SOLO a materias pendientes.
-    // Así, abrir un mes nuevo siempre revela las SIGUIENTES materias pendientes,
-    // incluso a alumnos que avanzaron durante la época "todo abierto".
-    let idxPendiente = 0
-    const result = sorted.map(mat => {
-      const meses          = mat.meses_contenido ?? []
-      const totalSemanas   = meses.reduce((acc, mes) => acc + (mes.semanas?.length ?? 0), 0)
-      const esTutorial     = mat.nivel === 'demo' || mat.nombre.toLowerCase().includes('tutor')
-      const estaAcreditada = acreditadasSet.has(mat.id)
+    // ── Gating por ventana (fuente única: lib/acceso-materias) ────────────────
+    // Bug 61: las acreditadas siguen disponibles pero consumen su lugar, así que
+    // acreditar ya no revela la siguiente materia pendiente.
+    const disponibilidad = calcularDisponibilidad(alumno, ventana, acreditadasSet)
 
-      let disponible: boolean
-      if (esTutorial || estaAcreditada) {
-        // Tutoriales y acreditadas: siempre visibles y NO consumen lugar de la ventana
-        disponible = true
-      } else {
-        // Materia pendiente: gating por ventana, contando solo pendientes
-        disponible = mesesDesbloqueados > 0 && idxPendiente < limiteMaterias
-        idxPendiente++
-      }
+    // Mismo orden canónico que usa la ventana, para que la posición que ve el
+    // alumno sea la que decide su acceso.
+    const porId  = new Map(allMaterias.map(m => [m.id, m]))
+    const result = ordenarCanonico(ventana).flatMap(v => {
+      const mat = porId.get(v.id)
+      if (!mat) return []
 
-      return {
+      const meses        = mat.meses_contenido ?? []
+      const totalSemanas = meses.reduce((acc, mes) => acc + (mes.semanas?.length ?? 0), 0)
+
+      return [{
         id:             mat.id,
         nombre:         mat.nombre,
         descripcion:    mat.descripcion ?? null,
@@ -120,8 +104,8 @@ export async function GET() {
         orden:          mat.orden       ?? 0,
         total_meses:    meses.length,
         total_semanas:  totalSemanas,
-        disponible,
-      }
+        disponible:     disponibilidad.get(mat.id) === true,
+      }]
     })
 
     return NextResponse.json({

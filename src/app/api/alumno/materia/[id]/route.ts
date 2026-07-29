@@ -1,7 +1,7 @@
 import { NextRequest } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { createAdminClient } from '@/lib/supabase/admin'
-import { getMesesByModalidad, getMateriasPorMesByModalidad } from '@/lib/modalidades'
+import { cargarAlumnoAcceso, cargarContextoAcceso, tieneAccesoMateria } from '@/lib/acceso-materias'
 
 export async function GET(
   _request: NextRequest,
@@ -17,23 +17,9 @@ export async function GET(
     const admin = createAdminClient()
 
     // ── 1. Alumno: nivel + meses desbloqueados ────────────────────────────────
-    const { data: alumnoData } = await admin
-      .from('alumnos')
-      .select('nivel, meses_desbloqueados, modalidad, duracion_meses')
-      .eq('id', user.id)
-      .single()
+    const alumno = await cargarAlumnoAcceso(admin, user.id)
 
-    if (!alumnoData) return Response.json({ error: 'Alumno no encontrado' }, { status: 404 })
-
-    const alumno = alumnoData as {
-      nivel: string
-      meses_desbloqueados: number
-      modalidad?: string | null
-      duracion_meses?: number | null
-    }
-    const duracionMeses  = alumno.duracion_meses ?? getMesesByModalidad(alumno.modalidad)
-    const materiasPorMes = getMateriasPorMesByModalidad(alumno.modalidad)
-    const limiteMaterias = Math.max(0, alumno.meses_desbloqueados * materiasPorMes)
+    if (!alumno) return Response.json({ error: 'Alumno no encontrado' }, { status: 404 })
 
     // ── 2. Materia ────────────────────────────────────────────────────────────
     const { data: materiaData } = await admin
@@ -50,56 +36,21 @@ export async function GET(
     }
 
     // ── 3. Control de acceso ──────────────────────────────────────────────────
-    // Demo: siempre. Tutorial (nombre contiene 'tutor'): siempre.
-    // Mismo nivel: según meses desbloqueados × materias por mes (3m→4, 6m→2).
-    const esTutorial = materia.nombre.toLowerCase().includes('tutor')
-    if (materia.nivel === 'demo' || esTutorial) {
-      // permitir
-    } else if (materia.nivel !== alumno.nivel) {
-      return Response.json({ error: 'Esta materia no corresponde a tu nivel' }, { status: 403 })
-    } else if (alumno.meses_desbloqueados <= 0) {
-      return Response.json({ error: 'Aún no tienes meses desbloqueados. Contacta a tu administrador.' }, { status: 403 })
-    } else {
-      // Acreditadas: bypass del gating de índice (no consumen lugar de la ventana)
-      const { data: califData } = await admin
-        .from('calificaciones')
-        .select('materia_id')
-        .eq('alumno_id', user.id)
-        .eq('acreditado', true)
-      const acreditadasSet = new Set(
-        ((califData ?? []) as { materia_id: string }[]).map(c => c.materia_id)
-      )
-      const estaAcreditada = acreditadasSet.has(params.id)
+    // Criterio canon único (lib/acceso-materias): el MISMO que decide
+    // `disponible` en /api/alumno/materias, para que lista y gate no diverjan.
+    const { materias: catalogo, acreditadas } = await cargarContextoAcceso(
+      admin, user.id, alumno
+    )
+    const acceso = tieneAccesoMateria(alumno, materia, catalogo, acreditadas)
 
-      if (!estaAcreditada) {
-        const { data: planMaterias } = await admin
-          .from('materias')
-          .select('id, orden, nombre, nivel')
-          .eq('nivel', alumno.nivel)
-          .eq('activa', true)
-          .order('orden')
-
-        const ordenadas = ((planMaterias ?? []) as { id: string; orden: number | null; nombre: string; nivel: string }[])
-          .slice()
-          .sort((a, b) => (a.orden ?? 9999) - (b.orden ?? 9999))
-
-        // idxPendiente: MISMO conteo que el listado — tutoriales y acreditadas
-        // NO consumen lugar de la ventana; solo se cuentan materias pendientes.
-        let idxPendiente = 0
-        let disponible = false
-        for (const m of ordenadas) {
-          const esTut = m.nivel === 'demo' || m.nombre.toLowerCase().includes('tutor')
-          if (esTut || acreditadasSet.has(m.id)) continue
-          if (m.id === params.id) {
-            disponible = idxPendiente < limiteMaterias
-            break
-          }
-          idxPendiente++
-        }
-        if (!disponible) {
-          return Response.json({ error: 'Esta materia aún no está disponible en tu progreso mensual.' }, { status: 403 })
-        }
-      }
+    if (!acceso.acceso) {
+      const mensaje =
+        acceso.motivo === 'nivel_distinto'
+          ? 'Esta materia no corresponde a tu nivel'
+          : acceso.motivo === 'sin_meses'
+            ? 'Aún no tienes meses desbloqueados. Contacta a tu administrador.'
+            : 'Esta materia aún no está disponible en tu progreso mensual.'
+      return Response.json({ error: mensaje }, { status: 403 })
     }
 
     // ── 4. Meses del contenido → Semanas ──────────────────────────────────────

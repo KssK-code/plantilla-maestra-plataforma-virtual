@@ -1,10 +1,16 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import type { SupabaseClient } from '@supabase/supabase-js'
+import { cargarAlumnoAcceso, tieneAccesoSemana } from '@/lib/acceso-materias'
 
 /**
- * Quiz por semana — sin filtro por nivel (secundaria/preparatoria/demo).
+ * Quiz por semana. El acceso se gatea por pertenencia de la semana a una materia
+ * accesible para el alumno (semana → mes_id → meses_contenido → materia, con el
+ * criterio canon de lib/acceso-materias). Antes no había gate: cualquier alumno
+ * autenticado podía leer y responder el quiz de cualquier semana, incluidas las
+ * de materias que su ventana de pago no abre.
  *
+
  * PostgREST:
  *   GET .../quiz_semana?select=*&semana_id=eq.{semanaId}&order=orden.asc
  * SQL equivalente:
@@ -233,6 +239,20 @@ export async function GET(
       return NextResponse.json({ error: 'semanaId requerido' }, { status: 400 })
     }
 
+    // ── Gate canon (lib/acceso-materias) ─────────────────────────────────────
+    const alumno = await cargarAlumnoAcceso(supabase, user.id)
+    if (!alumno) return NextResponse.json({ error: 'Alumno no encontrado' }, { status: 404 })
+
+    const gate = await tieneAccesoSemana(supabase, alumno, semanaId)
+    if (!gate.encontrada) {
+      return NextResponse.json({ error: 'Semana no encontrada' }, { status: 404 })
+    }
+    if (!gate.acceso) {
+      return NextResponse.json({ error: 'No tienes acceso a este contenido' }, { status: 403 })
+    }
+
+    const alumnoId = alumno.id
+
     const { data: rawRows, error: quizErr } = await supabase
       .from('quiz_semana')
       .select('*')
@@ -248,17 +268,7 @@ export async function GET(
       ?.map(mapQuizSemanaRow)
       .filter((p): p is NonNullable<typeof p> => p != null) ?? []
 
-    const { data: alumnoData } = await supabase
-      .from('alumnos')
-      .select('id')
-      .eq('id', user.id)
-      .single()
-
-    if (!alumnoData) return NextResponse.json({ error: 'Alumno no encontrado' }, { status: 404 })
-
-    const { id: alumnoId } = alumnoData as { id: string }
-
-    let respuestaPrevia =
+    const respuestaPrevia =
       (await fetchRespuestaPreviaJsonb(supabase, alumnoId, semanaId)) ??
       (await fetchRespuestaPreviaLegacy(
         supabase,
@@ -297,15 +307,20 @@ export async function POST(
       return NextResponse.json({ error: 'respuestas requeridas' }, { status: 400 })
     }
 
-    const { data: alumnoData } = await supabase
-      .from('alumnos')
-      .select('id')
-      .eq('id', user.id)
-      .single()
+    // ── Mismo gate que el GET: guardar respuestas de una semana bloqueada
+    // dejaría el hueco vivo por POST directo ─────────────────────────────────
+    const alumno = await cargarAlumnoAcceso(supabase, user.id)
+    if (!alumno) return NextResponse.json({ error: 'Alumno no encontrado' }, { status: 404 })
 
-    if (!alumnoData) return NextResponse.json({ error: 'Alumno no encontrado' }, { status: 404 })
+    const gate = await tieneAccesoSemana(supabase, alumno, semanaId)
+    if (!gate.encontrada) {
+      return NextResponse.json({ error: 'Semana no encontrada' }, { status: 404 })
+    }
+    if (!gate.acceso) {
+      return NextResponse.json({ error: 'No tienes acceso a este contenido' }, { status: 403 })
+    }
 
-    const { id: alumnoId } = alumnoData as { id: string }
+    const alumnoId = alumno.id
 
     const jsonb = await saveRespuestasJsonb(supabase, alumnoId, semanaId, respuestas)
     if (!jsonb.error) {
