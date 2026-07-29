@@ -5,12 +5,16 @@
 1. **Nombre de la escuela:** (ejemplo: "Bachillerato Virtual Monterrey")
 2. **Email de contacto:** (ejemplo: contacto@escuela.com)
 3. **Teléfono:** (opcional)
-4. **Logo:** (archivo PNG o URL del logo)
-5. **Colores de marca:** (color primario y secundario en hexadecimal, o enviar el logo y yo elijo colores que combinen)
-6. **Tagline:** (frase corta, ejemplo: "Tu futuro comienza aquí") o usar el default
-7. **Dominio:** (ejemplo: bachilleratovirtual.mx) si ya lo tiene, o usar el de Vercel
-8. **Planes y precios:** ¿Mismos planes que la plantilla (24, 6, 3 meses) con otros precios? ¿O planes diferentes?
-9. **Datos del administrador:** nombre completo y email del admin de la escuela
+4. **Logo:** SVG o **PNG con transparencia** (canal alfa), mín. 200x80px.
+   No aceptar JPG ni PNG con fondo blanco plano: al pasar por `/_next/image` se
+   degrada y aparece como un recuadro blanco sobre los fondos oscuros.
+5. **Isotipo para el favicon:** SVG o PNG con transparencia, cuadrado.
+   Si no lo mandan, la pestaña se queda con el hexágono genérico MEV.
+6. **Colores de marca:** (color primario y secundario en hexadecimal, o enviar el logo y yo elijo colores que combinen)
+7. **Tagline:** (frase corta, ejemplo: "Tu futuro comienza aquí") o usar el default
+8. **Dominio:** (ejemplo: bachilleratovirtual.mx) si ya lo tiene, o usar el de Vercel
+9. **Planes y precios:** ¿Mismos planes que la plantilla (24, 6, 3 meses) con otros precios? ¿O planes diferentes?
+10. **Datos del administrador:** nombre completo y email del admin de la escuela
 
 ## Pasos para desplegar:
 
@@ -57,6 +61,15 @@ INSERT INTO planes_estudio (nombre, duracion_meses, precio_mensual, activo) VALU
   - colorSecundario
   - contactoEmail
   - contactoTelefono
+  - `colores.themeColor` — color de la barra del navegador en móvil. Por
+    defecto sigue al fondo claro; si el cliente tiene landing/app oscura,
+    ponerle su fondo oscuro.
+
+- Reemplazar los assets de marca (ver `public/README.md`):
+  - [ ] `public/logo.png` — logo del cliente (SVG/PNG con transparencia)
+  - [ ] `public/favicon.svg` — **reemplazar el favicon con el logo del cliente
+        (pedir SVG/PNG con transparencia)**. El que trae la plantilla es un
+        hexágono genérico marcado como PLACEHOLDER dentro del propio SVG.
 
 ### Paso 7: Configurar variables de entorno
 - Crear .env.local con las credenciales de Supabase del cliente

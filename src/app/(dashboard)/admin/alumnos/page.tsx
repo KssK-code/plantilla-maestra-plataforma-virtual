@@ -4,7 +4,6 @@ import { useState, useEffect, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
 import { Users, Search, Plus, X, Loader2, Eye, MessageSquare, CheckCheck, Clock, AlertCircle } from 'lucide-react'
 import { useToast, ToastContainer } from '@/components/ui/toast'
-import { CONFIG } from '@/lib/config'
 import { getModalidadesActivas } from '@/lib/modalidades'
 
 interface Alumno {

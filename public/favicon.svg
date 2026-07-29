@@ -1,4 +1,12 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 60 60" fill="none">
+  <!--
+    PLACEHOLDER — hexágono genérico MEV, NO es el logo de ningún cliente.
+    Reemplazar por el isotipo del cliente al dar de alta el proyecto.
+    Pedir el archivo en SVG o PNG CON TRANSPARENCIA (canal alfa): un PNG con
+    fondo blanco plano se degrada al pasar por /_next/image y se ve como un
+    recuadro blanco sobre fondos oscuros.
+    Ver el checklist en public/README.md e INSTRUCCIONES-NUEVO-CLIENTE.md.
+  -->
   <polygon points="30,3 55,17 55,43 30,57 5,43 5,17" fill="none" stroke="url(#g)" stroke-width="2.5"/>
   <circle cx="30" cy="30" r="7" fill="url(#g)"/>
   <circle cx="30" cy="30" r="3.5" fill="#050c18"/>

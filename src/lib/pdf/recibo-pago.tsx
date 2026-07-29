@@ -69,6 +69,8 @@ export function ReciboPagoPDF({ data }: { data: ReciboData }) {
             <Text style={styles.escuela}>{CONFIG.nombreCompleto}</Text>
             <Text style={styles.tagline}>{CONFIG.urlBase} · WhatsApp {CONFIG.whatsappDisplay}</Text>
           </View>
+          {/* Image de @react-pdf/renderer, no <img> de HTML: no acepta `alt`. */}
+          {/* eslint-disable-next-line jsx-a11y/alt-text */}
           {logo && <Image src={logo} style={styles.logo} />}
         </View>
 
