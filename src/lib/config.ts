@@ -40,6 +40,12 @@ export const CONFIG = {
     fondo:             '#F8FAFC',  // slate-50 — fondo de página
     superficie:        '#FFFFFF',  // cards, modales, inputs
     borde:             '#E5E7EB',  // gray-200 — bordes sutiles
+    // Color de la barra del navegador en móvil (<meta name="theme-color">).
+    // Debe coincidir con el fondo REAL que ve el alumno; si no, la barra queda
+    // de un color que no aparece en ninguna pantalla. Por defecto sigue a
+    // `fondo` (tema claro). Cliente con landing/app oscura: poner aquí su
+    // fondo oscuro (ej. '#0B0D11').
+    themeColor:        '#F8FAFC',
   },
 
   // === NIVELES ACADÉMICOS ===

@@ -2,26 +2,26 @@
   "version": "0.0.1",
   "configurations": [
     {
-      "name": "CJVB Dev (puerto 3011)",
-      "runtimeExecutable": "npm",
+      "name": "Next.js Dev (puerto 3011)",
+      "runtimeExecutable": "pnpm",
       "runtimeArgs": ["run", "dev", "--", "-p", "3011"],
       "port": 3011
     },
     {
       "name": "Next.js Dev (puerto 3010)",
-      "runtimeExecutable": "npm",
+      "runtimeExecutable": "pnpm",
       "runtimeArgs": ["run", "dev", "--", "-p", "3010"],
       "port": 3010
     },
     {
       "name": "Next.js Dev (puerto 3000)",
-      "runtimeExecutable": "npm",
+      "runtimeExecutable": "pnpm",
       "runtimeArgs": ["run", "dev"],
       "port": 3000
     },
     {
       "name": "Next.js Production Preview",
-      "runtimeExecutable": "npm",
+      "runtimeExecutable": "pnpm",
       "runtimeArgs": ["run", "start", "--", "-p", "3010"],
       "port": 3010
     }

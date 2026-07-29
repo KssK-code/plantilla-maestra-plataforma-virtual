@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState, useCallback } from 'react'
 import Image from 'next/image'
 import Link from 'next/link'
-import { LogIn } from 'lucide-react'
+import { LogIn, Instagram, Facebook } from 'lucide-react'
 import { Playfair_Display, DM_Sans } from 'next/font/google'
 import { CONFIG } from '@/lib/config'
 import { getModalidadesActivas, getDuracionLabel, getPlanLabel } from '@/lib/modalidades'
@@ -511,7 +511,7 @@ export default function LandingPage() {
                     ))}
                   </div>
                   {/* Quote */}
-                  <p className="text-sm leading-relaxed flex-1" style={{ color: `${C.navy}88` }}>"{t.quote}"</p>
+                  <p className="text-sm leading-relaxed flex-1" style={{ color: `${C.navy}88` }}>&ldquo;{t.quote}&rdquo;</p>
                   {/* Author */}
                   <div className="flex items-center gap-3 pt-2 border-t" style={{ borderColor: `${C.royal}12` }}>
                     <div className="w-10 h-10 rounded-full flex items-center justify-center text-sm font-bold flex-shrink-0"

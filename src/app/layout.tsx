@@ -18,7 +18,10 @@ const geistMono = localFont({
 const description = "Estudia Secundaria o Preparatoria desde casa. Acompañamiento en la gestión de tu certificación con validez oficial. 100% en línea, a tu ritmo, sin examen final."
 
 export const viewport: Viewport = {
-  themeColor: "#0B0D11",
+  // Configurable por cliente en lib/config.ts (colores.themeColor). Estaba
+  // hardcodeado a un gris casi negro heredado de un cliente con tema oscuro,
+  // que no corresponde al fondo claro de la plantilla.
+  themeColor: ESCUELA_CONFIG.colores.themeColor,
   width: "device-width",
   initialScale: 1,
   maximumScale: 1,
