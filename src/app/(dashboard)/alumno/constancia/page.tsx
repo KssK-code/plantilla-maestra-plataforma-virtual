@@ -163,9 +163,7 @@ export default function ConstanciaPage() {
                   fontSize: 8, letterSpacing: '0.12em', color: '#94a3b8', fontWeight: 400,
                   borderTop: '1px solid #e2e8f0', paddingTop: 4, marginTop: 5,
                 }}>
-                  {datos.nivel === 'excel'
-                    ? 'Curso Excel + IA + Copilot'
-                    : datos.nivel === 'preparatoria'
+                  {datos.nivel === 'preparatoria'
                     ? 'Preparatoria'
                     : datos.nivel === 'secundaria'
                     ? 'Secundaria'
@@ -243,9 +241,7 @@ export default function ConstanciaPage() {
               <strong style={{ color: '#0f172a', fontWeight: 600 }}>{datos.matricula}</strong>,{' '}
               está inscrito en el programa{' '}
               <strong style={{ color: '#0f172a', fontWeight: 600 }}>
-                {datos.nivel === 'excel'
-                  ? 'Curso Excel + IA + Copilot'
-                  : datos.plan_nombre}
+                {datos.plan_nombre}
               </strong>{' '}
               {` de ${CONFIG.nombre}.`}
             </p>

@@ -18,8 +18,11 @@
 --   * RLS habilitado en las 5 tablas. Ninguna política referencia su propia
 --     tabla (regla anti-recursión); las referencias cruzadas forman un DAG:
 --     lecciones → modulos → cursos → inscripciones → (nada).
---   * es_admin(): NO se modifica — la auditoría de producción (2026-07-13)
---     confirmó que ya es plpgsql SECURITY DEFINER STABLE con LOWER(rol).
+--   * es_admin(): NO se modifica AQUÍ. ⚠️ El comentario original de este
+--     archivo afirmaba que ya cumplía Bug 43 (plpgsql + LOWER(rol)); eso era
+--     cierto en UNA base de producción auditada el 2026-07-13, pero NO en la
+--     plantilla, donde es LANGUAGE sql, sin LOWER() y sin search_path.
+--     Lo corrige supabase/migrations/20260729121000_fix_s2_es_admin.sql (S2).
 --   * FKs alumno_id con ON DELETE CASCADE: la spec no lo pide explícito, pero
 --     es el patrón de todo el esquema existente (progreso_semanas,
 --     calificaciones, etc. cascadan al borrar el alumno).
@@ -30,22 +33,31 @@
 --     storage.objects pertenece a supabase_storage_admin y postgres no puede
 --     hacer DDL ahí; el SQL Editor del Dashboard corre como postgres y
 --     tampoco sirve — usar la UI: Storage → Policies).
---   * Caveat de la spec: la política SELECT de storage es para TODO
---     authenticated (así lo pide la spec), por lo que un alumno autenticado
---     NO inscrito puede firmar URLs y bajar materiales del bucket. RLS de
---     curso_lecciones sí protege video_url/contenido_texto. Endurecimiento
---     opcional por path en RUNBOOK-CURSOS-DIPLOMADOS.md.
+--   * (Obsoleto — se deja el rastro a propósito.) Este bloque advertía que la
+--     política SELECT de storage sería para TODO authenticated y que un alumno
+--     no inscrito podría bajar materiales. Ya NO aplica: la política que este
+--     archivo crea más abajo restringe por inscripción usando el primer
+--     segmento del path. Además, desde 2026-07-29 esa política la REEMPLAZA
+--     supabase/migrations/20260729122000_fix_portadas_storage_policy.sql, que
+--     añade el caso de las portadas (portadas/{curso_id}/…) sin abrir el
+--     acceso a nadie más. Corre esa migración DESPUÉS de este archivo.
 -- ============================================================================
 
 -- ══════════ TX1: función admin + tablas + índices + RLS + grants ══════════
 BEGIN;
 
--- ── es_admin(): NO se toca ──
--- Auditoría en producción (2026-07-13): es_admin() YA es plpgsql SECURITY
--- DEFINER STABLE (Bug 43 ya corregido allá) y usa LOWER(rol) = 'admin';
--- también existe is_admin() como wrapper. Recrearla aquí sin LOWER() podría
--- romper admins con rol en mayúsculas. La spec solo pedía recrearla si
--- seguía en LANGUAGE sql — no es el caso.
+-- ── es_admin(): NO se toca AQUÍ ──
+-- ⚠️ CORRECCIÓN (2026-07-29). El texto que estaba aquí afirmaba que es_admin()
+-- ya era plpgsql SECURITY DEFINER STABLE con LOWER(rol) y que por eso no hacía
+-- falta recrearla. Esa afirmación venía de auditar UNA base de producción
+-- (2026-07-13) y NO es cierta para la plantilla: en supabase/schema.sql:411-421
+-- es LANGUAGE sql, compara rol = 'admin' de forma exacta y no fija search_path.
+-- Consecuencia real: un cliente nuevo sembrado desde este repo cuyo admin tenga
+-- rol='ADMIN' en mayúsculas ve morir TODAS las políticas "admin all" de abajo.
+-- El endurecimiento correcto (plpgsql + LOWER + search_path, también para
+-- es_staff()) vive en supabase/migrations/20260729121000_fix_s2_es_admin.sql y
+-- debe correrse junto con este archivo. Sigue sin recrearse aquí para no tener
+-- dos fuentes de verdad de la misma función.
 
 -- ── Tablas ──
 CREATE TABLE IF NOT EXISTS public.cursos (
