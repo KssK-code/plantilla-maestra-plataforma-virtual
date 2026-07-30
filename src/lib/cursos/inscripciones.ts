@@ -42,9 +42,16 @@ export type ConceptoCurso = (typeof CONCEPTOS_CURSO)[number]
  * 'curso_mensualidad' la vista reporta meses_con_pago = 0; cambiándolo a
  * 'mensualidad' salta a 1.
  *
- * ⚠️ El blindaje cubre el CONTEO de meses, no todo: la subconsulta
- * fecha_ultimo_pago de esa misma vista no filtra por concepto, así que un pago
- * de curso sí mueve la columna "Último pago" del estado de cuenta del programa.
+ * ✅ CERRADO EN B6 (20260730160000_b6_reportes_por_vertical.sql). Antes, la
+ * subconsulta `fecha_ultimo_pago` de esa misma vista NO filtraba nada, así que
+ * un pago de diplomado movía la columna "Último pago" del estado de cuenta del
+ * programa: la fila decía «Último pago: hoy» junto al badge «N meses sin pago
+ * registrado». B6 la filtra con `WHERE p.curso_inscripcion_id IS NULL`.
+ *
+ * El criterio de separación de B6 es la FK `pagos.curso_inscripcion_id`, no el
+ * concepto: `concepto` es TEXT sin CHECK y un typo clasificaría mal en silencio.
+ * Aun así, NO reutilizar 'mensualidad' para un pago de curso sigue siendo la
+ * regla — el conteo de meses de arriba se apoya en el concepto.
  */
 export const METODOS_PAGO = ['EFECTIVO', 'TRANSFERENCIA', 'TARJETA', 'OTRO'] as const
 

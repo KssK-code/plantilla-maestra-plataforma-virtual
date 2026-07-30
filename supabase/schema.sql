@@ -866,6 +866,22 @@ END $$;
 -- inscripcion_pagada viene de la columna existente (fuente de verdad).
 -- =============================================================
 
+-- ⚠️ B6 REEMPLAZA ESTA FUNCIÓN cuando el cliente tiene el módulo de Cursos.
+-- La versión de B6 (supabase/migrations/20260730160000_b6_reportes_por_vertical.sql)
+-- filtra `fecha_ultimo_pago` a los pagos del PROGRAMA con
+-- `WHERE p.curso_inscripcion_id IS NULL`, para que el estado de cuenta no diga
+-- «Último pago: hoy» por un diplomado en la misma fila que dice «meses sin pago».
+--
+-- Esa versión NO puede vivir aquí: `pagos.curso_inscripcion_id` la crea B1, que
+-- es parte del módulo opcional de Cursos (ver MÓDULOS OPCIONALES al final), y
+-- este archivo "debe poder correrse solo". Postgres valida el cuerpo de una
+-- función SQL al crearla, así que copiar la versión de B6 aquí aborta schema.sql
+-- con "column p.curso_inscripcion_id does not exist" en todo cliente que no
+-- contrate Cursos. Verificado sobre una base limpia, no supuesto.
+--
+-- Orden real en un cliente CON cursos: schema.sql (esta versión) →
+-- migracion-cursos-diplomados.sql → B1 → … → B6 (la reemplaza). Sin cursos,
+-- esta versión es la correcta y definitiva: no hay pagos de curso que separar.
 CREATE OR REPLACE FUNCTION public.estado_cuenta_alumnos()
 RETURNS TABLE (
   alumno_id uuid,
@@ -919,6 +935,14 @@ $$;
 -- solo agregaría sus propios pagos (RLS).
 -- =============================================================
 
+-- ⚠️ B6 REEMPLAZA ESTAS DOS FUNCIONES cuando el cliente tiene Cursos: agrega
+-- las columnas `programa` y `cursos` al RETURNS TABLE para desglosar el ingreso
+-- por vertical. `total` se conserva idéntico, así que quien ya lo lee no se
+-- entera. Igual que arriba, la versión de B6 depende de
+-- `pagos.curso_inscripcion_id` (módulo opcional) y no puede vivir en el schema
+-- base. Nota para quien migre: B6 usa DROP + CREATE, no CREATE OR REPLACE,
+-- porque Postgres no deja cambiar el tipo de retorno de una función existente —
+-- y el DROP se lleva los grants, que B6 re-aplica.
 CREATE OR REPLACE FUNCTION public.reporte_ingresos_semanales(num_semanas integer DEFAULT 8)
 RETURNS TABLE (semana_inicio date, total numeric)
 LANGUAGE sql STABLE
