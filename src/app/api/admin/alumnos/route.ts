@@ -211,8 +211,11 @@ export async function POST(request: NextRequest) {
     if (!nombre || !email || !password) {
       return NextResponse.json({ error: 'nombre, email y password son requeridos' }, { status: 400 })
     }
-    if (!nivel || !['secundaria', 'preparatoria', 'licenciatura', 'excel'].includes(nivel)) {
-      return NextResponse.json({ error: 'nivel es requerido (secundaria, preparatoria, licenciatura o excel)' }, { status: 400 })
+    // Los valores deben coincidir EXACTAMENTE con alumnos_nivel_check
+    // (supabase/schema.sql:30). Aceptar aquí un nivel que la BD rechaza hace
+    // que el INSERT falle y que la ruta borre el usuario de Auth recién creado.
+    if (!nivel || !['secundaria', 'preparatoria', 'licenciatura'].includes(nivel)) {
+      return NextResponse.json({ error: 'nivel es requerido (secundaria, preparatoria o licenciatura)' }, { status: 400 })
     }
 
     const admin = createAdminClient()
@@ -255,7 +258,7 @@ export async function POST(request: NextRequest) {
       .insert({
         id:                  newUserId,
         matricula,
-        nivel:               nivel as 'secundaria' | 'preparatoria' | 'excel',
+        nivel:               nivel as 'secundaria' | 'preparatoria' | 'licenciatura',
         modalidad:           modalidad ?? getDefaultModalidadId(),
         meses_desbloqueados: 0,
       })
