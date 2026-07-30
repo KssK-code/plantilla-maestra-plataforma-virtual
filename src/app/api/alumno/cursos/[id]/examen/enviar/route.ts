@@ -1,17 +1,30 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { createAdminClient } from '@/lib/supabase/admin'
-import { calificar, leerPreguntas, puedeVerCurso } from '@/lib/cursos/examen'
+import {
+  INTENTOS_PERMITIDOS_DEFAULT,
+  calificar,
+  leerPreguntas,
+  puedeVerCurso,
+} from '@/lib/cursos/examen'
 import type { RespuestaEnviada } from '@/types/cursos-examen'
 
 // ─── POST /api/alumno/cursos/[id]/examen/enviar ──────────────────────────────
 // Califica 100% en el servidor (patrón de evaluacion/[id]/enviar), guarda el
-// resultado e incluye en la respuesta la revisión completa: tu respuesta, la
-// correcta y la explicación. Es el ÚNICO momento en que la clave sale al
-// cliente, y ya con el envío calificado.
+// resultado e incluye en la respuesta la revisión del envío: tu respuesta y,
+// SOLO para las preguntas que contestaste, la correcta y la explicación.
 //
 // body { respuestas: [{ pregunta_id, respuesta }] }
-// Las preguntas sin contestar cuentan como incorrectas.
+// Las preguntas sin contestar cuentan como incorrectas, pero su clave NO viaja.
+//
+// DOS CANDADOS, ambos server-side (la UI no es una defensa):
+//   1. Envío vacío rechazado: sin al menos una respuesta válida contra el banco
+//      no se califica ni se guarda. Antes, un POST con todo en null devolvía el
+//      banco completo con las claves — un oráculo de una sola petición.
+//   2. Límite de intentos: se cuentan las filas previas del alumno en
+//      curso_examen_resultados. Sin esto, el punto 1 se podía sortear
+//      contestando una pregunta al azar y repitiendo hasta reconstruir el banco.
+//      Los dos candados juntos son los que cierran el agujero; por separado, no.
 export async function POST(
   request: NextRequest,
   { params }: { params: { id: string } }
@@ -48,7 +61,43 @@ export async function POST(
       return NextResponse.json({ error: 'Este curso no tiene examen final' }, { status: 404 })
     }
 
-    const { aciertos, total, porcentaje, desglose, respuestas, revision } = calificar(preguntas, enviadas)
+    // ── Candado 2: intentos ──────────────────────────────────────────────────
+    // Se cuenta con el cliente admin, filtrando por alumno_id: la RLS de
+    // resultados deja al alumno leer los suyos, pero el conteo no puede
+    // depender de eso porque el INSERT también va con admin.
+    const { count: intentosUsados } = await admin
+      .from('curso_examen_resultados')
+      .select('id', { count: 'exact', head: true })
+      .eq('curso_id', params.id)
+      .eq('alumno_id', alumnoId)
+
+    const usados = intentosUsados ?? 0
+    if (usados >= INTENTOS_PERMITIDOS_DEFAULT) {
+      // Sin revisión en el cuerpo: un envío rechazado no puede ser una vía
+      // alterna para leer claves.
+      return NextResponse.json(
+        {
+          error: `Ya usaste tus ${INTENTOS_PERMITIDOS_DEFAULT} intentos para este examen.`,
+          intentos_usados: usados,
+          intentos_permitidos: INTENTOS_PERMITIDOS_DEFAULT,
+        },
+        { status: 409 }
+      )
+    }
+
+    const { aciertos, total, porcentaje, desglose, respuestas, revision, contestadas } =
+      calificar(preguntas, enviadas)
+
+    // ── Candado 1: envío vacío ───────────────────────────────────────────────
+    // Se valida DESPUÉS de calificar (para reutilizar el conteo contra el banco)
+    // pero ANTES de insertar: un envío vacío no consume intento, no deja fila y
+    // no devuelve revisión.
+    if (contestadas === 0) {
+      return NextResponse.json(
+        { error: 'Contesta al menos una pregunta antes de enviar el examen.' },
+        { status: 400 }
+      )
+    }
 
     // El INSERT va con cliente admin: la RLS de resultados solo deja escribir a
     // admin justamente para que el alumno no pueda fabricarse una calificación.
@@ -79,6 +128,9 @@ export async function POST(
       porcentaje,
       desglose_temas: desglose,
       revision,
+      // Para que la UI pueda mostrar los intentos restantes sin otra petición.
+      intentos_usados: usados + 1,
+      intentos_permitidos: INTENTOS_PERMITIDOS_DEFAULT,
     })
   } catch (err) {
     console.error('[POST /api/alumno/cursos/[id]/examen/enviar]', err)

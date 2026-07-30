@@ -84,6 +84,7 @@ export async function POST(
 
     // Calificar en el servidor
     let correctas = 0
+    let contestadas = 0
 
     const detalle = pregs.map(p => {
       const selectedIdx    = respuestasAlumno[p.id] ?? -1
@@ -91,11 +92,12 @@ export async function POST(
       const esCorrecta     = selectedLetra === p.respuesta_correcta
 
       if (esCorrecta) correctas++
+      if (selectedLetra !== null) contestadas++
 
       const opciones = [p.opcion_a, p.opcion_b, p.opcion_c, p.opcion_d].filter(Boolean) as string[]
       const correctaIdx = ['a', 'b', 'c', 'd'].indexOf(p.respuesta_correcta)
 
-      return {
+      const base = {
         pregunta_id:       p.id,
         numero:            p.orden ?? 0,
         texto:             p.pregunta,
@@ -104,11 +106,28 @@ export async function POST(
         opciones,
         opciones_en:       opciones,
         respuesta_alumno:  selectedIdx,
-        respuesta_correcta: correctaIdx,
         es_correcta:       esCorrecta,
         retroalimentacion: '',
       }
+
+      // ⚠️ SEGURIDAD — la clave SOLO viaja para las preguntas que el alumno
+      // contestó en ESTE envío. Antes se adjuntaba siempre, así que un POST con
+      // `respuestas: {}` devolvía el índice correcto de TODAS las preguntas:
+      // enviar en blanco, leer las claves y reenviar bien daba 100%. La clave se
+      // OMITE (no va como -1 ni null) para no revelar su existencia posicional.
+      return selectedLetra === null
+        ? base
+        : { ...base, respuesta_correcta: correctaIdx }
     })
+
+    // Un envío sin una sola respuesta válida no se califica ni consume intento:
+    // era el oráculo. Se valida ANTES de insertar el intento.
+    if (contestadas === 0) {
+      return NextResponse.json(
+        { error: 'Contesta al menos una pregunta antes de enviar la evaluación.' },
+        { status: 400 }
+      )
+    }
 
     const totalPregs  = pregs.length
     const puntaje     = totalPregs > 0 ? Math.round((correctas / totalPregs) * 100) : 0

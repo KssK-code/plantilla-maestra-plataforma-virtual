@@ -4,17 +4,23 @@
  * Examen final de curso — vista del alumno.
  *
  * Diseño deliberadamente simple: TODAS las preguntas en una sola vista
- * scrolleable, sin cronómetro, sin autosave y sin estados de intento. Cada
- * envío es un resultado nuevo, así que el historial sale gratis.
+ * scrolleable, sin cronómetro y sin autosave. Cada envío es un resultado nuevo,
+ * así que el historial sale gratis.
  *
  * Las preguntas llegan SANITIZADAS de la API (sin respuesta correcta ni
  * explicación). La calificación y la revisión solo aparecen después de enviar,
  * calculadas en el servidor.
+ *
+ * Los intentos SÍ están limitados, y el candado real vive en la ruta: lo de aquí
+ * es solo cortesía visual para no dejar al alumno mandar un envío que el
+ * servidor va a rechazar. La revisión, además, solo trae la respuesta correcta
+ * de las preguntas que el alumno contestó.
  */
 
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { useParams, useRouter } from 'next/navigation'
 import { ArrowLeft, Check, CheckCircle2, Loader2, RotateCcw, XCircle } from 'lucide-react'
+import { INTENTOS_PERMITIDOS_DEFAULT } from '@/lib/cursos/examen'
 import type {
   DesgloseTema, Letra, PreguntaSanitizada, ResultadoHistorial, RevisionPregunta,
 } from '@/types/cursos-examen'
@@ -72,6 +78,11 @@ export default function ExamenCursoPage() {
   const contestadas = useMemo(() => Object.keys(respuestas).length, [respuestas])
   const total = preguntas?.length ?? 0
   const faltantes = total - contestadas
+
+  // El historial trae un renglón por envío, así que los intentos usados salen
+  // gratis del fetch que ya se hacía. El límite de verdad lo aplica la ruta.
+  const intentosRestantes = Math.max(0, INTENTOS_PERMITIDOS_DEFAULT - historial.length)
+  const sinIntentos = intentosRestantes === 0
 
   const elegir = (preguntaId: string, letra: Letra) =>
     setRespuestas(prev => ({ ...prev, [preguntaId]: letra }))
@@ -183,10 +194,18 @@ export default function ExamenCursoPage() {
               <div className="flex flex-col sm:flex-row gap-2">
                 <button
                   onClick={reintentar}
+                  disabled={sinIntentos}
                   className="flex items-center justify-center gap-2 rounded-xl px-5 py-3 text-sm font-semibold flex-1"
-                  style={{ background: 'var(--color-acento)', color: '#fff' }}
+                  style={
+                    sinIntentos
+                      ? { background: 'rgba(27,48,104,0.08)', color: '#94A3B8', cursor: 'not-allowed' }
+                      : { background: 'var(--color-acento)', color: '#fff' }
+                  }
                 >
-                  <RotateCcw className="w-4 h-4" /> Volver a intentar
+                  <RotateCcw className="w-4 h-4" />
+                  {sinIntentos
+                    ? 'Sin intentos disponibles'
+                    : `Volver a intentar (${intentosRestantes} ${intentosRestantes === 1 ? 'restante' : 'restantes'})`}
                 </button>
                 <button
                   onClick={() => setVerHistorial(v => !v)}
@@ -225,7 +244,9 @@ export default function ExamenCursoPage() {
                   </div>
                   <div className="space-y-1 pl-6">
                     {LETRAS.map(L => {
-                      const esCorrecta = L === r.respuesta_correcta
+                      // r.respuesta_correcta llega undefined cuando no contestaste
+                      // esta pregunta: entonces ninguna opción se marca correcta.
+                      const esCorrecta = r.respuesta_correcta !== undefined && L === r.respuesta_correcta
                       const esTuya = L === r.tu_respuesta
                       return (
                         <p
@@ -244,7 +265,10 @@ export default function ExamenCursoPage() {
                       )
                     })}
                     {r.tu_respuesta === null && (
-                      <p className="text-xs" style={{ color: '#B45309' }}>No la contestaste, cuenta como incorrecta.</p>
+                      <p className="text-xs" style={{ color: '#B45309' }}>
+                        No la contestaste, cuenta como incorrecta. La respuesta correcta se
+                        muestra solo en las preguntas que sí contestaste.
+                      </p>
                     )}
                   </div>
                   {r.explicacion && (
@@ -259,7 +283,11 @@ export default function ExamenCursoPage() {
           {!resultado && preguntas && (
             <>
               <p className="text-xs" style={{ color: '#64748B' }}>
-                Contesta las {total} preguntas y envía. No hay límite de tiempo y puedes presentarlo las veces que quieras.
+                Contesta las {total} preguntas y envía. No hay límite de tiempo.{' '}
+                {sinIntentos
+                  ? 'Ya usaste todos tus intentos.'
+                  : `Te ${intentosRestantes === 1 ? 'queda' : 'quedan'} ${intentosRestantes} de ${INTENTOS_PERMITIDOS_DEFAULT} ${intentosRestantes === 1 ? 'intento' : 'intentos'}.`}{' '}
+                Al terminar verás la respuesta correcta de las preguntas que hayas contestado.
               </p>
 
               {preguntas.map((p, i) => (

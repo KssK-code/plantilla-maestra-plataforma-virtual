@@ -46,6 +46,7 @@ supabase/.temp/
 /e2e/.auth/
 /e2e/.fixtures/
 /test-results/
+/test-results-unit/
 /playwright-report/
 /playwright/.cache/
 
