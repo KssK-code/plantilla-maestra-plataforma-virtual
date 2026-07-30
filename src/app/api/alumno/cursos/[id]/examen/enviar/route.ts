@@ -5,6 +5,7 @@ import {
   calificar,
   leerIntentosPermitidos,
   leerPreguntas,
+  puedeExamenFinal,
   puedeVerCurso,
 } from '@/lib/cursos/examen'
 import type { RespuestaEnviada } from '@/types/cursos-examen'
@@ -56,6 +57,16 @@ export async function POST(
     const enviadas = Array.isArray(body?.respuestas) ? (body.respuestas as RespuestaEnviada[]) : []
 
     const admin = createAdminClient()
+
+    // Ventana de pago, server-side: esta ruta usa service_role y la RLS no la
+    // cubre. Cerrar el GET y dejar abierto el POST seria un gate parcial.
+    if (!(await puedeExamenFinal(admin, params.id, alumnoId))) {
+      return NextResponse.json(
+        { error: 'El examen final se habilita cuando tienes el curso completo desbloqueado.' },
+        { status: 403 }
+      )
+    }
+
     const preguntas = await leerPreguntas(admin, params.id)
     if (preguntas.length === 0) {
       return NextResponse.json({ error: 'Este curso no tiene examen final' }, { status: 404 })

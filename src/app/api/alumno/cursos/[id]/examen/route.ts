@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { createAdminClient } from '@/lib/supabase/admin'
-import { leerIntentosPermitidos, leerPreguntas, puedeVerCurso, sanitizar } from '@/lib/cursos/examen'
+import { leerIntentosPermitidos, leerPreguntas, puedeExamenFinal, puedeVerCurso, sanitizar } from '@/lib/cursos/examen'
 
 // ─── GET /api/alumno/cursos/[id]/examen ──────────────────────────────────────
 // Devuelve el examen del curso SANITIZADO: sin respuesta_correcta y sin
@@ -23,6 +23,17 @@ export async function GET(
     }
 
     const admin = createAdminClient()
+
+    // Ventana de pago. Va aquí y no en la RLS porque esta ruta lee con
+    // service_role, que la bypasea. Mismo 404 que "curso no disponible": no se
+    // revela que el examen existe pero está bloqueado.
+    if (!(await puedeExamenFinal(admin, params.id, user.id))) {
+      return NextResponse.json(
+        { error: 'El examen final se habilita cuando tienes el curso completo desbloqueado.' },
+        { status: 403 }
+      )
+    }
+
     const preguntas = await leerPreguntas(admin, params.id)
     if (preguntas.length === 0) {
       return NextResponse.json({ error: 'Este curso no tiene examen final' }, { status: 404 })

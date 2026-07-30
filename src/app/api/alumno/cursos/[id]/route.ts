@@ -1,7 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
+import { createAdminClient } from '@/lib/supabase/admin'
 import { porcentajeProgreso, cursoCompletado } from '@/lib/cursos/progreso'
-import { modulosConProgreso, portadaFirmada } from '@/lib/cursos/alumno-data'
+import { modulosConProgreso, portadaFirmada, resumenVentana, totalLeccionesDelCurso } from '@/lib/cursos/alumno-data'
 import type { CursoDetalleAlumno } from '@/types/cursos-alumno'
 import type { CursoTipo } from '@/types/cursos'
 
@@ -35,7 +36,23 @@ export async function GET(
       .maybeSingle()
     const modoPreview = (usuario?.rol as string | undefined)?.toLowerCase() === 'admin'
 
+    // Los módulos y lecciones se leen con la SESIÓN del alumno, así que la RLS
+    // (migración B2) ya devuelve únicamente los que caen dentro de la ventana
+    // de pago — incluidas las URLs firmadas del material, que se firman con esa
+    // misma sesión. Aquí no hace falta volver a filtrar: hacerlo sería una
+    // segunda implementación de la regla, que es justo lo que produjo la
+    // divergencia del Bug 61.
     const { modulos, total, completadas } = await modulosConProgreso(supabase, user.id, params.id)
+
+    // Resumen de la ventana: SOLO NÚMEROS, para que la UI pueda decir "quedan N
+    // módulos, disponibles al abrir el mes M" sin filtrar nada de lo bloqueado.
+    const admin = createAdminClient()
+    const ventana = modoPreview ? null : await resumenVentana(admin, user.id, params.id)
+
+    // DENOMINADOR = curso COMPLETO, no solo lo desbloqueado. `total` viene de la
+    // sesión y por tanto ya está recortado por la ventana; usarlo daría 100 % y
+    // "completado" a quien pagó 1 de 6 meses. El numerador sí es lo completado.
+    const totalCurso = modoPreview ? total : await totalLeccionesDelCurso(admin, params.id)
 
     // Primera lección pendiente en orden (módulo, lección); si todas están
     // completas o no hay progreso, la primera lección del curso.
@@ -54,11 +71,12 @@ export async function GET(
       },
       modoPreview,
       modulos,
-      totalLecciones: total,
+      totalLecciones: totalCurso,
       completadas,
-      porcentaje: porcentajeProgreso(completadas, total),
-      completado: cursoCompletado(completadas, total),
+      porcentaje: porcentajeProgreso(completadas, totalCurso),
+      completado: cursoCompletado(completadas, totalCurso),
       primeraLeccionPendienteId,
+      ventana,
     }
     return NextResponse.json(detalle)
   } catch (err) {

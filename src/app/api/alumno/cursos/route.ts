@@ -1,7 +1,8 @@
 import { NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
+import { createAdminClient } from '@/lib/supabase/admin'
 import { porcentajeProgreso } from '@/lib/cursos/progreso'
-import { leccionesDeCurso, completadasDe, portadaFirmada } from '@/lib/cursos/alumno-data'
+import { leccionesDeCurso, completadasDe, portadaFirmada, totalLeccionesDelCurso } from '@/lib/cursos/alumno-data'
 import type { CursoCatalogoItem } from '@/types/cursos-alumno'
 import type { CursoTipo } from '@/types/cursos'
 
@@ -18,6 +19,7 @@ export async function GET() {
       .select('curso_id')
       .eq('alumno_id', user.id)
 
+    const admin = createAdminClient()
     const cursoIds = (inscripciones ?? []).map(i => i.curso_id as string)
     if (cursoIds.length === 0) return NextResponse.json([])
 
@@ -34,7 +36,10 @@ export async function GET() {
         const lecciones = await leccionesDeCurso(supabase, curso.id as string)
         const leccionIds = lecciones.map(l => l.leccionId)
         const completadas = await completadasDe(supabase, user.id, leccionIds)
-        const total = leccionIds.length
+        // Denominador = curso completo (ver totalLeccionesDelCurso). Contar solo
+        // lo visible haría que la barra del catálogo llegara al 100 % con un mes
+        // pagado.
+        const total = await totalLeccionesDelCurso(admin, curso.id as string)
         return {
           id: curso.id as string,
           nombre: curso.nombre as string,

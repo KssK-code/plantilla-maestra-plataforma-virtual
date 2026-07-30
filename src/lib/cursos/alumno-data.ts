@@ -6,7 +6,9 @@
 import type { SupabaseClient } from '@supabase/supabase-js'
 import { SIGNED_URL_TTL } from './storage'
 import { BUCKET_CURSOS } from './archivos'
-import type { LeccionAlumno, ModuloAlumno } from '@/types/cursos-alumno'
+import { limiteVentana } from './acceso'
+import type { CursoVentana, InscripcionVentana } from './acceso'
+import type { LeccionAlumno, ModuloAlumno, VentanaCurso } from '@/types/cursos-alumno'
 
 async function signed(supabase: SupabaseClient, path: string | null): Promise<string | null> {
   if (!path) return null
@@ -99,3 +101,95 @@ export async function modulosConProgreso(
 }
 
 export const portadaFirmada = signed
+
+/**
+ * Total de lecciones del curso, TODAS — incluidas las que la ventana bloquea.
+ *
+ * ⚠️ Se lee con el cliente ADMIN a propósito, y esto NO es un descuido de
+ * seguridad: devuelve un NÚMERO, nunca contenido.
+ *
+ * Existe por un efecto de segundo orden del gate de B2: como la RLS ahora solo
+ * devuelve las lecciones en ventana, contar con la sesión del alumno encogería
+ * el DENOMINADOR del progreso. Un alumno que pagó 1 de 6 meses completaría "sus"
+ * 2 lecciones y llegaría a 100 % con `completado: true` — y el visor le diría
+ * "¡Completaste este diplomado!". Con curso_constancias ya creada (B1) esperando
+ * consumidor, eso terminaría certificando un diplomado pagado a un sexto.
+ *
+ * El numerador (lo completado) sigue saliendo de la sesión; el denominador es el
+ * curso entero. Avanzar solo puede venir de pagar más meses.
+ */
+export async function totalLeccionesDelCurso(
+  admin: SupabaseClient,
+  cursoId: string
+): Promise<number> {
+  const { data: modulos } = await admin
+    .from('curso_modulos')
+    .select('id')
+    .eq('curso_id', cursoId)
+
+  const ids = (modulos ?? []).map(m => m.id as string)
+  if (ids.length === 0) return 0
+
+  const { count } = await admin
+    .from('curso_lecciones')
+    .select('id', { count: 'exact', head: true })
+    .in('modulo_id', ids)
+
+  return count ?? 0
+}
+
+/**
+ * Resumen de la ventana de pago del alumno en un curso.
+ *
+ * Se lee con el cliente ADMIN a propósito: el conteo total de módulos tiene que
+ * incluir los bloqueados, y con la sesión del alumno la RLS ya los filtró. Lo
+ * que sale de aquí son SOLO NÚMEROS — jamás nombres, títulos ni URLs de lo
+ * bloqueado.
+ *
+ * Devuelve null si el usuario no tiene inscripción en el curso (p. ej. un admin
+ * en vista previa): la UI entonces no pinta banda de ventana.
+ */
+export async function resumenVentana(
+  admin: SupabaseClient,
+  alumnoId: string,
+  cursoId: string
+): Promise<VentanaCurso | null> {
+  const { data: insc } = await admin
+    .from('curso_inscripciones')
+    .select('meses_desbloqueados, estado, fecha_vencimiento')
+    .eq('curso_id', cursoId)
+    .eq('alumno_id', alumnoId)
+    .maybeSingle()
+
+  if (!insc) return null
+
+  const { data: curso } = await admin
+    .from('cursos')
+    .select('modulos_por_mes, estado')
+    .eq('id', cursoId)
+    .maybeSingle()
+
+  const { count } = await admin
+    .from('curso_modulos')
+    .select('id', { count: 'exact', head: true })
+    .eq('curso_id', cursoId)
+
+  const inscripcion = insc as InscripcionVentana & { estado?: string | null }
+  const cursoV = (curso ?? null) as CursoVentana | null
+
+  const limite = limiteVentana(inscripcion, cursoV)
+  const totales = count ?? 0
+  const bloqueados = Math.max(0, totales - Math.min(limite, totales))
+  const porMes = cursoV?.modulos_por_mes ?? 0
+
+  return {
+    meses_desbloqueados: inscripcion.meses_desbloqueados ?? 0,
+    modulos_por_mes: porMes,
+    limite,
+    modulos_totales: totales,
+    modulos_bloqueados: bloqueados,
+    // El siguiente módulo bloqueado está en `orden = limite`; su mes es 1-based.
+    proximo_mes: bloqueados > 0 && porMes > 0 ? Math.floor(limite / porMes) + 1 : null,
+    estado_inscripcion: inscripcion.estado ?? null,
+  }
+}

@@ -13,6 +13,8 @@
  *     alumno CONTESTÓ. Ver `calificar()`.
  */
 import type { SupabaseClient } from '@supabase/supabase-js'
+import { limiteVentana } from './acceso'
+import type { CursoVentana, InscripcionVentana } from './acceso'
 import type {
   DesgloseTema,
   Letra,
@@ -97,6 +99,50 @@ export async function puedeVerCurso(
     .eq('id', cursoId)
     .maybeSingle()
   return Boolean(data)
+}
+
+/**
+ * ¿El alumno puede presentar el EXAMEN FINAL del curso?
+ *
+ * ⚠️ ESTE GATE ES OBLIGATORIO EN CÓDIGO, no lo cubre la RLS. Las tres rutas del
+ * examen leen con `createAdminClient()` (service_role) porque
+ * curso_examen_preguntas es solo-admin, y el service_role **bypasea RLS**. La
+ * ventana de pago de la migración B2 no las protege: aquí el candado es esto.
+ *
+ * REGLA: el examen final exige el curso COMPLETO liberado — techo de la ventana
+ * ≥ número de módulos. No se puede presentar el examen final de un diplomado
+ * del que se pagó 1 de 6 meses. Con 0 módulos (un curso que es solo examen)
+ * la condición se reduce a "al menos un mes pagado", que es lo razonable.
+ *
+ * Falla cerrado: sin inscripción, suspendida, vencida o curso no publicado →
+ * `limiteVentana` devuelve 0 y esto es false.
+ */
+export async function puedeExamenFinal(
+  admin: SupabaseClient,
+  cursoId: string,
+  alumnoId: string
+): Promise<boolean> {
+  const { data: insc } = await admin
+    .from('curso_inscripciones')
+    .select('meses_desbloqueados, estado, fecha_vencimiento')
+    .eq('curso_id', cursoId)
+    .eq('alumno_id', alumnoId)
+    .maybeSingle()
+  if (!insc) return false
+
+  const { data: curso } = await admin
+    .from('cursos')
+    .select('modulos_por_mes, estado')
+    .eq('id', cursoId)
+    .maybeSingle()
+
+  const { count } = await admin
+    .from('curso_modulos')
+    .select('id', { count: 'exact', head: true })
+    .eq('curso_id', cursoId)
+
+  const limite = limiteVentana(insc as InscripcionVentana, (curso ?? null) as CursoVentana | null)
+  return limite > 0 && limite >= (count ?? 0)
 }
 
 /** Quita clave y explicación. Es la única forma en que una pregunta sale al cliente. */
