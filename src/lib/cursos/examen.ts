@@ -9,6 +9,8 @@
  *     respuesta_correcta. El navegador nunca ve la clave antes de enviar.
  *   * Es lo contrario del patrón del quiz semanal (Bug 59), que hace select('*')
  *     y manda la respuesta correcta al cliente.
+ *   * La revisión posterior al envío solo trae la clave de las preguntas que el
+ *     alumno CONTESTÓ. Ver `calificar()`.
  */
 import type { SupabaseClient } from '@supabase/supabase-js'
 import type {
@@ -22,6 +24,18 @@ import type {
 } from '@/types/cursos-examen'
 
 const LETRAS: Letra[] = ['a', 'b', 'c', 'd']
+
+/**
+ * Intentos permitidos por alumno en el examen final de un curso.
+ *
+ * Constante por ahora, a propósito: esta fase es CÓDIGO SOLAMENTE, cero DDL.
+ * El límite se cuenta contra las filas ya existentes de curso_examen_resultados
+ * (un renglón por envío), así que no hace falta ninguna columna nueva.
+ *
+ * TODO(B1): reemplazar por cursos.intentos_permitidos — configurable por curso,
+ * igual que evaluaciones.intentos_permitidos en la vertical de materias.
+ */
+export const INTENTOS_PERMITIDOS_DEFAULT = 3
 
 export const esLetra = (v: unknown): v is Letra =>
   typeof v === 'string' && (LETRAS as string[]).includes(v)
@@ -110,6 +124,13 @@ export function calificar(
   desglose: DesgloseTema[]
   respuestas: RespuestaGuardada[]
   revision: RevisionPregunta[]
+  /**
+   * Cuántas preguntas DEL BANCO recibieron una letra válida en este envío.
+   * La ruta lo usa para rechazar el envío-oráculo: cero contestadas no se
+   * califica ni se guarda. Cuenta contra el banco, así que mandar basura o
+   * ids de otro curso no lo infla.
+   */
+  contestadas: number
 } {
   const porId = new Map<string, Letra | null>()
   for (const r of enviadas) {
@@ -122,25 +143,36 @@ export function calificar(
   const revision: RevisionPregunta[] = []
   const acum = new Map<string, { aciertos: number; total: number }>()
   let aciertos = 0
+  let contestadas = 0
 
   for (const p of preguntas) {
     const dada = porId.get(p.id) ?? null
     const correcta = dada !== null && dada === p.respuesta_correcta
     if (correcta) aciertos++
+    if (dada !== null) contestadas++
 
     respuestas.push({ pregunta_id: p.id, respuesta: dada, es_correcta: correcta })
 
-    revision.push({
+    // ⚠️ SEGURIDAD — la clave y la explicación SOLO se adjuntan si el alumno
+    // contestó ESTA pregunta en ESTE envío. Antes se adjuntaban siempre, así
+    // que un POST con todas las respuestas en null devolvía el banco completo:
+    // enviar en blanco, leer las claves de la respuesta HTTP y reenviar
+    // contestando bien daba 100% sin estudiar. Las claves se OMITEN (no van
+    // como null) para no revelar ni siquiera su existencia posicional.
+    const base: RevisionPregunta = {
       pregunta_id: p.id,
       orden: p.orden,
       tema: p.tema,
       enunciado: p.enunciado,
       opciones: { a: p.opcion_a, b: p.opcion_b, c: p.opcion_c, d: p.opcion_d },
       tu_respuesta: dada,
-      respuesta_correcta: p.respuesta_correcta,
       es_correcta: correcta,
-      explicacion: p.explicacion,
-    })
+    }
+    revision.push(
+      dada === null
+        ? base
+        : { ...base, respuesta_correcta: p.respuesta_correcta, explicacion: p.explicacion }
+    )
 
     const tema = p.tema?.trim() || 'General'
     const t = acum.get(tema) ?? { aciertos: 0, total: 0 }
@@ -159,5 +191,5 @@ export function calificar(
     total: v.total,
   }))
 
-  return { aciertos, total, porcentaje, desglose, respuestas, revision }
+  return { aciertos, total, porcentaje, desglose, respuestas, revision, contestadas }
 }

@@ -47,7 +47,17 @@ export interface DesgloseTema {
   total: number
 }
 
-/** Revisión que se devuelve DESPUÉS de calificar: aquí sí van clave y explicación. */
+/**
+ * Revisión que se devuelve DESPUÉS de calificar.
+ *
+ * ⚠️ SEGURIDAD — `respuesta_correcta` y `explicacion` son OPCIONALES a
+ * propósito: solo viajan para las preguntas que el alumno contestó en ESE
+ * envío. Para una pregunta sin contestar, las claves **no existen** en el
+ * objeto (no van como `null`: eso revelaría lo mismo con un paso más).
+ *
+ * Sin esto, mandar el examen en blanco devolvía el banco completo con todas
+ * las claves — un oráculo de un solo POST. Ver `calificar()`.
+ */
 export interface RevisionPregunta {
   pregunta_id: string
   orden: number
@@ -55,9 +65,11 @@ export interface RevisionPregunta {
   enunciado: string
   opciones: { a: string; b: string; c: string; d: string }
   tu_respuesta: Letra | null
-  respuesta_correcta: Letra
   es_correcta: boolean
-  explicacion: string | null
+  /** Presente SOLO si `tu_respuesta !== null`. */
+  respuesta_correcta?: Letra
+  /** Presente SOLO si `tu_respuesta !== null`. */
+  explicacion?: string | null
 }
 
 export interface ResultadoExamen {

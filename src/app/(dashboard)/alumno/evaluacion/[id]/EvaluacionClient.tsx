@@ -34,7 +34,12 @@ interface DetalleRespuesta {
   opciones: string[]
   opciones_en: string[]
   respuesta_alumno: number
-  respuesta_correcta: number
+  /**
+   * Índice de la opción correcta. OPCIONAL a propósito: la API solo lo envía
+   * para las preguntas que el alumno contestó en ese envío. Si no contestó,
+   * la clave no viaja y aquí llega `undefined`.
+   */
+  respuesta_correcta?: number
   es_correcta: boolean
   retroalimentacion: string
 }
@@ -240,7 +245,9 @@ export default function EvaluacionClient({ id }: { id: string }) {
               <div className="px-5 py-4 space-y-2">
                 {d.opciones.map((op, idx) => {
                   const esAlumno = idx === d.respuesta_alumno
-                  const esCorrecta = idx === d.respuesta_correcta
+                  // undefined cuando el alumno no contestó esta pregunta: en ese
+                  // caso ninguna opción se marca como correcta.
+                  const esCorrecta = d.respuesta_correcta !== undefined && idx === d.respuesta_correcta
                   let style = { background: 'transparent', border: '1px solid #2A2F3E', color: '#94A3B8' as string }
                   if (esCorrecta) style = { background: 'rgba(16,185,129,0.1)', border: '1px solid rgba(16,185,129,0.4)', color: '#10B981' }
                   if (esAlumno && !d.es_correcta) style = { background: 'rgba(239,68,68,0.1)', border: '1px solid rgba(239,68,68,0.4)', color: '#EF4444' }
@@ -257,6 +264,13 @@ export default function EvaluacionClient({ id }: { id: string }) {
                     </div>
                   )
                 })}
+
+                {d.respuesta_correcta === undefined && (
+                  <p className="text-xs pt-1" style={{ color: '#F59E0B' }}>
+                    No la contestaste, cuenta como incorrecta. La respuesta correcta se
+                    muestra solo en las preguntas que sí contestaste.
+                  </p>
+                )}
 
                 {d.retroalimentacion && (
                   <div className="mt-2 px-3 py-2.5 rounded-lg text-xs" style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid #2A2F3E', color: '#94A3B8' }}>
