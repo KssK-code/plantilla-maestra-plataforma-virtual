@@ -25,7 +25,7 @@ CREATE TABLE IF NOT EXISTS public.alumnos (
   matricula            TEXT        UNIQUE,
   -- 'diplomado' habilita la línea Solo-Cursos (B1). Ver supabase/schema.sql y
   -- supabase/migrations/20260730120000_b1_fundacion_solo_cursos.sql
-  nivel                TEXT        CHECK (nivel IN ('secundaria', 'preparatoria', 'demo', 'licenciatura', 'diplomado')),
+  nivel                TEXT        CHECK (nivel IN ('secundaria', 'preparatoria', 'licenciatura', 'diplomado')),
   modalidad            TEXT        CHECK (modalidad IN ('6_meses', '3_meses')),
   es_sindicalizado     BOOLEAN     NOT NULL DEFAULT false,
   sindicato            TEXT,

@@ -87,9 +87,14 @@ BEGIN
     EXECUTE format('ALTER TABLE public.alumnos DROP CONSTRAINT %I', c.conname);
   END LOOP;
 
+  -- SUPERCONJUNTO ESTRICTO del CHECK viejo: los tres valores que ya existían
+  -- ('secundaria','preparatoria','licenciatura') tal cual, más 'diplomado'.
+  -- NO se agrega 'demo': ese valor pertenece a materias.nivel, no a alumnos.
+  -- Permitir en la BD un valor que la app no maneja es el cadáver 'excel' al
+  -- revés (Bug 68) — la BD debe ser tan restrictiva como el dominio real.
   ALTER TABLE public.alumnos
     ADD CONSTRAINT alumnos_nivel_check
-    CHECK (nivel IN ('secundaria', 'preparatoria', 'demo', 'licenciatura', 'diplomado'));
+    CHECK (nivel IN ('secundaria', 'preparatoria', 'licenciatura', 'diplomado'));
 
   RAISE NOTICE 'LOCK-1: alumnos_nivel_check re-creado con diplomado incluido.';
 END
@@ -143,6 +148,18 @@ ALTER TABLE public.curso_inscripciones
   ALTER COLUMN fecha_inscripcion SET DEFAULT NOW();
 ALTER TABLE public.curso_inscripciones
   ALTER COLUMN fecha_inscripcion SET NOT NULL;
+
+-- Las dos columnas de fecha conviven a propósito y NO son intercambiables.
+-- Queda escrito en el catálogo para que B3 no elija la equivocada.
+COMMENT ON COLUMN public.curso_inscripciones.created_at IS
+  'TÉCNICO: cuándo se creó la fila. Inmutable, lo pone la BD, nunca se edita. '
+  'NO usar para reglas de negocio (vencimientos, meses, cortes de pago).';
+
+COMMENT ON COLUMN public.curso_inscripciones.fecha_inscripcion IS
+  'NEGOCIO: cuándo se inscribió el alumno. Editable por el admin — una escuela '
+  'necesita registrar hoy a alguien que se inscribió la semana pasada. B3 '
+  'calcula vencimientos y meses SOBRE ESTA COLUMNA, nunca sobre created_at. '
+  'En filas preexistentes se rellenó desde created_at, no desde now().';
 
 
 -- ════════════════════════════════════════════════════════════════════════════

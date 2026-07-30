@@ -199,7 +199,7 @@ END) STORED,
     CONSTRAINT alumnos_modalidad_check CHECK ((modalidad = ANY (ARRAY['6_meses'::text, '3_meses'::text]))),
     -- 'diplomado' habilita la línea Solo-Cursos (B1). Debe coincidir con
     -- supabase/migrations/20260730120000_b1_fundacion_solo_cursos.sql
-    CONSTRAINT alumnos_nivel_check CHECK ((nivel = ANY (ARRAY['secundaria'::text, 'preparatoria'::text, 'demo'::text, 'licenciatura'::text, 'diplomado'::text])))
+    CONSTRAINT alumnos_nivel_check CHECK ((nivel = ANY (ARRAY['secundaria'::text, 'preparatoria'::text, 'licenciatura'::text, 'diplomado'::text])))
 );
 
 --
