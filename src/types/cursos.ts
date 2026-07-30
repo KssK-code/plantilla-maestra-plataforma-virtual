@@ -42,12 +42,19 @@ export interface CursoModulo {
 }
 
 export interface CursoInscrito {
+  /** Id de la fila de curso_inscripciones: es lo que consumen las acciones de B3. */
+  inscripcion_id: string
   alumno_id: string
   created_at: string
   nombre: string
   email: string
   matricula: string | null
   activo: boolean
+  // ── Ventana de pago (B1/B3) ──
+  meses_desbloqueados: number
+  estado: string
+  fecha_inscripcion: string | null
+  fecha_vencimiento: string | null
 }
 
 export interface CursoDetalle {

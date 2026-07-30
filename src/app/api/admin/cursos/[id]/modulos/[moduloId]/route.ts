@@ -4,14 +4,15 @@ import { createAdminClient } from '@/lib/supabase/admin'
 import { verifyAdmin } from '@/lib/supabase/verify-admin'
 import { removeFolder } from '@/lib/cursos/storage'
 import { moveItem, type Direccion } from '@/lib/cursos/reorder'
+import { errorDeRpcCurso } from '@/lib/cursos/inscripciones'
 
 async function authAdmin() {
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
-  if (!user) return { denied: NextResponse.json({ error: 'No autorizado' }, { status: 401 }) }
+  if (!user) return { denied: NextResponse.json({ error: 'No autorizado' }, { status: 401 }), supabase }
   const denied = await verifyAdmin(supabase, user.id)
-  if (denied) return { denied }
-  return { denied: null }
+  if (denied) return { denied, supabase }
+  return { denied: null, supabase }
 }
 
 /** El módulo debe pertenecer al curso de la URL. */
@@ -70,7 +71,7 @@ export async function DELETE(
   { params }: { params: { id: string; moduloId: string } }
 ) {
   try {
-    const { denied } = await authAdmin()
+    const { denied, supabase } = await authAdmin()
     if (denied) return denied
 
     const admin = createAdminClient()
@@ -83,8 +84,24 @@ export async function DELETE(
       .select('id')
       .eq('modulo_id', params.moduloId)
 
-    const { error } = await admin.from('curso_modulos').delete().eq('id', params.moduloId)
-    if (error) return NextResponse.json({ error: error.message }, { status: 500 })
+    // Borrar Y COMPACTAR `orden` en una sola transaccion (B3/T4).
+    //
+    // Sin compactar, borrar un modulo deja un hueco y el hueco CORRE EL MES DE
+    // LIBERACION: con modulos_por_mes = 2 y ordenes 0,1,2,3, si se borra el de
+    // orden 1 quedan 0,2,3 y un alumno con 1 mes pagado pasa a ver UN modulo en
+    // vez de dos. El error va en contra del alumno, que es la peor direccion
+    // posible en un candado de pago.
+    //
+    // Va por RPC porque el cliente de Supabase no expone transacciones: borrar
+    // y renumerar en dos llamadas dejaria una ventana con los ordenes rotos.
+    // La funcion se llama con la SESION (no con admin): es SECURITY DEFINER y
+    // comprueba es_admin() adentro, y es_admin() usa auth.uid() — con
+    // service_role ese uid es NULL y rechazaria al propio administrador.
+    const { error } = await supabase.rpc('curso_borrar_modulo', { p_modulo_id: params.moduloId })
+    if (error) {
+      const { status, mensaje } = errorDeRpcCurso(error)
+      return NextResponse.json({ error: mensaje }, { status })
+    }
 
     // Limpieza de materiales huérfanos: {cursoId}/{leccionId}/
     for (const l of lecciones ?? []) {

@@ -72,7 +72,7 @@ export async function GET(
     // Inscritos con datos del usuario (alumnos.id = usuarios.id)
     const { data: inscripciones } = await admin
       .from('curso_inscripciones')
-      .select('alumno_id, created_at')
+      .select('id, alumno_id, created_at, meses_desbloqueados, estado, fecha_inscripcion, fecha_vencimiento')
       .eq('curso_id', params.id)
       .order('created_at', { ascending: false })
 
@@ -88,13 +88,23 @@ export async function GET(
       inscritos = (inscripciones ?? []).map(i => {
         const u = uMap.get(i.alumno_id) as { nombre?: string; apellidos?: string; email?: string } | undefined
         const a = aMap.get(i.alumno_id) as { matricula?: string; activo?: boolean } | undefined
+        const row = i as unknown as {
+          id: string; alumno_id: string; created_at: string
+          meses_desbloqueados: number | null; estado: string | null
+          fecha_inscripcion: string | null; fecha_vencimiento: string | null
+        }
         return {
+          inscripcion_id: row.id,
           alumno_id: i.alumno_id,
           created_at: i.created_at,
           nombre: [u?.nombre, u?.apellidos].filter(Boolean).join(' ') || '—',
           email: u?.email ?? '—',
           matricula: a?.matricula ?? null,
           activo: a?.activo ?? false,
+          meses_desbloqueados: row.meses_desbloqueados ?? 0,
+          estado: row.estado ?? 'activa',
+          fecha_inscripcion: row.fecha_inscripcion,
+          fecha_vencimiento: row.fecha_vencimiento,
         }
       })
     }
