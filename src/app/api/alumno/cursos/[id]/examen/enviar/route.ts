@@ -2,8 +2,8 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { createAdminClient } from '@/lib/supabase/admin'
 import {
-  INTENTOS_PERMITIDOS_DEFAULT,
   calificar,
+  leerIntentosPermitidos,
   leerPreguntas,
   puedeVerCurso,
 } from '@/lib/cursos/examen'
@@ -71,15 +71,19 @@ export async function POST(
       .eq('curso_id', params.id)
       .eq('alumno_id', alumnoId)
 
+    // El límite es POR CURSO (cursos.intentos_permitidos, B1). Si la columna
+    // viniera nula se cae al default: un error de lectura no abre el candado.
+    const permitidos = await leerIntentosPermitidos(admin, params.id)
+
     const usados = intentosUsados ?? 0
-    if (usados >= INTENTOS_PERMITIDOS_DEFAULT) {
+    if (usados >= permitidos) {
       // Sin revisión en el cuerpo: un envío rechazado no puede ser una vía
       // alterna para leer claves.
       return NextResponse.json(
         {
-          error: `Ya usaste tus ${INTENTOS_PERMITIDOS_DEFAULT} intentos para este examen.`,
+          error: `Ya usaste tus ${permitidos} intentos para este examen.`,
           intentos_usados: usados,
-          intentos_permitidos: INTENTOS_PERMITIDOS_DEFAULT,
+          intentos_permitidos: permitidos,
         },
         { status: 409 }
       )
@@ -130,7 +134,7 @@ export async function POST(
       revision,
       // Para que la UI pueda mostrar los intentos restantes sin otra petición.
       intentos_usados: usados + 1,
-      intentos_permitidos: INTENTOS_PERMITIDOS_DEFAULT,
+      intentos_permitidos: permitidos,
     })
   } catch (err) {
     console.error('[POST /api/alumno/cursos/[id]/examen/enviar]', err)

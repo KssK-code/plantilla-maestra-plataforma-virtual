@@ -28,14 +28,36 @@ const LETRAS: Letra[] = ['a', 'b', 'c', 'd']
 /**
  * Intentos permitidos por alumno en el examen final de un curso.
  *
- * Constante por ahora, a propósito: esta fase es CÓDIGO SOLAMENTE, cero DDL.
- * El límite se cuenta contra las filas ya existentes de curso_examen_resultados
- * (un renglón por envío), así que no hace falta ninguna columna nueva.
+ * El valor REAL vive en cursos.intentos_permitidos (B1), configurable por curso
+ * — mismo nombre y mismo default que evaluaciones.intentos_permitidos en la
+ * vertical de materias, para que el repo tenga una sola convención.
  *
- * TODO(B1): reemplazar por cursos.intentos_permitidos — configurable por curso,
- * igual que evaluaciones.intentos_permitidos en la vertical de materias.
+ * Esta constante queda solo como FALLBACK para el caso en que la columna venga
+ * nula o la lectura falle: preferimos aplicar el límite por defecto a dejar el
+ * examen sin candado. Ver `leerIntentosPermitidos()`.
  */
 export const INTENTOS_PERMITIDOS_DEFAULT = 3
+
+/**
+ * Intentos permitidos de un curso concreto.
+ *
+ * Si la columna es nula o la consulta falla, cae al default en vez de devolver
+ * "sin límite": un error de lectura NO puede abrir el candado. Es la misma
+ * regla que aplica el resto del módulo — fallar cerrado, nunca abierto.
+ */
+export async function leerIntentosPermitidos(
+  admin: SupabaseClient,
+  cursoId: string
+): Promise<number> {
+  const { data } = await admin
+    .from('cursos')
+    .select('intentos_permitidos')
+    .eq('id', cursoId)
+    .single()
+
+  const n = (data as { intentos_permitidos: number | null } | null)?.intentos_permitidos
+  return typeof n === 'number' && n > 0 ? n : INTENTOS_PERMITIDOS_DEFAULT
+}
 
 export const esLetra = (v: unknown): v is Letra =>
   typeof v === 'string' && (LETRAS as string[]).includes(v)

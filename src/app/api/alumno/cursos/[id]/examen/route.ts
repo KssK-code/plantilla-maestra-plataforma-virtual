@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { createAdminClient } from '@/lib/supabase/admin'
-import { leerPreguntas, puedeVerCurso, sanitizar } from '@/lib/cursos/examen'
+import { leerIntentosPermitidos, leerPreguntas, puedeVerCurso, sanitizar } from '@/lib/cursos/examen'
 
 // ─── GET /api/alumno/cursos/[id]/examen ──────────────────────────────────────
 // Devuelve el examen del curso SANITIZADO: sin respuesta_correcta y sin
@@ -37,9 +37,14 @@ export async function GET(
       .order('porcentaje', { ascending: false })
       .limit(1)
 
+    // El límite por curso viaja al cliente solo para pintar "te quedan N".
+    // El candado de verdad lo aplica /examen/enviar en el servidor.
+    const intentosPermitidos = await leerIntentosPermitidos(admin, params.id)
+
     return NextResponse.json({
       total: preguntas.length,
       mejor_porcentaje: previos?.[0]?.porcentaje ?? null,
+      intentos_permitidos: intentosPermitidos,
       preguntas: preguntas.map(sanitizar),
     })
   } catch (err) {
