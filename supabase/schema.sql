@@ -804,6 +804,14 @@ CREATE TABLE IF NOT EXISTS public.keep_alive_log (
   ts timestamptz NOT NULL DEFAULT now()
 );
 
+-- Columna `source`: quien mando el latido ("central-YYYY-MM-DD", "rescate-manual-...").
+-- Va por ALTER idempotente y NO en el CREATE, porque los clientes ya desplegados
+-- tienen la tabla sin ella. El keep-alive central manda {source} y reintenta con {}
+-- si la columna no existe (PostgREST responde 400 PGRST204), asi que ambos esquemas
+-- funcionan; con la columna presente se puede auditar quien latio y cuando.
+-- Nullable a proposito: el INSERT `{}` del workflow per-repo legacy sigue siendo valido.
+ALTER TABLE public.keep_alive_log ADD COLUMN IF NOT EXISTS source text;
+
 ALTER TABLE public.keep_alive_log ENABLE ROW LEVEL SECURITY;
 
 REVOKE ALL ON public.keep_alive_log FROM anon;
