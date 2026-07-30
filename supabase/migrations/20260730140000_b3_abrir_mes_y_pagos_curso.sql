@@ -222,9 +222,17 @@ $$;
 --   WHERE p.concepto = 'mensualidad' ... COUNT(DISTINCT p.mes_desbloqueado)
 -- Si un pago de diplomado usara ese mismo concepto, el alumno aparecería al
 -- corriente del programa tradicional por haber pagado un curso. Por eso los
--- pagos de curso usan 'curso_mensualidad' / 'curso_inscripcion', que esa vista
--- ignora. Gracias a eso, mes_desbloqueado se puede reutilizar aquí con el
--- significado "mes DEL CURSO que cubre este pago" sin contaminar nada.
+-- pagos de curso usan 'curso_mensualidad' / 'curso_inscripcion'. Gracias a eso,
+-- mes_desbloqueado se puede reutilizar aquí con el significado "mes DEL CURSO
+-- que cubre este pago" sin contaminar ese conteo.
+--
+-- ⚠️ PERO EL BLINDAJE NO ES TOTAL, y conviene no creerse más de lo que es: esa
+-- misma vista tiene una SEGUNDA subconsulta, fecha_ultimo_pago, que hace
+-- MAX(created_at) sobre TODOS los pagos del alumno SIN filtrar por concepto
+-- (20260716160000_estado_cuenta.sql:47-51). Un alumno del programa que pague un
+-- diplomado aparecerá con "Último pago: hoy" en la misma fila cuyo badge sigue
+-- diciendo "N meses sin pago registrado". Lo que queda protegido es el CONTEO
+-- de meses, no la fecha.
 CREATE OR REPLACE FUNCTION public.curso_registrar_pago(
   p_inscripcion_id UUID,
   p_monto          NUMERIC,
@@ -247,8 +255,22 @@ DECLARE
   v_tope   INTEGER;
   v_pago   UUID;
 BEGIN
-  IF NOT public.es_admin() AND NOT public.es_staff() THEN
+  -- es_staff() ya incluye a admin. El secretario PUEDE registrar pagos, igual
+  -- que en el módulo tradicional (POST /api/admin/pagos usa verifyStaff).
+  IF NOT public.es_staff() THEN
     RAISE EXCEPTION 'Solo el personal puede registrar pagos.' USING ERRCODE = '42501';
+  END IF;
+
+  -- ⚠️ Pero ABRIR MES es admin-only, igual que desbloquear-mes del flujo
+  -- tradicional. Sin esta comprobación explícita, un secretario entraba aquí,
+  -- pasaba el filtro de arriba y reventaba doce líneas después contra el
+  -- es_admin() de curso_abrir_mes — con un 403 que hablaba de abrir meses
+  -- cuando lo que pidió fue registrar un pago. El resultado práctico era que el
+  -- secretario no podía cobrar en absoluto.
+  IF p_abrir_mes AND NOT public.es_admin() THEN
+    RAISE EXCEPTION
+      'Puedes registrar el pago, pero abrir el mes es cosa de un administrador. Regístralo sin abrir mes y pide que lo abran.'
+      USING ERRCODE = '42501';
   END IF;
 
   IF p_concepto NOT IN ('curso_mensualidad', 'curso_inscripcion', 'curso_otro') THEN
@@ -270,7 +292,13 @@ BEGIN
 
   -- Abrir el mes PRIMERO: si el tope o el estado lo rechazan, la excepción
   -- revierte también el pago. Al revés se cobraría y luego se fallaría.
-  IF p_abrir_mes THEN
+  --
+  -- ⚠️ SOLO la mensualidad libera contenido. La cuota de INSCRIPCIÓN no abre
+  -- mes: es el cargo por darse de alta, no por un mes de curso. Antes esta
+  -- condición miraba únicamente p_abrir_mes (que viene TRUE por defecto), así
+  -- que cobrar la inscripción regalaba un mes de contenido — y encima guardaba
+  -- mes_desbloqueado = NULL, dejando el regalo sin rastro en la bitácora.
+  IF p_abrir_mes AND p_concepto = 'curso_mensualidad' THEN
     SELECT a.meses_desbloqueados, a.tope INTO v_meses, v_tope
       FROM public.curso_abrir_mes(p_inscripcion_id, p_meses_esperados) a;
   ELSE
@@ -288,7 +316,9 @@ BEGIN
     p_concepto,
     -- Para una mensualidad de curso guarda QUÉ MES cubre; para inscripción/otro
     -- no aplica.
-    CASE WHEN p_concepto = 'curso_mensualidad' AND p_abrir_mes THEN v_meses ELSE NULL END,
+    -- Qué mes del curso cubre este pago. Solo tiene sentido si se abrió mes,
+    -- y abrir mes ya implica concepto = 'curso_mensualidad' (ver arriba).
+    CASE WHEN p_abrir_mes AND p_concepto = 'curso_mensualidad' THEN v_meses ELSE NULL END,
     UPPER(p_metodo_pago),
     NULLIF(BTRIM(COALESCE(p_referencia, '')), ''),
     auth.uid(),

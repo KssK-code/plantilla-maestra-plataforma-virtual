@@ -41,6 +41,10 @@ export type ConceptoCurso = (typeof CONCEPTOS_CURSO)[number]
  * tradicional por haber pagado un curso. Verificado en el cluster scratch: con
  * 'curso_mensualidad' la vista reporta meses_con_pago = 0; cambiándolo a
  * 'mensualidad' salta a 1.
+ *
+ * ⚠️ El blindaje cubre el CONTEO de meses, no todo: la subconsulta
+ * fecha_ultimo_pago de esa misma vista no filtra por concepto, así que un pago
+ * de curso sí mueve la columna "Último pago" del estado de cuenta del programa.
  */
 export const METODOS_PAGO = ['EFECTIVO', 'TRANSFERENCIA', 'TARJETA', 'OTRO'] as const
 
