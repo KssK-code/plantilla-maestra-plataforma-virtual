@@ -98,6 +98,16 @@ export const CONFIG = {
     certificacion_secundaria:   4900,
     certificacion_preparatoria: 5900,
     cct:                        '',
+
+    // === CATÁLOGO DE DIPLOMADOS (línea Solo-Cursos, B5) ===
+    // ⚠️ DEFAULT false A PROPÓSITO. Esta plantilla sirve a 144 clientes de
+    // secundaria/preparatoria cuya landing no debe cambiar ni un pixel. B7 lo
+    // enciende solo para los clientes Solo-Cursos.
+    mostrarCatalogoCursos:      false,
+    catalogoTitulo:             'Nuestros diplomados',
+    // Texto NEUTRO: igual que en el diploma (B4), el default NO dice "validez
+    // oficial", "SEP" ni "RVOE". Eso solo lo agrega quien acredite su registro.
+    catalogoSubtitulo:          'Programas especializados, con acompañamiento y material descargable.',
   },
 
   cct: '',

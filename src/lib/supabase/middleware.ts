@@ -24,7 +24,11 @@ export async function updateSession(request: NextRequest) {
 
   const { data: { user } } = await supabase.auth.getUser()
 
-  const publicRoutes = ['/', '/login', '/register', '/forgot-password', '/reset-password', '/aviso-de-privacidad', '/terminos-y-condiciones']
+  // ⚠️ '/diplomados' es catálogo PÚBLICO (B5): un prospecto sin cuenta abre el
+  // link que le mandaron por WhatsApp. Sin esto el middleware lo mandaría a
+  // /login — el mismo gotcha que tuvo /api/health, donde una ruta que debía ser
+  // pública devolvía el HTML de la pantalla de login.
+  const publicRoutes = ['/', '/login', '/register', '/forgot-password', '/reset-password', '/aviso-de-privacidad', '/terminos-y-condiciones', '/diplomados']
   const isPublicRoute = publicRoutes.some(route =>
     route === '/'
       ? request.nextUrl.pathname === '/'
@@ -32,9 +36,13 @@ export async function updateSession(request: NextRequest) {
   )
 
   // Usuario autenticado intentando acceder a ruta pública → redirigir a su dashboard
-  // Excepción: "/" es la landing pública, no se redirige aunque esté autenticado
+  // Excepciones: la landing "/" y el catálogo "/diplomados" son páginas públicas
+  // de consulta. Un alumno o un admin con sesión abierta que abre el link de un
+  // diplomado quiere VERLO, no que lo boten a su panel — y ese link circula por
+  // WhatsApp, así que lo abre gente con y sin sesión indistintamente.
   const isLandingRoot = request.nextUrl.pathname === '/'
-  if (user && isPublicRoute && !isLandingRoot) {
+  const isCatalogo = request.nextUrl.pathname.startsWith('/diplomados')
+  if (user && isPublicRoute && !isLandingRoot && !isCatalogo) {
     const { data: usuario } = await supabase
       .from('usuarios')
       .select('rol')
