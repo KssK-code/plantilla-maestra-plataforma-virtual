@@ -8,6 +8,9 @@ import {
   puedeExamenFinal,
   puedeVerCurso,
 } from '@/lib/cursos/examen'
+import {
+  emitirConstanciaSiAprobo, inscripcionDe, leerCalificacionMinima,
+} from '@/lib/cursos/constancia'
 import type { RespuestaEnviada } from '@/types/cursos-examen'
 
 // ─── POST /api/alumno/cursos/[id]/examen/enviar ──────────────────────────────
@@ -135,6 +138,22 @@ export async function POST(
       return NextResponse.json({ error: 'No se pudo guardar el resultado' }, { status: 500 })
     }
 
+    // ── B4: emisión de la constancia ─────────────────────────────────────────
+    // Aprobar el examen final ES el criterio de emisión. Va DESPUÉS de guardar
+    // el resultado y NO puede tumbar la respuesta: si algo falla emitiendo, el
+    // alumno ya contestó, su resultado está a salvo y el admin re-emite a mano.
+    // La emisión es idempotente (UNIQUE por inscripción), así que un reintento
+    // aprobatorio devuelve el mismo folio en vez de crear un segundo diploma.
+    const minima = await leerCalificacionMinima(admin, params.id)
+    const inscripcionId = await inscripcionDe(admin, params.id, alumnoId)
+    const constancia = inscripcionId
+      ? await emitirConstanciaSiAprobo(admin, {
+          inscripcionId,
+          porcentaje,
+          calificacionMinima: minima,
+        })
+      : null
+
     return NextResponse.json({
       id: guardado.id,
       created_at: guardado.created_at,
@@ -146,6 +165,13 @@ export async function POST(
       // Para que la UI pueda mostrar los intentos restantes sin otra petición.
       intentos_usados: usados + 1,
       intentos_permitidos: permitidos,
+      // Veredicto explícito: antes el sistema calculaba el porcentaje y nunca
+      // dictaminaba aprobado/no aprobado.
+      calificacion_minima: minima,
+      aprobado: porcentaje >= minima,
+      constancia: constancia
+        ? { folio: constancia.folio, emitido_en: constancia.emitido_en }
+        : null,
     })
   } catch (err) {
     console.error('[POST /api/alumno/cursos/[id]/examen/enviar]', err)

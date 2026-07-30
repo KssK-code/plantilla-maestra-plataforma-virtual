@@ -222,7 +222,12 @@ CREATE SEQUENCE IF NOT EXISTS public.curso_folio_seq;
 
 CREATE TABLE IF NOT EXISTS public.curso_constancias (
   id              UUID          PRIMARY KEY DEFAULT gen_random_uuid(),
-  inscripcion_id  UUID          NOT NULL REFERENCES public.curso_inscripciones(id) ON DELETE CASCADE,
+  -- ON DELETE RESTRICT: el registro de folios es el libro contable de diplomas.
+  -- Una inscripción CON constancia emitida no se borra — se cancela. Con CASCADE,
+  -- un clic en "Quitar alumno" evaporaba el folio con el que administración
+  -- verifica un diploma impreso. Ver B4 (20260730150000), que además lo aplica
+  -- sobre árboles donde esta migración ya corrió.
+  inscripcion_id  UUID          NOT NULL REFERENCES public.curso_inscripciones(id) ON DELETE RESTRICT,
   folio           TEXT          NOT NULL UNIQUE,
   emitido_en      TIMESTAMPTZ   NOT NULL DEFAULT NOW(),
   horas           INTEGER,

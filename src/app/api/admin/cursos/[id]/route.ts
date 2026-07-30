@@ -196,9 +196,41 @@ export async function DELETE(
       .single()
     if (!curso) return NextResponse.json({ error: 'Curso no encontrado' }, { status: 404 })
 
-    // El cascade de la DB borra módulos, lecciones, inscripciones y progreso
+    // ⚠️ El cascade de la DB borra módulos, lecciones, inscripciones y progreso —
+    // PERO YA NO las constancias: desde B4, curso_constancias.inscripcion_id es
+    // ON DELETE RESTRICT, así que un curso con diplomas emitidos NO se puede
+    // borrar. Es deliberado: el registro de folios es el libro contable de
+    // diplomas de la institución y no puede evaporarse con un clic.
+    //
+    // Esta ruta asumía CASCADE hasta el fondo, así que sin esta comprobación el
+    // admin recibiría un 23503 crudo de Postgres sin saber qué hacer.
+    const { count: constancias } = await admin
+      .from('curso_constancias')
+      .select('folio', { count: 'exact', head: true })
+      .in(
+        'inscripcion_id',
+        ((await admin.from('curso_inscripciones').select('id').eq('curso_id', params.id)).data ?? [])
+          .map(r => r.id as string)
+      )
+
+    if ((constancias ?? 0) > 0) {
+      return NextResponse.json({
+        error:
+          `Este curso tiene ${constancias} diploma(s) emitido(s) y no puede borrarse: ` +
+          'el registro de folios es el comprobante de esos documentos. ' +
+          'Pásalo a borrador para retirarlo de circulación sin perder el historial.',
+      }, { status: 409 })
+    }
+
     const { error } = await admin.from('cursos').delete().eq('id', params.id)
-    if (error) return NextResponse.json({ error: error.message }, { status: 500 })
+    if (error) {
+      if (error.code === '23503') {
+        return NextResponse.json({
+          error: 'Este curso tiene diplomas emitidos y no puede borrarse. Pásalo a borrador para retirarlo de circulación.',
+        }, { status: 409 })
+      }
+      return NextResponse.json({ error: error.message }, { status: 500 })
+    }
 
     // Limpieza de storage: materiales ({cursoId}/...) y portadas (portadas/{cursoId}/...)
     await removeFolder(admin, params.id)

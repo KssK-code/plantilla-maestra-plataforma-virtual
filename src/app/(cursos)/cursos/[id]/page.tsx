@@ -294,10 +294,26 @@ export default function VisorCursoPage() {
                   <p className="text-sm font-bold" style={{ color: '#10B981' }}>
                     ¡Completaste este {curso.tipo === 'diplomado' ? 'diplomado' : 'curso'}!
                   </p>
-                  <p className="text-xs" style={{ color: '#10B981' }}>Terminaste todas las lecciones. ¡Felicidades!</p>
+                  <p className="text-xs" style={{ color: '#10B981' }}>
+                    Terminaste todas las lecciones. La constancia se emite al aprobar el examen final.
+                  </p>
                 </div>
               </div>
             )}
+
+            {/*
+              Acceso a la constancia. Se ofrece siempre que haya examen: la
+              página dice el estado real ("examen pendiente" / "aún no
+              aprobado") en vez de esconderse, para que el alumno sepa qué le
+              falta en lugar de encontrarse un botón que no existe.
+            */}
+            <button
+              onClick={() => router.push(`/cursos/${cursoId}/constancia`)}
+              className="w-full flex items-center justify-center gap-2 rounded-2xl px-4 py-3 text-sm font-semibold"
+              style={{ background: 'rgba(27,48,104,0.06)', color: 'var(--color-primario)', border: '1px solid rgba(27,48,104,0.15)' }}
+            >
+              Ver mi constancia
+            </button>
 
             {!activa ? (
               <div className="rounded-2xl p-10 text-center" style={{ background: 'var(--color-superficie)', border: '1px solid #E8F0F7' }}>

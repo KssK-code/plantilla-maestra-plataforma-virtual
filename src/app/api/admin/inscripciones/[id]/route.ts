@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { verifyAdmin } from '@/lib/supabase/verify-admin'
-import { esEstadoInscripcion, fechaValida } from '@/lib/cursos/inscripciones'
+import { errorDeRpcCurso, esEstadoInscripcion, fechaValida } from '@/lib/cursos/inscripciones'
 
 // ─── GET /api/admin/inscripciones/[id] ───────────────────────────────────────
 // Vista por inscripción: lo que el admin necesita enfrente para decidir.
@@ -65,7 +65,22 @@ export async function GET(
     const porMes = (curso?.modulos_por_mes as number | undefined) ?? 0
     const meses = (i.meses_desbloqueados as number) ?? 0
 
+    // Bitácora: solo la ve el admin (RLS de curso_inscripcion_eventos).
+    const { data: eventos } = await admin
+      .from('curso_inscripcion_eventos')
+      .select('id, tipo, meses_antes, meses_despues, detalle, actor, created_at')
+      .eq('inscripcion_id', params.id)
+      .order('created_at', { ascending: false })
+
+    const { data: constancia } = await admin
+      .from('curso_constancias')
+      .select('folio, emitido_en, calificacion, horas')
+      .eq('inscripcion_id', params.id)
+      .maybeSingle()
+
     return NextResponse.json({
+      eventos: eventos ?? [],
+      constancia: constancia ?? null,
       inscripcion: {
         id: i.id,
         estado: i.estado,
@@ -117,11 +132,19 @@ export async function PATCH(
     const body = await request.json().catch(() => ({}))
     const parche: Record<string, unknown> = {}
 
+    // ⚠️ El estado NO se escribe con un UPDATE directo: pasa por
+    // curso_cambiar_estado(), que registra el evento 'cambio_estado' con actor.
+    //
+    // Es la protección del comportamiento de reinscripción: cancelar NO resetea
+    // meses_desbloqueados y reactivar los recupera — deliberado, porque esos
+    // meses ya se pagaron y resetear cobraría dos veces. Lo que protege eso no es
+    // un candado, es el RASTRO de quién reactivó y cuándo.
+    let estadoNuevo: string | null = null
     if ('estado' in body) {
       if (!esEstadoInscripcion(body.estado)) {
         return NextResponse.json({ error: 'Estado inválido. Usa: activa, suspendida, completada, cancelada' }, { status: 400 })
       }
-      parche.estado = body.estado
+      estadoNuevo = body.estado
     }
 
     if ('fecha_vencimiento' in body) {
@@ -148,11 +171,35 @@ export async function PATCH(
       )
     }
 
-    if (Object.keys(parche).length === 0) {
+    if (Object.keys(parche).length === 0 && estadoNuevo === null) {
       return NextResponse.json({ error: 'Nada que actualizar' }, { status: 400 })
     }
 
+    // El cambio de estado va primero y con la SESIÓN: la función comprueba
+    // es_admin() adentro y es_admin() usa auth.uid(), que con service_role sería
+    // NULL.
+    if (estadoNuevo !== null) {
+      const { error: errEstado } = await supabase.rpc('curso_cambiar_estado', {
+        p_inscripcion_id: params.id,
+        p_estado: estadoNuevo,
+        p_motivo: typeof body?.motivo === 'string' && body.motivo.trim() !== '' ? body.motivo.trim() : null,
+      })
+      if (errEstado) {
+        const { status, mensaje } = errorDeRpcCurso(errEstado)
+        return NextResponse.json({ error: mensaje }, { status })
+      }
+    }
+
     const admin = createAdminClient()
+
+    if (Object.keys(parche).length === 0) {
+      const { data: actual } = await admin
+        .from('curso_inscripciones')
+        .select('id, estado, fecha_inscripcion, fecha_vencimiento, meses_desbloqueados')
+        .eq('id', params.id)
+        .maybeSingle()
+      return NextResponse.json({ ok: true, inscripcion: actual })
+    }
     const { data, error } = await admin
       .from('curso_inscripciones')
       .update(parche)

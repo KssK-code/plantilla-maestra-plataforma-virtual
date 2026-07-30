@@ -102,6 +102,28 @@ export const CONFIG = {
 
   cct: '',
 
+  // === DIPLOMAS DE LA LINEA SOLO-CURSOS (B4) ===
+  // El folio de la constancia es CONSECUTIVO y sale de una secuencia de Postgres
+  // (curso_folio_seq). El prefijo es de NIVEL CLIENTE, no por curso: la secuencia
+  // es global, asi que prefijos distintos por curso darian numeraciones salteadas
+  // dentro de cada prefijo — y un libro de folios con huecos no sirve para
+  // verificar nada. B7 lo fija al provisionar.
+  diploma: {
+    /** Prefijo del folio. Resultado: `${folioPrefijo}-00001`, `-00002`, ... */
+    folioPrefijo: 'CONST',
+    /**
+     * Etiqueta del documento. NEUTRA a proposito: 'Constancia' / 'Diploma' /
+     * 'Certificado'. NO poner aqui "con validez oficial", "SEP" ni "RVOE" —
+     * eso solo lo agrega un cliente que acredite su propio registro, y ponerlo
+     * por default seria afirmar algo legalmente falso en nombre de todos.
+     */
+    etiqueta: 'Constancia',
+    /** Ruta de la firma escaneada (PNG con alfa). Vacio = sin firma. */
+    firma: '',
+    /** Cargo bajo la firma. */
+    firmaCargo: 'Dirección Académica',
+  },
+
   redes: {
     facebook:  '',
     instagram: '',
