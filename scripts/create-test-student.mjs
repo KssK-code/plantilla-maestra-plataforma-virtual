@@ -1,138 +1,128 @@
 /**
- * create-test-student.mjs
- * Crea un alumno de prueba en EDVEX Academy
+ * create-test-student.mjs — alumno de prueba para demos y QA.
  *
- * Uso: node --env-file=.env.local scripts/create-test-student.mjs
+ * Uso:  node --env-file=.env.local scripts/create-test-student.mjs
+ *
+ * ⚠️ EL ALTA VA POR LA API DE ADMIN DE AUTH, NUNCA POR INSERT A `auth.users`.
+ * Es el Bug 76 del PLAYBOOK y ya costó un incidente en VERTIX: GoTrue mapea
+ * cuatro columnas de `auth.users` (`confirmation_token`, `recovery_token`,
+ * `email_change`, `email_change_token_new`) a campos `string` NO nulos, y esas
+ * cuatro NO tienen DEFAULT. Un INSERT manual que no las liste las deja en NULL y
+ * el login de ESE usuario devuelve 500 «Database error querying schema» para
+ * siempre. `auth.admin.createUser()` las puebla bien.
+ *
+ * CONSCIENTE DEL MODO: lee `CONFIG.modo` de src/lib/config.ts. En 'solo_cursos'
+ * el alumno nace con `nivel='diplomado'` y `modalidad=NULL` — la misma fila que
+ * producen las dos puertas reales de alta (registro público y panel admin).
+ *
+ * IDEMPOTENTE: si el alumno ya existe se reutiliza; correrlo dos veces no
+ * duplica ni rompe.
  */
 
 import { createClient } from '@supabase/supabase-js'
+import { readFileSync } from 'node:fs'
+import { dirname, join } from 'node:path'
+import { fileURLToPath } from 'node:url'
 
-const EDVEX_URL = process.env.NEXT_PUBLIC_SUPABASE_URL
-const EDVEX_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY
+const URL = process.env.NEXT_PUBLIC_SUPABASE_URL
+const KEY = process.env.SUPABASE_SERVICE_ROLE_KEY
 
-if (!EDVEX_URL || !EDVEX_KEY) {
-  console.error('❌ Faltan NEXT_PUBLIC_SUPABASE_URL o SUPABASE_SERVICE_ROLE_KEY')
+if (!URL || !KEY) {
+  console.error('Faltan NEXT_PUBLIC_SUPABASE_URL o SUPABASE_SERVICE_ROLE_KEY')
   process.exit(1)
 }
 
-const admin = createClient(EDVEX_URL, EDVEX_KEY, {
-  auth: { autoRefreshToken: false, persistSession: false },
-})
+const admin = createClient(URL, KEY, { auth: { autoRefreshToken: false, persistSession: false } })
 
-const EMAIL    = 'alumno.prueba@edvexacademy.online'
-const PASSWORD = 'Test1234!'
+const EMAIL     = process.env.QA_ALUMNO_EMAIL    ?? 'alumno.prueba@example.com'
+const PASSWORD  = process.env.QA_ALUMNO_PASSWORD ?? 'Test1234!'
+const NOMBRE    = 'Alumno'
+const APELLIDOS = 'Prueba'
+
+/**
+ * Lee el modo del config sin importar el módulo (es TypeScript y este script es
+ * Node puro). Un regex sobre la clave basta y evita montar un transpilador.
+ */
+function modoDeConfig() {
+  // `fileURLToPath` y no `new URL(...)` a secas: en Windows la ruta trae
+  // "Kevin Serrano" con espacio, que en una file:// URL viaja como %20 y
+  // readFileSync no siempre lo resuelve. Con fileURLToPath queda una ruta
+  // nativa y deja de depender de eso.
+  const ruta = join(dirname(fileURLToPath(import.meta.url)), '..', 'src', 'lib', 'config.ts')
+
+  // ⚠️ SIN `try/catch` QUE DEVUELVA UN DEFAULT. La versión anterior tenía
+  // `catch { return 'tradicional' }` y eso convirtió un fallo de ruta en un
+  // dato plausible: el script decía «Modo detectado: tradicional» y creaba el
+  // alumno con el nivel equivocado, sin un solo error a la vista. Si no se
+  // puede leer el modo, hay que parar — no adivinarlo.
+  const src = readFileSync(ruta, 'utf8')
+  const m = /^\s*modo:\s*'([a-z_]+)'/m.exec(src)
+  if (!m) throw new Error(`No se encontró la clave 'modo' en ${ruta}`)
+  return m[1]
+}
 
 async function main() {
-  console.log('╔══════════════════════════════════════════════╗')
-  console.log('║   CREAR ALUMNO DE PRUEBA — EDVEX Academy     ║')
-  console.log('╚══════════════════════════════════════════════╝\n')
+  const modo = modoDeConfig()
+  const soloCursos = modo === 'solo_cursos'
+  console.log(`Modo detectado: ${modo}`)
 
-  // ── 1. Obtener el plan de 6 meses ─────────────────────────────────────────
-  console.log('1️⃣  Buscando plan de 6 meses...')
-  const { data: planes, error: planesErr } = await admin
-    .from('planes_estudio')
-    .select('id, nombre, duracion_meses')
-    .eq('activo', true)
-    .order('duracion_meses')
+  // ── 1. Usuario de Auth (idempotente) ───────────────────────────────────────
+  let userId
+  const { data: lista } = await admin.auth.admin.listUsers({ page: 1, perPage: 1000 })
+  const previo = lista?.users?.find(u => u.email === EMAIL)
 
-  if (planesErr || !planes?.length) {
-    console.error('❌ No se encontraron planes:', planesErr?.message ?? 'sin datos')
-    process.exit(1)
-  }
-
-  // Prioridad: plan de 6 meses; si no, el primero disponible
-  const plan = planes.find(p => p.duracion_meses === 6) ?? planes[0]
-  console.log(`   Plan seleccionado: "${plan.nombre}" (${plan.duracion_meses} meses)`)
-  console.log(`   Plan ID: ${plan.id}\n`)
-
-  // ── 2. Crear usuario en Supabase Auth ─────────────────────────────────────
-  console.log('2️⃣  Creando usuario en Supabase Auth...')
-
-  // Eliminar si ya existe (para re-ejecuciones seguras)
-  const { data: existing } = await admin.auth.admin.listUsers()
-  const prevUser = existing?.users?.find(u => u.email === EMAIL)
-  if (prevUser) {
-    console.log(`   ⚠  Usuario ya existe, eliminando para recrear...`)
-    await admin.auth.admin.deleteUser(prevUser.id)
-  }
-
-  const { data: authData, error: authErr } = await admin.auth.admin.createUser({
-    email:          EMAIL,
-    password:       PASSWORD,
-    email_confirm:  true,
-  })
-
-  if (authErr) {
-    console.error('❌ Error al crear en Auth:', authErr.message)
-    process.exit(1)
-  }
-
-  const userId = authData.user.id
-  console.log(`   ✅ Auth user creado`)
-  console.log(`   UUID: ${userId}\n`)
-
-  // ── 3. Insertar en public.usuarios ────────────────────────────────────────
-  console.log('3️⃣  Insertando en public.usuarios...')
-  const { error: usuarioErr } = await admin.from('usuarios').insert({
-    id:              userId,
-    email:           EMAIL,
-    nombre_completo: 'Alumno Prueba',
-    rol:             'ALUMNO',
-    activo:          true,
-  })
-
-  if (usuarioErr) {
-    console.error('❌ Error al insertar usuario:', usuarioErr.message)
-    await admin.auth.admin.deleteUser(userId)
-    process.exit(1)
-  }
-  console.log('   ✅ Registro en public.usuarios creado\n')
-
-  // ── 4. Crear registro en public.alumnos ───────────────────────────────────
-  console.log('4️⃣  Inscribiendo en public.alumnos...')
-  const year     = new Date().getFullYear()
-  const rand     = Math.floor(1000 + Math.random() * 9000)
-  const matricula = `ALU-${year}-${rand}`
-
-  const { data: alumnoData, error: alumnoErr } = await admin
-    .from('alumnos')
-    .insert({
-      usuario_id:           userId,
-      matricula,
-      plan_estudio_id:      plan.id,
-      meses_desbloqueados:  1,   // Mes 1 desbloqueado
+  if (previo) {
+    userId = previo.id
+    // Se reutiliza y solo se re-fija la contraseña, para que el login de QA sea
+    // predecible sin borrar al alumno (borrarlo arrastraría inscripciones y
+    // constancias por CASCADE/RESTRICT).
+    const { error } = await admin.auth.admin.updateUserById(userId, { password: PASSWORD })
+    if (error) { console.error('updateUserById:', error.message); process.exit(1) }
+    console.log(`Usuario de Auth ya existía, contraseña re-fijada: ${userId}`)
+  } else {
+    const { data, error } = await admin.auth.admin.createUser({
+      email: EMAIL,
+      password: PASSWORD,
+      email_confirm: true,
+      user_metadata: { nombre: NOMBRE, apellidos: APELLIDOS },
     })
-    .select()
-    .single()
-
-  if (alumnoErr) {
-    console.error('❌ Error al crear alumno:', alumnoErr.message)
-    await admin.auth.admin.deleteUser(userId)
-    process.exit(1)
+    if (error) { console.error('createUser:', error.message); process.exit(1) }
+    userId = data.user.id
+    console.log(`Usuario de Auth creado: ${userId}`)
   }
 
-  const alumnoId = alumnoData.id
-  console.log(`   ✅ Alumno inscrito`)
-  console.log(`   Alumno ID:  ${alumnoId}`)
-  console.log(`   Matrícula:  ${matricula}\n`)
+  // ── 2. public.usuarios ─────────────────────────────────────────────────────
+  // `rol` en MINÚSCULAS: el CHECK de usuarios.rol solo acepta
+  // 'alumno' | 'admin' | 'secretario'. En mayúsculas el INSERT falla.
+  const { error: eUsuario } = await admin.from('usuarios').upsert(
+    { id: userId, email: EMAIL, nombre: NOMBRE, apellidos: APELLIDOS, rol: 'alumno' },
+    { onConflict: 'id' }
+  )
+  if (eUsuario) { console.error('usuarios:', eUsuario.message); process.exit(1) }
 
-  // ── Resumen ───────────────────────────────────────────────────────────────
-  console.log('════════════════════════════════════════════════')
-  console.log('✅ ALUMNO DE PRUEBA CREADO EXITOSAMENTE')
-  console.log('════════════════════════════════════════════════')
-  console.log(`  Email:               ${EMAIL}`)
-  console.log(`  Password:            ${PASSWORD}`)
-  console.log(`  Nombre:              Alumno Prueba`)
-  console.log(`  UUID (auth.users):   ${userId}`)
-  console.log(`  UUID (alumnos.id):   ${alumnoId}`)
-  console.log(`  Matrícula:           ${matricula}`)
-  console.log(`  Plan:                ${plan.nombre}`)
-  console.log(`  Meses desbloqueados: 1`)
-  console.log('════════════════════════════════════════════════')
-  console.log('\nPuedes iniciar sesión en: http://localhost:3000/login\n')
+  // ── 3. public.alumnos ──────────────────────────────────────────────────────
+  // La matrícula la asigna el trigger trg_asignar_matricula; no se envía.
+  const fila = {
+    id: userId,
+    nivel:               soloCursos ? 'diplomado' : 'preparatoria',
+    modalidad:           soloCursos ? null        : '6_meses',
+    inscripcion_pagada:  false,
+    meses_desbloqueados: 0,
+    activo:              true,
+    fecha_inscripcion:   new Date().toISOString(),
+  }
+  const { error: eAlumno } = await admin.from('alumnos').upsert(fila, { onConflict: 'id' })
+  if (eAlumno) { console.error('alumnos:', eAlumno.message); process.exit(1) }
+
+  const { data: alumno } = await admin
+    .from('alumnos').select('matricula, nivel, modalidad').eq('id', userId).single()
+
+  console.log('')
+  console.log('Alumno de prueba listo')
+  console.log(`  email:     ${EMAIL}`)
+  console.log(`  matrícula: ${alumno?.matricula ?? '(pendiente)'}`)
+  console.log(`  nivel:     ${alumno?.nivel} | modalidad: ${alumno?.modalidad ?? 'NULL'}`)
+  console.log(`  id:        ${userId}`)
 }
 
-main().catch(err => {
-  console.error('❌ Error inesperado:', err.message)
-  process.exit(1)
-})
+main().catch(err => { console.error('Error inesperado:', err.message); process.exit(1) })
