@@ -20,15 +20,13 @@ Editar SOLO este archivo: src/lib/config.ts
 > El orden respeta dependencias de FK y de funciones. No lo alteres.
 > Correr por conexión **directa** (puerto 5432), nunca el pooler (6543).
 >
-> ⚠️ **LA CADENA ES DE UNA SOLA PASADA, EN ORDEN.** Cada archivo por separado es
-> idempotente, pero **volver a correr la cadena completa desde el principio
-> falla** en `20260716150000_reporte_ingresos.sql` y `20260717120000_pagos_fecha_pago.sql`
-> con `cannot change return type of existing function`: B6 amplió esas dos
-> funciones con `DROP + CREATE` (les agregó las columnas `programa` y `cursos`) y
-> las versiones viejas ya no pueden reemplazarlas. El estado final queda
-> correcto igual —las versiones de B6 sobreviven— pero si corres todo en una sola
-> sesión con `ON_ERROR_STOP`, **aborta ahí y no aplica lo que sigue**. Para
-> reinstalar, base nueva. Verificado en B8.
+> ✅ **LA CADENA COMPLETA ES RE-EJECUTABLE** (desde B8.1): las 19 migraciones se
+> pueden volver a correr desde el principio sin errores — replay verificado
+> 19/19, dos pasadas limpias contra un proyecto Supabase real. (Hubo una época
+> en que no: B6 amplió dos funciones de ingresos y el replay moría en
+> `20260716150000` y `20260717120000` con `cannot change return type` — es el
+> Bug 80 del PLAYBOOK; B8.1 lo corrigió con `DROP FUNCTION IF EXISTS` en esas
+> dos migraciones. Coherente con `SOLO-CURSOS-ARQUITECTURA.md`.)
 
 1. supabase.com → New project
 2. **Schema base** → ejecutar `scripts/schema.sql` completo
