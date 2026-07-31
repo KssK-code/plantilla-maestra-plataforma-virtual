@@ -6,6 +6,7 @@
 
 import { createClient } from '@/lib/supabase/server'
 import { createAdminClient } from '@/lib/supabase/admin'
+import { nivelForzadoDeRegistro } from '@/lib/modo'
 
 export async function POST(request: Request) {
   try {
@@ -21,10 +22,26 @@ export async function POST(request: Request) {
     const nombre           = (body.nombre          ?? '').trim()
     const apellidos        = (body.apellidos        ?? '').trim()
     const telefono         = (body.telefono         ?? '').trim()
-    const nivel            = body.nivel             ?? null   // 'secundaria' | 'preparatoria'
-    const modalidad        = body.modalidad         ?? null   // ModalidadId — ver src/lib/modalidades.ts
     const es_sindicalizado = Boolean(body.es_sindicalizado)
     const sindicato        = body.sindicato         ?? null
+
+    // ── B7: el nivel en modo solo_cursos lo decide el SERVIDOR ────────────────
+    // `nivelForzadoDeRegistro()` devuelve 'diplomado' si el cliente es
+    // solo_cursos, y null en tradicional (donde manda lo que eligió el usuario).
+    //
+    // ⚠️ SE IGNORA `body.nivel` EN SOLO_CURSOS, no se "valida". Es la lección de
+    // S1: el registro es un endpoint que cualquiera puede llamar con la anon
+    // key, así que un campo que decide privilegios o pertenencia no se acepta
+    // del cliente ni siquiera para comprobarlo — se sobrescribe. Un curl con
+    // `{"nivel":"preparatoria"}` contra un cliente solo_cursos crea igual un
+    // alumno 'diplomado'.
+    //
+    // Y `modalidad` va a null: es la duración del PROGRAMA (3 o 6 meses de
+    // secundaria/prepa). El ritmo del diplomado lo fija el curso con
+    // `modulos_por_mes`, no el alumno.
+    const nivelForzado     = nivelForzadoDeRegistro()
+    const nivel            = nivelForzado ?? body.nivel ?? null
+    const modalidad        = nivelForzado ? null : (body.modalidad ?? null)
 
     if (!nombre) {
       return Response.json({ error: 'El nombre es requerido' }, { status: 400 })
@@ -49,7 +66,7 @@ export async function POST(request: Request) {
     // La matrícula la genera el trigger trg_asignar_matricula automáticamente
     const alumnoPayload = {
       id:                  user.id,
-      nivel,               // 'secundaria' | 'preparatoria' | null
+      nivel,               // 'secundaria' | 'preparatoria' | 'licenciatura' | 'diplomado' | null
       modalidad,           // ModalidadId | null
       es_sindicalizado,
       sindicato:           es_sindicalizado ? sindicato : null,

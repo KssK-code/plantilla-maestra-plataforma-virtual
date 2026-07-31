@@ -76,19 +76,35 @@ export async function GET() {
     // Desglose por semana (lunes, 8 últimas) y por mes (6 últimos) — agregado
     // server-side con GROUP BY date_trunc (RPC), no en JS. Degrada a [] si la
     // función aún no existe en la BD (migración 20260716150000 sin aplicar).
-    let ingresosSemanales: { semana_inicio: string; total: number }[] = []
-    let ingresosMensuales: { mes: string; total: number }[] = []
+    //
+    // B6: cada periodo trae además `programa` y `cursos`. `total` NO cambió de
+    // significado ni de nombre — sigue siendo la suma de todo, para no romper a
+    // quien ya lo lee. Si la BD todavía tiene la versión vieja de la función,
+    // esas dos columnas llegan undefined y quedan en 0: el desglose desaparece,
+    // el total sigue bien.
+    let ingresosSemanales: { semana_inicio: string; total: number; programa: number; cursos: number }[] = []
+    let ingresosMensuales: { mes: string; total: number; programa: number; cursos: number }[] = []
     const [semRes, mesRes] = await Promise.all([
       admin.rpc('reporte_ingresos_semanales', { num_semanas: 8 }),
       admin.rpc('reporte_ingresos_mensuales', { num_meses: 6 }),
     ])
     if (!semRes.error && Array.isArray(semRes.data)) {
-      ingresosSemanales = (semRes.data as { semana_inicio: string; total: number | string }[])
-        .map(r => ({ semana_inicio: r.semana_inicio, total: Number(r.total ?? 0) }))
+      ingresosSemanales = (semRes.data as Record<string, unknown>[])
+        .map(r => ({
+          semana_inicio: String(r.semana_inicio),
+          total:    Number(r.total ?? 0),
+          programa: Number(r.programa ?? 0),
+          cursos:   Number(r.cursos ?? 0),
+        }))
     }
     if (!mesRes.error && Array.isArray(mesRes.data)) {
-      ingresosMensuales = (mesRes.data as { mes: string; total: number | string }[])
-        .map(r => ({ mes: r.mes, total: Number(r.total ?? 0) }))
+      ingresosMensuales = (mesRes.data as Record<string, unknown>[])
+        .map(r => ({
+          mes:      String(r.mes),
+          total:    Number(r.total ?? 0),
+          programa: Number(r.programa ?? 0),
+          cursos:   Number(r.cursos ?? 0),
+        }))
     }
 
     // Ingresos del mes en curso: mismo corte SQL America/Mexico_City que el
@@ -147,6 +163,85 @@ export async function GET() {
       }
     }).sort((a, b) => b.total_cursaron - a.total_cursaron)
 
+    // ── VERTICAL DE CURSOS (B6) ──────────────────────────────────────────────
+    // Hasta B6 este módulo no sabía NADA de diplomados: un cliente Solo-Cursos
+    // abría Reportes y no veía un solo dato de su negocio.
+    //
+    // Las cuatro funciones son de B6 y las tres tablas base son del módulo
+    // opcional de Cursos. En un cliente tradicional (sin ese módulo) las RPC
+    // fallan, y eso es NORMAL, no un error que valga la pena reportar: todo
+    // degrada a listas vacías y `tiene_datos` queda en false, con lo que la UI
+    // no pinta la sección. Por eso no se loguea el error de estas cuatro.
+    const [insRes, pagCurRes, consRes, avanRes, cohRes] = await Promise.all([
+      admin.rpc('reporte_curso_inscripciones'),
+      admin.rpc('reporte_curso_pagos'),
+      admin.rpc('reporte_curso_constancias'),
+      admin.rpc('reporte_curso_avance'),
+      admin.rpc('reporte_coherencia_pagos'),
+    ])
+
+    const arr = (r: { error: unknown; data: unknown }) =>
+      !r.error && Array.isArray(r.data) ? (r.data as Record<string, unknown>[]) : []
+
+    const inscripcionesCurso = arr(insRes)
+    const pagosCurso         = arr(pagCurRes)
+    const constanciasCurso   = arr(consRes)
+    const avanceCurso        = arr(avanRes)
+
+    const ingresosCursos = pagosCurso.reduce((s, p) => s + Number(p.monto ?? 0), 0)
+
+    // Agregado por diplomado: es la vista que de verdad usa quien dirige la
+    // escuela ("¿cuál se vende?"), y no existe en ninguna otra pantalla.
+    const porDiplomado = new Map<string, { diplomado: string; inscritos: number; activos: number; ingresos: number }>()
+    for (const i of inscripcionesCurso) {
+      const k = String(i.diplomado ?? '—')
+      if (!porDiplomado.has(k)) porDiplomado.set(k, { diplomado: k, inscritos: 0, activos: 0, ingresos: 0 })
+      const e = porDiplomado.get(k)!
+      e.inscritos++
+      if (i.estado === 'activa') e.activos++
+    }
+    for (const p of pagosCurso) {
+      const k = String(p.diplomado ?? '—')
+      if (!porDiplomado.has(k)) porDiplomado.set(k, { diplomado: k, inscritos: 0, activos: 0, ingresos: 0 })
+      porDiplomado.get(k)!.ingresos += Number(p.monto ?? 0)
+    }
+
+    // La coherencia entre los dos criterios de clasificación (FK vs concepto).
+    // Se expone SIEMPRE que la función exista; la UI solo avisa si hay > 0.
+    const coh = (!cohRes.error && Array.isArray(cohRes.data) ? cohRes.data[0] : null) as Record<string, unknown> | null
+
+    const cursos = {
+      // Gobierna si la UI pinta la sección. Un cliente tradicional nunca la ve.
+      tiene_datos: inscripcionesCurso.length > 0 || pagosCurso.length > 0,
+      inscripciones_totales: inscripcionesCurso.length,
+      inscripciones_activas: inscripcionesCurso.filter(i => i.estado === 'activa').length,
+      constancias_emitidas: constanciasCurso.length,
+      ingresos_cursos: ingresosCursos,
+      por_diplomado: Array.from(porDiplomado.values()).sort((a, b) => b.ingresos - a.ingresos),
+      avance: avanceCurso.map(a => ({
+        alumno: String(a.alumno ?? '—'),
+        diplomado: String(a.diplomado ?? '—'),
+        lecciones_completadas: Number(a.lecciones_completadas ?? 0),
+        lecciones_totales: Number(a.lecciones_totales ?? 0),
+        porcentaje: Number(a.porcentaje ?? 0),
+      })),
+      constancias: constanciasCurso.map(c => ({
+        folio: String(c.folio ?? ''),
+        alumno: String(c.alumno_nombre ?? ''),
+        diplomado: String(c.curso_nombre ?? ''),
+        calificacion: c.calificacion === null || c.calificacion === undefined ? null : Number(c.calificacion),
+        horas: c.horas === null || c.horas === undefined ? null : Number(c.horas),
+        emitido_en: c.emitido_en ? String(c.emitido_en) : null,
+      })),
+    }
+
+    const coherencia = coh
+      ? {
+          concepto_curso_sin_inscripcion: Number(coh.concepto_curso_sin_inscripcion ?? 0),
+          inscripcion_con_concepto_programa: Number(coh.inscripcion_con_concepto_programa ?? 0),
+        }
+      : null
+
     return NextResponse.json({
       stats: {
         total_alumnos: totalAlumnos ?? 0,
@@ -163,6 +258,9 @@ export async function GET() {
       // Fase 4 — desglose de tendencia (solo agrega, no rompe lo anterior)
       ingresos_ultimas_8_semanas: ingresosSemanales,
       ingresos_ultimos_6_meses: ingresosMensuales,
+      // B6 — vertical de cursos y salud de la clasificación de pagos
+      cursos,
+      coherencia,
     })
   } catch {
     return NextResponse.json({ error: 'Error interno del servidor' }, { status: 500 })

@@ -2,11 +2,13 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { createAdminClient } from '@/lib/supabase/admin'
 import {
-  INTENTOS_PERMITIDOS_DEFAULT,
   calificar,
+  leerIntentosPermitidos,
   leerPreguntas,
+  puedeExamenFinal,
   puedeVerCurso,
 } from '@/lib/cursos/examen'
+import { leerCalificacionMinima } from '@/lib/cursos/constancia'
 import type { RespuestaEnviada } from '@/types/cursos-examen'
 
 // ─── POST /api/alumno/cursos/[id]/examen/enviar ──────────────────────────────
@@ -56,6 +58,16 @@ export async function POST(
     const enviadas = Array.isArray(body?.respuestas) ? (body.respuestas as RespuestaEnviada[]) : []
 
     const admin = createAdminClient()
+
+    // Ventana de pago, server-side: esta ruta usa service_role y la RLS no la
+    // cubre. Cerrar el GET y dejar abierto el POST seria un gate parcial.
+    if (!(await puedeExamenFinal(admin, params.id, alumnoId))) {
+      return NextResponse.json(
+        { error: 'El examen final se habilita cuando tienes el curso completo desbloqueado.' },
+        { status: 403 }
+      )
+    }
+
     const preguntas = await leerPreguntas(admin, params.id)
     if (preguntas.length === 0) {
       return NextResponse.json({ error: 'Este curso no tiene examen final' }, { status: 404 })
@@ -71,15 +83,19 @@ export async function POST(
       .eq('curso_id', params.id)
       .eq('alumno_id', alumnoId)
 
+    // El límite es POR CURSO (cursos.intentos_permitidos, B1). Si la columna
+    // viniera nula se cae al default: un error de lectura no abre el candado.
+    const permitidos = await leerIntentosPermitidos(admin, params.id)
+
     const usados = intentosUsados ?? 0
-    if (usados >= INTENTOS_PERMITIDOS_DEFAULT) {
+    if (usados >= permitidos) {
       // Sin revisión en el cuerpo: un envío rechazado no puede ser una vía
       // alterna para leer claves.
       return NextResponse.json(
         {
-          error: `Ya usaste tus ${INTENTOS_PERMITIDOS_DEFAULT} intentos para este examen.`,
+          error: `Ya usaste tus ${permitidos} intentos para este examen.`,
           intentos_usados: usados,
-          intentos_permitidos: INTENTOS_PERMITIDOS_DEFAULT,
+          intentos_permitidos: permitidos,
         },
         { status: 409 }
       )
@@ -120,6 +136,17 @@ export async function POST(
       return NextResponse.json({ error: 'No se pudo guardar el resultado' }, { status: 500 })
     }
 
+    // ── B8.2: aquí YA NO se emite constancia ─────────────────────────────────
+    // Aprobar es la CONDICIÓN de la constancia, no su gatillo. La emisión es
+    // MANUAL y del admin (POST /api/admin/inscripciones/[id]/constancia), que
+    // verifica y emite a conciencia — el folio es permanente e irrepetible y un
+    // humano delante del snapshot es feature (Bug 78). El guard de "sin
+    // aprobación no hay emisión" vive en la función SQL, así que este cambio no
+    // afloja nada: solo mueve el gatillo.
+    // La UI del alumno muestra "aprobado — constancia en emisión" mientras
+    // tanto (motivo `aprobado_en_emision` del GET de constancia).
+    const minima = await leerCalificacionMinima(admin, params.id)
+
     return NextResponse.json({
       id: guardado.id,
       created_at: guardado.created_at,
@@ -130,7 +157,11 @@ export async function POST(
       revision,
       // Para que la UI pueda mostrar los intentos restantes sin otra petición.
       intentos_usados: usados + 1,
-      intentos_permitidos: INTENTOS_PERMITIDOS_DEFAULT,
+      intentos_permitidos: permitidos,
+      // Veredicto explícito: antes el sistema calculaba el porcentaje y nunca
+      // dictaminaba aprobado/no aprobado.
+      calificacion_minima: minima,
+      aprobado: porcentaje >= minima,
     })
   } catch (err) {
     console.error('[POST /api/alumno/cursos/[id]/examen/enviar]', err)

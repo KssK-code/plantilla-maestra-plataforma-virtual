@@ -3,6 +3,8 @@ import { createClient } from '@/lib/supabase/server'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { verifyAdmin } from '@/lib/supabase/verify-admin'
 import { removeFolder, signedUrl } from '@/lib/cursos/storage'
+import { validarParametrosCurso } from '@/lib/cursos/parametros'
+import { purgarCatalogoPublico } from '@/lib/cursos/purga'
 import type { Curso, CursoDetalle, CursoInscrito, CursoLeccion, CursoModulo } from '@/types/cursos'
 
 type LeccionRow = Omit<CursoLeccion, 'materialUrl'>
@@ -72,7 +74,7 @@ export async function GET(
     // Inscritos con datos del usuario (alumnos.id = usuarios.id)
     const { data: inscripciones } = await admin
       .from('curso_inscripciones')
-      .select('alumno_id, created_at')
+      .select('id, alumno_id, created_at, meses_desbloqueados, estado, fecha_inscripcion, fecha_vencimiento')
       .eq('curso_id', params.id)
       .order('created_at', { ascending: false })
 
@@ -88,13 +90,23 @@ export async function GET(
       inscritos = (inscripciones ?? []).map(i => {
         const u = uMap.get(i.alumno_id) as { nombre?: string; apellidos?: string; email?: string } | undefined
         const a = aMap.get(i.alumno_id) as { matricula?: string; activo?: boolean } | undefined
+        const row = i as unknown as {
+          id: string; alumno_id: string; created_at: string
+          meses_desbloqueados: number | null; estado: string | null
+          fecha_inscripcion: string | null; fecha_vencimiento: string | null
+        }
         return {
+          inscripcion_id: row.id,
           alumno_id: i.alumno_id,
           created_at: i.created_at,
           nombre: [u?.nombre, u?.apellidos].filter(Boolean).join(' ') || '—',
           email: u?.email ?? '—',
           matricula: a?.matricula ?? null,
           activo: a?.activo ?? false,
+          meses_desbloqueados: row.meses_desbloqueados ?? 0,
+          estado: row.estado ?? 'activa',
+          fecha_inscripcion: row.fecha_inscripcion,
+          fecha_vencimiento: row.fecha_vencimiento,
         }
       })
     }
@@ -143,6 +155,16 @@ export async function PATCH(
       }
       updates.estado = body.estado
     }
+
+    // B7/T3 — parámetros comerciales y de ritmo. La validación vive en
+    // src/lib/cursos/parametros.ts, compartida con el POST de creación: los
+    // `min` del formulario son ayuda visual y un curl los ignora.
+    // Ojo con el nombre: `params` ya es el de la ruta de Next ({ id }). Llamar
+    // igual a esto lo sombreaba y `params.id` dejaba de compilar más abajo.
+    const parametros = validarParametrosCurso(body as Record<string, unknown>)
+    if (!parametros.ok) return NextResponse.json({ error: parametros.error }, { status: 400 })
+    Object.assign(updates, parametros.updates)
+
     if (Object.keys(updates).length === 0) {
       return NextResponse.json({ error: 'Nada que actualizar' }, { status: 400 })
     }
@@ -161,6 +183,14 @@ export async function PATCH(
       return NextResponse.json({ error: error.message }, { status: 500 })
     }
     if (!curso) return NextResponse.json({ error: 'Curso no encontrado' }, { status: 404 })
+
+    // B8.2 — TODO lo que este PATCH puede tocar cambia lo que el público ve:
+    // `estado` decide si el curso aparece, y nombre/descripcion/precios/horas/
+    // duración son exactamente los campos que el catálogo pinta. Sin esta purga,
+    // la landing estática seguía sirviendo el HTML del build y publicar un
+    // diplomado no lo ponía a la venta hasta el siguiente deploy.
+    purgarCatalogoPublico(params.id)
+
     return NextResponse.json(curso)
   } catch (err) {
     console.error('[PATCH /api/admin/cursos/[id]]', err)
@@ -186,13 +216,48 @@ export async function DELETE(
       .single()
     if (!curso) return NextResponse.json({ error: 'Curso no encontrado' }, { status: 404 })
 
-    // El cascade de la DB borra módulos, lecciones, inscripciones y progreso
+    // ⚠️ El cascade de la DB borra módulos, lecciones, inscripciones y progreso —
+    // PERO YA NO las constancias: desde B4, curso_constancias.inscripcion_id es
+    // ON DELETE RESTRICT, así que un curso con diplomas emitidos NO se puede
+    // borrar. Es deliberado: el registro de folios es el libro contable de
+    // diplomas de la institución y no puede evaporarse con un clic.
+    //
+    // Esta ruta asumía CASCADE hasta el fondo, así que sin esta comprobación el
+    // admin recibiría un 23503 crudo de Postgres sin saber qué hacer.
+    const { count: constancias } = await admin
+      .from('curso_constancias')
+      .select('folio', { count: 'exact', head: true })
+      .in(
+        'inscripcion_id',
+        ((await admin.from('curso_inscripciones').select('id').eq('curso_id', params.id)).data ?? [])
+          .map(r => r.id as string)
+      )
+
+    if ((constancias ?? 0) > 0) {
+      return NextResponse.json({
+        error:
+          `Este curso tiene ${constancias} diploma(s) emitido(s) y no puede borrarse: ` +
+          'el registro de folios es el comprobante de esos documentos. ' +
+          'Pásalo a borrador para retirarlo de circulación sin perder el historial.',
+      }, { status: 409 })
+    }
+
     const { error } = await admin.from('cursos').delete().eq('id', params.id)
-    if (error) return NextResponse.json({ error: error.message }, { status: 500 })
+    if (error) {
+      if (error.code === '23503') {
+        return NextResponse.json({
+          error: 'Este curso tiene diplomas emitidos y no puede borrarse. Pásalo a borrador para retirarlo de circulación.',
+        }, { status: 409 })
+      }
+      return NextResponse.json({ error: error.message }, { status: 500 })
+    }
 
     // Limpieza de storage: materiales ({cursoId}/...) y portadas (portadas/{cursoId}/...)
     await removeFolder(admin, params.id)
     await removeFolder(admin, `portadas/${params.id}`)
+
+    // B8.2 — un curso publicado que se borra debe salir del catálogo sin redeploy.
+    purgarCatalogoPublico(params.id)
 
     return NextResponse.json({ ok: true })
   } catch (err) {

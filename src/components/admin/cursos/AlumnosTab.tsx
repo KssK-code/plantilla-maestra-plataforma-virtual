@@ -42,6 +42,49 @@ export function AlumnosTab({ cursoId, inscritos, onChanged, onError }: AlumnosTa
 
   const inscritosIds = useMemo(() => new Set(inscritos.map(i => i.alumno_id)), [inscritos])
 
+  /**
+   * Abre o cierra un mes de la inscripcion.
+   *
+   * `meses_esperados` viaja con el valor que esta pantalla tiene a la vista: es
+   * el candado contra el doble clic. Si otro admin (u otra pestaña) ya lo movio,
+   * el servidor responde 409 y se pide recargar, en vez de incrementar dos veces.
+   * El boton tambien se deshabilita, pero eso es cortesia: el candado esta en el
+   * servidor.
+   */
+  const moverMes = async (
+    inscripcionId: string,
+    accion: 'abrir-mes' | 'cerrar-mes',
+    mesesActuales: number,
+    nombre: string
+  ) => {
+    if (accion === 'cerrar-mes') {
+      const ok = window.confirm(
+        `Cerrar un mes de ${nombre}.
+
+Esto REVOCA acceso que el alumno ya tenia: ` +
+        `los modulos de ese mes dejaran de verse.
+
+¿Continuar?`
+      )
+      if (!ok) return
+    }
+    setOcupadoId(inscripcionId)
+    try {
+      const res = await fetch(`/api/admin/inscripciones/${inscripcionId}/${accion}`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ meses_esperados: mesesActuales }),
+      })
+      const json = await res.json().catch(() => ({}))
+      if (!res.ok) throw new Error(json.error ?? 'No se pudo actualizar')
+      onChanged()
+    } catch (e) {
+      onError(e instanceof Error ? e.message : 'No se pudo actualizar')
+    } finally {
+      setOcupadoId(null)
+    }
+  }
+
   const resultados = useMemo(() => {
     const q = busqueda.trim().toLowerCase()
     if (!q) return []
@@ -219,6 +262,42 @@ export function AlumnosTab({ cursoId, inscritos, onChanged, onError }: AlumnosTa
                     Inactivo
                   </span>
                 )}
+
+                {i.estado !== 'activa' && (
+                  <span className="text-[10px] px-1.5 py-0.5 rounded-full font-semibold flex-shrink-0"
+                    style={{ background: 'rgba(245,158,11,0.15)', color: '#B45309' }}>
+                    {i.estado}
+                  </span>
+                )}
+
+                {/* Ventana de pago: lo que el alumno ve hoy */}
+                <span className="text-xs font-semibold flex-shrink-0 tabular-nums"
+                  style={{ color: 'var(--color-primario)' }}
+                  title="Meses abiertos de esta inscripción">
+                  {i.meses_desbloqueados} {i.meses_desbloqueados === 1 ? 'mes' : 'meses'}
+                </span>
+
+                <div className="flex items-center gap-1 flex-shrink-0">
+                  <button
+                    onClick={() => moverMes(i.inscripcion_id, 'cerrar-mes', i.meses_desbloqueados, i.nombre)}
+                    disabled={ocupadoId === i.inscripcion_id || i.meses_desbloqueados <= 0}
+                    title="Cerrar un mes (revoca acceso)"
+                    className="px-2 py-1.5 rounded-lg text-xs font-bold disabled:opacity-40"
+                    style={{ border: '1px solid rgba(27,48,104,0.2)', color: 'var(--color-primario)', background: 'var(--color-superficie)' }}
+                  >
+                    −
+                  </button>
+                  <button
+                    onClick={() => moverMes(i.inscripcion_id, 'abrir-mes', i.meses_desbloqueados, i.nombre)}
+                    disabled={ocupadoId === i.inscripcion_id || i.estado !== 'activa'}
+                    title={i.estado !== 'activa' ? `Inscripción ${i.estado}: reactívala para abrir meses` : 'Abrir el siguiente mes'}
+                    className="px-3 py-1.5 rounded-lg text-xs font-bold disabled:opacity-40"
+                    style={{ background: 'var(--color-acento)', color: '#fff' }}
+                  >
+                    + Abrir mes
+                  </button>
+                </div>
+
                 <button
                   onClick={() => quitar(i.alumno_id, i.nombre)}
                   disabled={ocupadoId === i.alumno_id}

@@ -90,7 +90,13 @@ export async function GET(
       .eq('alumno_id', params.id)
       .order('fecha_intento', { ascending: false })
 
-    const duracion = getMesesByModalidad(a.modalidad as string | null)
+    // B7 — un alumno de diplomado no cursa el PROGRAMA. `getMesesByModalidad`
+    // no devuelve null ante una modalidad NULL: cae al fallback «primera
+    // modalidad activa» y devuelve 3, así que la ficha pintaba «0/3 meses» —
+    // un denominador de un plan que ese alumno no tiene. 0 lo deja sin
+    // denominador inventado.
+    const esDiplomado = a.nivel === 'diplomado'
+    const duracion = esDiplomado ? 0 : getMesesByModalidad(a.modalidad as string | null)
 
     return NextResponse.json({
       id:                  a.id,
@@ -109,7 +115,9 @@ export async function GET(
       // Objeto plan para compatibilidad con UI existente
       plan: {
         id:             a.id,
-        nombre:         a.nivel === 'preparatoria' ? 'Preparatoria' : 'Secundaria',
+        nombre:         a.nivel === 'preparatoria' ? 'Preparatoria'
+                      : esDiplomado                ? 'Diplomado'
+                      : 'Secundaria',
         duracion_meses: duracion,
         precio_mensual: 0,
       },

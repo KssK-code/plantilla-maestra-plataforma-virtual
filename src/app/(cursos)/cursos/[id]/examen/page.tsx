@@ -47,6 +47,8 @@ export default function ExamenCursoPage() {
   const [confirmar, setConfirmar] = useState(false)
   const [resultado, setResultado] = useState<Calificado | null>(null)
   const [historial, setHistorial] = useState<ResultadoHistorial[]>([])
+  // Arranca en el fallback y se sustituye por el valor del curso al cargar.
+  const [intentosPermitidos, setIntentosPermitidos] = useState(INTENTOS_PERMITIDOS_DEFAULT)
   const [verHistorial, setVerHistorial] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
@@ -65,9 +67,14 @@ export default function ExamenCursoPage() {
         if (!r.ok) throw new Error()
         return r.json()
       })
-      .then((j: { preguntas: PreguntaSanitizada[] } | null) => {
+      .then((j: { preguntas: PreguntaSanitizada[]; intentos_permitidos?: number } | null) => {
         if (!j || cancelled) return
         setPreguntas(j.preguntas)
+        // Límite POR CURSO (cursos.intentos_permitidos). Si la API no lo manda
+        // se conserva el fallback, nunca "sin límite".
+        if (typeof j.intentos_permitidos === 'number' && j.intentos_permitidos > 0) {
+          setIntentosPermitidos(j.intentos_permitidos)
+        }
       })
       .catch(() => { if (!cancelled) setError('No se pudo cargar el examen.') })
       .finally(() => { if (!cancelled) setCargando(false) })
@@ -81,7 +88,7 @@ export default function ExamenCursoPage() {
 
   // El historial trae un renglón por envío, así que los intentos usados salen
   // gratis del fetch que ya se hacía. El límite de verdad lo aplica la ruta.
-  const intentosRestantes = Math.max(0, INTENTOS_PERMITIDOS_DEFAULT - historial.length)
+  const intentosRestantes = Math.max(0, intentosPermitidos - historial.length)
   const sinIntentos = intentosRestantes === 0
 
   const elegir = (preguntaId: string, letra: Letra) =>
@@ -286,7 +293,7 @@ export default function ExamenCursoPage() {
                 Contesta las {total} preguntas y envía. No hay límite de tiempo.{' '}
                 {sinIntentos
                   ? 'Ya usaste todos tus intentos.'
-                  : `Te ${intentosRestantes === 1 ? 'queda' : 'quedan'} ${intentosRestantes} de ${INTENTOS_PERMITIDOS_DEFAULT} ${intentosRestantes === 1 ? 'intento' : 'intentos'}.`}{' '}
+                  : `Te ${intentosRestantes === 1 ? 'queda' : 'quedan'} ${intentosRestantes} de ${intentosPermitidos} ${intentosRestantes === 1 ? 'intento' : 'intentos'}.`}{' '}
                 Al terminar verás la respuesta correcta de las preguntas que hayas contestado.
               </p>
 

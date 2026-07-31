@@ -13,6 +13,8 @@
  *     alumno CONTESTÓ. Ver `calificar()`.
  */
 import type { SupabaseClient } from '@supabase/supabase-js'
+import { limiteVentana } from './acceso'
+import type { CursoVentana, InscripcionVentana } from './acceso'
 import type {
   DesgloseTema,
   Letra,
@@ -28,14 +30,36 @@ const LETRAS: Letra[] = ['a', 'b', 'c', 'd']
 /**
  * Intentos permitidos por alumno en el examen final de un curso.
  *
- * Constante por ahora, a propósito: esta fase es CÓDIGO SOLAMENTE, cero DDL.
- * El límite se cuenta contra las filas ya existentes de curso_examen_resultados
- * (un renglón por envío), así que no hace falta ninguna columna nueva.
+ * El valor REAL vive en cursos.intentos_permitidos (B1), configurable por curso
+ * — mismo nombre y mismo default que evaluaciones.intentos_permitidos en la
+ * vertical de materias, para que el repo tenga una sola convención.
  *
- * TODO(B1): reemplazar por cursos.intentos_permitidos — configurable por curso,
- * igual que evaluaciones.intentos_permitidos en la vertical de materias.
+ * Esta constante queda solo como FALLBACK para el caso en que la columna venga
+ * nula o la lectura falle: preferimos aplicar el límite por defecto a dejar el
+ * examen sin candado. Ver `leerIntentosPermitidos()`.
  */
 export const INTENTOS_PERMITIDOS_DEFAULT = 3
+
+/**
+ * Intentos permitidos de un curso concreto.
+ *
+ * Si la columna es nula o la consulta falla, cae al default en vez de devolver
+ * "sin límite": un error de lectura NO puede abrir el candado. Es la misma
+ * regla que aplica el resto del módulo — fallar cerrado, nunca abierto.
+ */
+export async function leerIntentosPermitidos(
+  admin: SupabaseClient,
+  cursoId: string
+): Promise<number> {
+  const { data } = await admin
+    .from('cursos')
+    .select('intentos_permitidos')
+    .eq('id', cursoId)
+    .single()
+
+  const n = (data as { intentos_permitidos: number | null } | null)?.intentos_permitidos
+  return typeof n === 'number' && n > 0 ? n : INTENTOS_PERMITIDOS_DEFAULT
+}
 
 export const esLetra = (v: unknown): v is Letra =>
   typeof v === 'string' && (LETRAS as string[]).includes(v)
@@ -75,6 +99,50 @@ export async function puedeVerCurso(
     .eq('id', cursoId)
     .maybeSingle()
   return Boolean(data)
+}
+
+/**
+ * ¿El alumno puede presentar el EXAMEN FINAL del curso?
+ *
+ * ⚠️ ESTE GATE ES OBLIGATORIO EN CÓDIGO, no lo cubre la RLS. Las tres rutas del
+ * examen leen con `createAdminClient()` (service_role) porque
+ * curso_examen_preguntas es solo-admin, y el service_role **bypasea RLS**. La
+ * ventana de pago de la migración B2 no las protege: aquí el candado es esto.
+ *
+ * REGLA: el examen final exige el curso COMPLETO liberado — techo de la ventana
+ * ≥ número de módulos. No se puede presentar el examen final de un diplomado
+ * del que se pagó 1 de 6 meses. Con 0 módulos (un curso que es solo examen)
+ * la condición se reduce a "al menos un mes pagado", que es lo razonable.
+ *
+ * Falla cerrado: sin inscripción, suspendida, vencida o curso no publicado →
+ * `limiteVentana` devuelve 0 y esto es false.
+ */
+export async function puedeExamenFinal(
+  admin: SupabaseClient,
+  cursoId: string,
+  alumnoId: string
+): Promise<boolean> {
+  const { data: insc } = await admin
+    .from('curso_inscripciones')
+    .select('meses_desbloqueados, estado, fecha_vencimiento')
+    .eq('curso_id', cursoId)
+    .eq('alumno_id', alumnoId)
+    .maybeSingle()
+  if (!insc) return false
+
+  const { data: curso } = await admin
+    .from('cursos')
+    .select('modulos_por_mes, estado')
+    .eq('id', cursoId)
+    .maybeSingle()
+
+  const { count } = await admin
+    .from('curso_modulos')
+    .select('id', { count: 'exact', head: true })
+    .eq('curso_id', cursoId)
+
+  const limite = limiteVentana(insc as InscripcionVentana, (curso ?? null) as CursoVentana | null)
+  return limite > 0 && limite >= (count ?? 0)
 }
 
 /** Quita clave y explicación. Es la única forma en que una pregunta sale al cliente. */

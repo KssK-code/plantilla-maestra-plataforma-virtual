@@ -38,6 +38,20 @@ const TIPOS_SECUNDARIA: DocTipo[] = [
   'foto_perfil_doc',
 ]
 
+/**
+ * B7 — Documentos de un alumno de diplomado.
+ *
+ * Solo lo transversal. NO se le pide certificado de secundaria ni de primaria:
+ * un instituto que solo vende diplomados no acredita estudios previos, y sin
+ * esta lista el alumno caía en TIPOS_PREPA y la app le exigía un certificado de
+ * secundaria que nadie le va a revisar.
+ */
+const TIPOS_DIPLOMADO: DocTipo[] = [
+  'curp',
+  'identificacion_oficial',
+  'foto_perfil_doc',
+]
+
 const TIPO_LABEL: Record<DocTipo, string> = {
   acta_nacimiento:        'Acta de Nacimiento',
   curp:                   'CURP',
@@ -145,8 +159,13 @@ export default function DocumentosPage() {
     </div>
   )
 
-  const esSecundaria = planNombre.toLowerCase().includes('ecundaria')
-  const tiposActivos = esSecundaria ? TIPOS_SECUNDARIA : TIPOS_PREPA
+  // El orden importa: 'ecundaria' se comprueba PRIMERO para que secundaria y
+  // preparatoria den exactamente el mismo resultado que antes de B7. La rama de
+  // diplomado se intercala antes del fallback, que sigue siendo prepa.
+  const plan = planNombre.toLowerCase()
+  const tiposActivos = plan.includes('ecundaria') ? TIPOS_SECUNDARIA
+                     : plan.includes('iplomado')  ? TIPOS_DIPLOMADO
+                     : TIPOS_PREPA
   const docMap = new Map(documentos.map(d => [d.tipo, d]))
 
   return (

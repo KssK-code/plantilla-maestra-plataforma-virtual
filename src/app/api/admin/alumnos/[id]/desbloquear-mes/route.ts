@@ -32,7 +32,7 @@ export async function POST(
     // ── Obtener alumno ────────────────────────────────────────────────────────
     const { data: alumno, error: fetchError } = await admin
       .from('alumnos')
-      .select('id, meses_desbloqueados, modalidad')
+      .select('id, meses_desbloqueados, modalidad, nivel')
       .eq('id', params.id)
       .single()
 
@@ -40,7 +40,20 @@ export async function POST(
       return NextResponse.json({ error: 'Alumno no encontrado' }, { status: 404 })
     }
 
-    const a = alumno as { id: string; meses_desbloqueados: number; modalidad?: string }
+    const a = alumno as { id: string; meses_desbloqueados: number; modalidad?: string; nivel?: string }
+
+    // B7 — `alumnos.meses_desbloqueados` es la ventana del PROGRAMA, una columna
+    // DISTINTA de `curso_inscripciones.meses_desbloqueados`, que es la que
+    // gobierna el acceso al diplomado. Abrir aquí un mes a un alumno de
+    // diplomado no le libera ni un módulo: solo ensucia el dato y contamina el
+    // promedio de meses del reporte. Se cierra en el servidor, no en la UI.
+    if (a.nivel === 'diplomado') {
+      return NextResponse.json(
+        { error: 'Este alumno no cursa un programa. Los meses de su diplomado se abren desde la ficha del curso.' },
+        { status: 400 }
+      )
+    }
+
     const duracion = getMesesByModalidad(a.modalidad)
 
     if (a.meses_desbloqueados >= duracion) {

@@ -20,6 +20,11 @@ CREATE INDEX IF NOT EXISTS idx_pagos_fecha_pago ON public.pagos (fecha_pago DESC
 
 -- 2) Reportes de ingresos: agrupar por fecha_pago (DATE) en vez de created_at.
 --    fecha_pago no tiene zona horaria, así que se elimina el AT TIME ZONE.
+-- ⚠️ `DROP IF EXISTS` por la misma razón que en 20260716150000: B6 amplía estas
+-- funciones a cuatro columnas y sin esto el replay de la cadena muere aquí
+-- (Bug 80). No-op en instalación fresca. Los grants se re-aplican al final de
+-- este mismo archivo, así que el DROP no deja la función abierta (Bug 77).
+DROP FUNCTION IF EXISTS public.reporte_ingresos_semanales(integer);
 CREATE OR REPLACE FUNCTION public.reporte_ingresos_semanales(num_semanas integer DEFAULT 8)
 RETURNS TABLE (semana_inicio date, total numeric)
 LANGUAGE sql STABLE
@@ -40,6 +45,7 @@ AS $$
    ORDER BY s.inicio;
 $$;
 
+DROP FUNCTION IF EXISTS public.reporte_ingresos_mensuales(integer);   -- ver nota de arriba (Bug 80)
 CREATE OR REPLACE FUNCTION public.reporte_ingresos_mensuales(num_meses integer DEFAULT 6)
 RETURNS TABLE (mes text, total numeric)
 LANGUAGE sql STABLE

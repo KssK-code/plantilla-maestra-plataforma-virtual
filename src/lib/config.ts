@@ -1,4 +1,21 @@
 export const CONFIG = {
+  // === MODO DE PRODUCTO (línea Solo-Cursos, B7) ===
+  // 'tradicional' → secundaria/preparatoria con materias, meses y evaluaciones.
+  //                 Cursos y Diplomados sigue disponible como COMPLEMENTO,
+  //                 exactamente igual que hoy.
+  // 'solo_cursos' → el instituto solo vende diplomados: la superficie principal
+  //                 son los cursos y desaparece el programa académico.
+  //
+  // ⚠️ DEFAULT 'tradicional' A PROPÓSITO: 144 clientes comparten esta plantilla
+  // y con este valor la app es IDÉNTICA a la de antes de B7.
+  //
+  // ⚠️ EL `as ModoPlataforma` NO SOBRA. El objeto entero lleva `as const` (línea
+  // final), que estrecharía el tipo de esta clave al literal 'tradicional'. Con
+  // ese tipo, `CONFIG.modo === 'solo_cursos'` no compila: TypeScript lo marca
+  // como comparación imposible (TS2367) porque los dos literales no se solapan.
+  // Es el mismo escape que ya usa `landing.testimonios` con `as Array<…>`.
+  modo:            'tradicional' as ModoPlataforma,
+
   // === IDENTIDAD DEL CLIENTE ===
   nombre:          'MEV',                    // nombre corto: 'IVS', 'CJVB', 'ADE'
   nombreCompleto:  'Mi Escuela Virtual',     // nombre completo legal
@@ -98,9 +115,41 @@ export const CONFIG = {
     certificacion_secundaria:   4900,
     certificacion_preparatoria: 5900,
     cct:                        '',
+
+    // === CATÁLOGO DE DIPLOMADOS (línea Solo-Cursos, B5) ===
+    // ⚠️ DEFAULT false A PROPÓSITO. Esta plantilla sirve a 144 clientes de
+    // secundaria/preparatoria cuya landing no debe cambiar ni un pixel. B7 lo
+    // enciende solo para los clientes Solo-Cursos.
+    mostrarCatalogoCursos:      false,
+    catalogoTitulo:             'Nuestros diplomados',
+    // Texto NEUTRO: igual que en el diploma (B4), el default NO dice "validez
+    // oficial", "SEP" ni "RVOE". Eso solo lo agrega quien acredite su registro.
+    catalogoSubtitulo:          'Programas especializados, con acompañamiento y material descargable.',
   },
 
   cct: '',
+
+  // === DIPLOMAS DE LA LINEA SOLO-CURSOS (B4) ===
+  // El folio de la constancia es CONSECUTIVO y sale de una secuencia de Postgres
+  // (curso_folio_seq). El prefijo es de NIVEL CLIENTE, no por curso: la secuencia
+  // es global, asi que prefijos distintos por curso darian numeraciones salteadas
+  // dentro de cada prefijo — y un libro de folios con huecos no sirve para
+  // verificar nada. B7 lo fija al provisionar.
+  diploma: {
+    /** Prefijo del folio. Resultado: `${folioPrefijo}-00001`, `-00002`, ... */
+    folioPrefijo: 'CONST',
+    /**
+     * Etiqueta del documento. NEUTRA a proposito: 'Constancia' / 'Diploma' /
+     * 'Certificado'. NO poner aqui "con validez oficial", "SEP" ni "RVOE" —
+     * eso solo lo agrega un cliente que acredite su propio registro, y ponerlo
+     * por default seria afirmar algo legalmente falso en nombre de todos.
+     */
+    etiqueta: 'Constancia',
+    /** Ruta de la firma escaneada (PNG con alfa). Vacio = sin firma. */
+    firma: '',
+    /** Cargo bajo la firma. */
+    firmaCargo: 'Dirección Académica',
+  },
 
   redes: {
     facebook:  '',
@@ -115,3 +164,14 @@ export default CONFIG
 
 export type Nivel = typeof CONFIG.niveles[number]
 export type Modalidad = typeof CONFIG.modalidades[number]
+
+/**
+ * Modo de producto del cliente (B7).
+ *
+ * Se declara aquí abajo y se usa arriba en `CONFIG.modo`: los tipos de
+ * TypeScript se elevan, así que el orden del archivo no importa.
+ *
+ * Los helpers para preguntar por el modo NO viven aquí — están en
+ * `src/lib/modo.ts`, junto con lo que cada modo oculta.
+ */
+export type ModoPlataforma = 'tradicional' | 'solo_cursos'

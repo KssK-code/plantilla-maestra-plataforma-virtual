@@ -2,6 +2,7 @@ import Link from 'next/link'
 import { createClient as createServiceClient } from '@supabase/supabase-js'
 import { CONFIG } from '@/lib/config'
 import { getMesesByModalidad } from '@/lib/modalidades'
+import { esSoloCursos } from '@/lib/modo'
 
 // ─── helpers ──────────────────────────────────────────────────────────────────
 function getServiceClient() {
@@ -44,6 +45,12 @@ function StatCard({
 // ─── badge ────────────────────────────────────────────────────────────────────
 function NivelBadge({ nivel }: { nivel?: string | null }) {
   const isPrepa = nivel === 'preparatoria'
+  // B7 — 'diplomado' tenía que caer en 'Sin nivel'. Aditivo: antes de B7 ningún
+  // camino podía crear ese nivel, así que ningún alumno existente cambia.
+  const label = isPrepa ? 'Preparatoria'
+    : nivel === 'secundaria' ? 'Secundaria'
+    : nivel === 'diplomado'  ? 'Diplomado'
+    : 'Sin nivel'
   return (
     <span
       className="inline-block px-2 py-0.5 rounded-full text-xs font-semibold"
@@ -52,7 +59,7 @@ function NivelBadge({ nivel }: { nivel?: string | null }) {
         color:      isPrepa ? 'var(--color-acento)' : 'var(--color-primario)',
       }}
     >
-      {isPrepa ? 'Preparatoria' : nivel === 'secundaria' ? 'Secundaria' : 'Sin nivel'}
+      {label}
     </span>
   )
 }
@@ -66,6 +73,8 @@ export default async function AdminDashboardPage() {
     .from('alumnos')
     .select('*', { count: 'exact', head: true })
 
+  const soloCursos = esSoloCursos()
+
   // Por nivel
   const { count: totalPrepa } = await supabase
     .from('alumnos')
@@ -76,6 +85,25 @@ export default async function AdminDashboardPage() {
     .from('alumnos')
     .select('*', { count: 'exact', head: true })
     .eq('nivel', 'secundaria')
+
+  // B7 — cifras del vertical de diplomados, solo en solo_cursos. Se consultan
+  // únicamente en ese modo para no agregar dos queries por carga a los 144
+  // clientes tradicionales, que no las van a mostrar.
+  let inscripcionesActivas: number | null = null
+  let totalDiplomados: number | null = null
+  if (soloCursos) {
+    const { count: insc } = await supabase
+      .from('curso_inscripciones')
+      .select('*', { count: 'exact', head: true })
+      .eq('estado', 'activa')
+    inscripcionesActivas = insc ?? 0
+
+    const { count: dip } = await supabase
+      .from('cursos')
+      .select('*', { count: 'exact', head: true })
+      .eq('estado', 'publicado')
+    totalDiplomados = dip ?? 0
+  }
 
   // Registros este mes
   const inicioMes = new Date()
@@ -134,7 +162,13 @@ export default async function AdminDashboardPage() {
       {/* Stats grid */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
         <StatCard emoji="👥" label="Total alumnos"       value={totalAlumnos ?? 0} />
-        <StatCard emoji="🎓" label="Preparatoria"        value={totalPrepa ?? 0}   sub={`${totalSecundaria ?? 0} en Secundaria`} color="var(--color-primario)" />
+        {/* B7 — en solo_cursos nadie tiene nivel de programa: la tarjeta de
+            Preparatoria/Secundaria marcaría 0 y 0 al lado de «Total alumnos
+            300». Se sustituye por lo que sí significa algo en este modo.
+            En tradicional queda exactamente la de siempre. */}
+        {soloCursos
+          ? <StatCard emoji="🎓" label="Inscripciones activas" value={inscripcionesActivas ?? 0} sub={`${totalDiplomados ?? 0} diplomado${totalDiplomados === 1 ? '' : 's'} publicado${totalDiplomados === 1 ? '' : 's'}`} color="var(--color-primario)" />
+          : <StatCard emoji="🎓" label="Preparatoria"        value={totalPrepa ?? 0}   sub={`${totalSecundaria ?? 0} en Secundaria`} color="var(--color-primario)" />}
         <StatCard emoji="📅" label="Registros este mes"  value={esteMes ?? 0}      color="#22C55E" />
         <StatCard emoji="📄" label="Docs. pendientes"    value={docsPendientes ?? 0} color="#F59E0B" />
       </div>
@@ -171,7 +205,13 @@ export default async function AdminDashboardPage() {
             <table className="w-full text-sm">
               <thead>
                 <tr style={{ borderBottom: '1px solid #F0F4F8' }}>
-                  {['Nombre', 'Email', 'Nivel', 'Meses', 'Registro'].map(col => (
+                  {/* B7 — la columna «Meses» es la ventana del PROGRAMA. En
+                      solo_cursos el numerador siempre es 0 y el denominador un
+                      plan que el alumno no cursa: se quita en vez de pintar
+                      «0/3» en todas las filas. */}
+                  {(soloCursos
+                    ? ['Nombre', 'Email', 'Nivel', 'Registro']
+                    : ['Nombre', 'Email', 'Nivel', 'Meses', 'Registro']).map(col => (
                     <th key={col} className="px-5 py-3 text-left text-xs font-semibold"
                       style={{ color: 'var(--color-texto-secundario)', textTransform: 'uppercase', letterSpacing: '0.06em' }}>
                       {col}
@@ -205,12 +245,14 @@ export default async function AdminDashboardPage() {
                     <td className="px-5 py-3.5">
                       <NivelBadge nivel={a.nivel} />
                     </td>
-                    <td className="px-5 py-3.5">
-                      <span style={{ color: 'var(--color-primario)', fontVariantNumeric: 'tabular-nums' }}>
-                        {a.meses_desbloqueados ?? 0}
-                        <span style={{ color: 'var(--color-texto-secundario)' }}>/{duracion(a)}</span>
-                      </span>
-                    </td>
+                    {!soloCursos && (
+                      <td className="px-5 py-3.5">
+                        <span style={{ color: 'var(--color-primario)', fontVariantNumeric: 'tabular-nums' }}>
+                          {a.meses_desbloqueados ?? 0}
+                          <span style={{ color: 'var(--color-texto-secundario)' }}>/{duracion(a)}</span>
+                        </span>
+                      </td>
+                    )}
                     <td className="px-5 py-3.5" style={{ color: 'var(--color-texto-secundario)' }}>
                       {formatDate(a.created_at)}
                     </td>

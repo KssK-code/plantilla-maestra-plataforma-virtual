@@ -3,6 +3,7 @@ import { createClient } from '@/lib/supabase/server'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { verifyAdmin } from '@/lib/supabase/verify-admin'
 import { signedUrl } from '@/lib/cursos/storage'
+import { validarParametrosCurso } from '@/lib/cursos/parametros'
 import type { Curso, CursoListItem } from '@/types/cursos'
 
 // ─── GET /api/admin/cursos — lista con contadores y portada firmada ──────────
@@ -86,10 +87,17 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "tipo debe ser 'curso' o 'diplomado'" }, { status: 400 })
     }
 
+    // B7/T3 — parámetros comerciales opcionales al crear. Los que no vengan se
+    // quedan con el DEFAULT de la tabla (precios 0, modulos_por_mes 2,
+    // intentos_permitidos 3), que es justo lo que pasaba antes de B7: el alta
+    // desde el formulario "Nuevo curso" no los manda y no cambia de conducta.
+    const params = validarParametrosCurso(body as Record<string, unknown>)
+    if (!params.ok) return NextResponse.json({ error: params.error }, { status: 400 })
+
     const admin = createAdminClient()
     const { data: curso, error } = await admin
       .from('cursos')
-      .insert({ nombre, descripcion, tipo, estado: 'borrador' })
+      .insert({ nombre, descripcion, tipo, estado: 'borrador', ...params.updates })
       .select()
       .single()
 

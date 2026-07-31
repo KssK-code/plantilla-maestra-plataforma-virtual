@@ -2,6 +2,13 @@
 > Para crear un nuevo cliente:  
 > clic en "Use this template" → sigue [SETUP.md](./SETUP.md)
 
+> 🎓 **Línea Solo-Cursos (diplomados).** La plantilla sirve a dos productos:
+> el programa académico de siempre (secundaria/preparatoria) y los diplomados.
+> Lo decide `CONFIG.modo`, que por defecto es `'tradicional'` — con ese valor la
+> app es idéntica a la de siempre.
+> - Cómo está construido: [SOLO-CURSOS-ARQUITECTURA.md](./SOLO-CURSOS-ARQUITECTURA.md)
+> - Provisionar un cliente Solo-Cursos: [INSTRUCCIONES-SOLO-CURSOS.md](./INSTRUCCIONES-SOLO-CURSOS.md)
+
 This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
 
 ## Getting Started

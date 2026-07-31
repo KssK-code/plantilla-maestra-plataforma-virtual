@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { createAdminClient } from '@/lib/supabase/admin'
-import { puedeVerCurso } from '@/lib/cursos/examen'
+import { puedeExamenFinal, puedeVerCurso } from '@/lib/cursos/examen'
 import type { ResultadoHistorial } from '@/types/cursos-examen'
 
 // ─── GET /api/alumno/cursos/[id]/examen/resultados ───────────────────────────
@@ -24,6 +24,14 @@ export async function GET(
     // Se filtra por alumno_id del usuario en sesión: aunque se use el cliente
     // admin, un alumno nunca puede pedir el historial de otro.
     const admin = createAdminClient()
+
+    // Mismo gate que el GET del examen. El historial no revela preguntas, pero
+    // si el alumno no puede presentar el examen tampoco tiene historial que ver,
+    // y dejarlo abierto delataria cuantos intentos existen.
+    if (!(await puedeExamenFinal(admin, params.id, user.id))) {
+      return NextResponse.json({ total_intentos: 0, mejor_porcentaje: null, historial: [] })
+    }
+
     const { data } = await admin
       .from('curso_examen_resultados')
       .select('id, aciertos, total, porcentaje, created_at')
