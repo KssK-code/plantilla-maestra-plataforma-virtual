@@ -1,4 +1,21 @@
 export const CONFIG = {
+  // === MODO DE PRODUCTO (línea Solo-Cursos, B7) ===
+  // 'tradicional' → secundaria/preparatoria con materias, meses y evaluaciones.
+  //                 Cursos y Diplomados sigue disponible como COMPLEMENTO,
+  //                 exactamente igual que hoy.
+  // 'solo_cursos' → el instituto solo vende diplomados: la superficie principal
+  //                 son los cursos y desaparece el programa académico.
+  //
+  // ⚠️ DEFAULT 'tradicional' A PROPÓSITO: 144 clientes comparten esta plantilla
+  // y con este valor la app es IDÉNTICA a la de antes de B7.
+  //
+  // ⚠️ EL `as ModoPlataforma` NO SOBRA. El objeto entero lleva `as const` (línea
+  // final), que estrecharía el tipo de esta clave al literal 'tradicional'. Con
+  // ese tipo, `CONFIG.modo === 'solo_cursos'` no compila: TypeScript lo marca
+  // como comparación imposible (TS2367) porque los dos literales no se solapan.
+  // Es el mismo escape que ya usa `landing.testimonios` con `as Array<…>`.
+  modo:            'tradicional' as ModoPlataforma,
+
   // === IDENTIDAD DEL CLIENTE ===
   nombre:          'MEV',                    // nombre corto: 'IVS', 'CJVB', 'ADE'
   nombreCompleto:  'Mi Escuela Virtual',     // nombre completo legal
@@ -147,3 +164,14 @@ export default CONFIG
 
 export type Nivel = typeof CONFIG.niveles[number]
 export type Modalidad = typeof CONFIG.modalidades[number]
+
+/**
+ * Modo de producto del cliente (B7).
+ *
+ * Se declara aquí abajo y se usa arriba en `CONFIG.modo`: los tipos de
+ * TypeScript se elevan, así que el orden del archivo no importa.
+ *
+ * Los helpers para preguntar por el modo NO viven aquí — están en
+ * `src/lib/modo.ts`, junto con lo que cada modo oculta.
+ */
+export type ModoPlataforma = 'tradicional' | 'solo_cursos'

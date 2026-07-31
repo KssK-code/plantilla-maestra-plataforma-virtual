@@ -925,6 +925,23 @@ AS $$
        GROUP BY p.alumno_id
     ) up ON up.alumno_id = a.id
    WHERE a.activo = true
+     -- B7/T4: fuera los alumnos que solo cursan diplomados. No tienen
+     -- obligaciones del PROGRAMA, así que salían con «Al corriente» y
+     -- «Sin pagos registrados» — datos ciertos, fila que no debería existir.
+     -- El alumno HÍBRIDO (nivel de programa + inscrito a un diplomado) SIGUE
+     -- apareciendo: su fila del programa es legítima.
+     --
+     -- Este filtro SÍ vive en el schema base, a diferencia de los de B6:
+     -- `alumnos.nivel` es una columna del base y su CHECK ya admite
+     -- 'diplomado' (línea 33). No depende del módulo opcional de Cursos, así
+     -- que este archivo sigue pudiendo correrse solo. Verificado sobre una
+     -- base limpia.
+     --
+     -- `IS DISTINCT FROM` y no `<>`: `nivel` es nullable y con `<>` una fila
+     -- con NULL daría NULL, el WHERE la tomaría como falsa y el alumno sin
+     -- nivel DESAPARECERÍA del reporte — justo al que hay que ver para notar
+     -- que le falta el dato.
+     AND a.nivel IS DISTINCT FROM 'diplomado'
    ORDER BY u.nombre, u.apellidos;
 $$;
 -- REPORTES DE INGRESOS — agregación por semana y mes (Fase 4)

@@ -11,6 +11,7 @@ import {
 import { createClient } from '@/lib/supabase/client'
 import type { UserRole } from '@/types'
 import { CONFIG } from '@/lib/config'
+import { esSoloCursos } from '@/lib/modo'
 
 interface NavItem {
   label: string
@@ -46,6 +47,45 @@ const NAV_ITEMS: Record<UserRole, NavItem[]> = {
   ],
 }
 
+/**
+ * Menús del modo SOLO-CURSOS (B7).
+ *
+ * Se declaran como listas APARTE en vez de filtrar las de arriba. Filtrar
+ * obligaría a tocar `NAV_ITEMS`, y `NAV_ITEMS` es exactamente lo que no puede
+ * moverse para los 144 clientes tradicionales: mientras estas listas vivan en su
+ * propia constante, el modo tradicional no puede romperse por accidente al
+ * editar el de diplomados.
+ *
+ * ALUMNO: sin materias, sin calificaciones del programa, sin la constancia
+ * tradicional (que asume materias acreditadas — la del diplomado se descarga
+ * desde el propio curso). Quedan sus diplomados y sus documentos, que son
+ * transversales: CURP, acta e identificación se piden igual.
+ *
+ * ADMIN: fuera Contenido (materias/meses del programa) y Estado de Cuenta (que
+ * en este modo sale siempre vacío — ver T4). Entra Reportes, que es donde vive
+ * el desglose de diplomados de B6.
+ */
+const NAV_ITEMS_SOLO_CURSOS: Record<UserRole, NavItem[]> = {
+  ADMIN: [
+    { label: 'Dashboard',      href: '/admin',               emoji: '🏠', icon: LayoutDashboard },
+    { label: 'Alumnos',        href: '/admin/alumnos',       emoji: '👥', icon: Users           },
+    { label: 'Diplomados',     href: '/admin/cursos',        emoji: '🎓', icon: GraduationCap   },
+    { label: 'Reportes',       href: '/admin/reportes',      emoji: '📊', icon: BarChart3       },
+    { label: 'Documentos',     href: '/admin/documentos',    emoji: '📄', icon: FolderOpen      },
+    { label: 'Usuarios',       href: '/admin/usuarios',      emoji: '🛡️', icon: Users           },
+    { label: 'Configuración',  href: '/admin/configuracion', emoji: '⚙️', icon: Settings        },
+  ],
+  // El secretario cobra. Estado de Cuenta es del programa y aquí no aplica, así
+  // que se queda con Alumnos, desde donde registra los pagos del diplomado.
+  SECRETARIO: [
+    { label: 'Alumnos',        href: '/admin/alumnos',       emoji: '👥', icon: Users     },
+  ],
+  ALUMNO: [
+    { label: 'Mis Diplomados', href: '/alumno/cursos',       emoji: '🎓', icon: GraduationCap },
+    { label: 'Mis Documentos', href: '/alumno/documentos',   emoji: '📄', icon: FolderOpen    },
+  ],
+}
+
 interface SidebarProps {
   role:      UserRole
   userName:  string
@@ -62,14 +102,24 @@ export function Sidebar({ role, userName, avatarUrl, nivel, isOpen, onClose }: S
   // El alumno solo ve "Cursos y Diplomados" si tiene ≥1 curso publicado asignado
   const [tieneCursos, setTieneCursos] = useState(false)
 
-  // Se agrega al FINAL (no en medio) para no desplazar 'Constancia' fuera de
-  // los 5 ítems que muestra la barra inferior en móvil.
-  const navItems = role === 'ALUMNO' && tieneCursos
-    ? [
-        ...NAV_ITEMS.ALUMNO,
-        { label: 'Cursos y Diplomados', href: '/alumno/cursos', emoji: '🎓', icon: GraduationCap },
-      ]
-    : NAV_ITEMS[role]
+  // B7 — En modo solo_cursos el menú es otro y NO depende de `tieneCursos`: los
+  // diplomados son la única superficie, así que la entrada tiene que estar
+  // siempre. Si dependiera del fetch, un alumno recién inscrito (o con el
+  // endpoint caído) se quedaría con un menú de UNA entrada y sin forma de
+  // llegar a sus cursos.
+  //
+  // En modo tradicional esta expresión es EXACTAMENTE la de antes de B7.
+  const soloCursos = esSoloCursos()
+  const navItems = soloCursos
+    ? NAV_ITEMS_SOLO_CURSOS[role]
+    // Se agrega al FINAL (no en medio) para no desplazar 'Constancia' fuera de
+    // los 5 ítems que muestra la barra inferior en móvil.
+    : role === 'ALUMNO' && tieneCursos
+      ? [
+          ...NAV_ITEMS.ALUMNO,
+          { label: 'Cursos y Diplomados', href: '/alumno/cursos', emoji: '🎓', icon: GraduationCap },
+        ]
+      : NAV_ITEMS[role]
 
   useEffect(() => {
     if (role !== 'ADMIN') return
@@ -89,6 +139,10 @@ export function Sidebar({ role, userName, avatarUrl, nivel, isOpen, onClose }: S
 
   useEffect(() => {
     if (role !== 'ALUMNO') return
+    // B7 — en solo_cursos el menú no consulta este endpoint: la entrada de
+    // diplomados está siempre. Pedirlo igual sería una petición por carga de
+    // página cuya respuesta nadie lee.
+    if (esSoloCursos()) return
     let cancelled = false
     fetch('/api/alumno/cursos/tiene')
       .then(r => r.ok ? r.json() : { tiene: false })
@@ -110,7 +164,14 @@ export function Sidebar({ role, userName, avatarUrl, nivel, isOpen, onClose }: S
     return pathname.startsWith(href)
   }
 
-  const nivelLabel = nivel === 'preparatoria' ? 'Preparatoria' : nivel === 'secundaria' ? 'Secundaria' : null
+  // B7 — 'diplomado' entra en la etiqueta. Sin esto caía al ramal genérico y el
+  // alumno de un instituto de diplomados veía «Alumno» a secas. Es estrictamente
+  // aditivo: antes de B7 ningún camino podía crear un alumno con ese nivel, así
+  // que no cambia lo que ve nadie en un cliente tradicional de hoy.
+  const nivelLabel = nivel === 'preparatoria' ? 'Preparatoria'
+    : nivel === 'secundaria'  ? 'Secundaria'
+    : nivel === 'diplomado'   ? 'Diplomado'
+    : null
 
   const isAlumno = role === 'ALUMNO'
 

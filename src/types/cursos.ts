@@ -13,6 +13,19 @@ export interface Curso {
   orden: number
   created_at: string
   updated_at: string
+  // ── Parámetros comerciales y de ritmo (columnas de B1, editables desde B7) ──
+  /** Cuota única de inscripción al diplomado. 0 = sin inscripción. */
+  precio_inscripcion: number
+  /** Mensualidad del diplomado. La usa B3 como monto por defecto al cobrar. */
+  precio_mensualidad: number
+  /** Horas que declara el diplomado; sale en la constancia y en el catálogo. */
+  horas: number | null
+  /** Tope de meses que se pueden abrir. NULL = sin tope fijo (lo deduce B3). */
+  duracion_meses: number | null
+  /** Módulos que libera cada mes pagado. Es el ritmo del gate de B2. */
+  modulos_por_mes: number
+  /** Intentos del examen final del curso. */
+  intentos_permitidos: number
 }
 
 export interface CursoListItem extends Curso {

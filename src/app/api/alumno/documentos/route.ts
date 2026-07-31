@@ -30,7 +30,14 @@ export async function GET() {
     if (error) return NextResponse.json({ error: error.message }, { status: 500 })
 
     const documentos = (rows ?? []).map(row => mapDocumentoAlumnoRow(row as Record<string, unknown>))
-    const plan_nombre = a.nivel === 'secundaria' ? 'Secundaria' : 'Preparatoria'
+    // B7 — `plan_nombre` NO se pinta en esta pantalla: su único uso es decidir
+    // qué documentos son obligatorios. Sin la rama de 'diplomado', un alumno de
+    // diplomado caía al `else` y la app le exigía CERTIFICADO DE SECUNDARIA,
+    // que es justo lo que un instituto de diplomados no acredita.
+    // Aditivo: en tradicional ningún camino crea nivel='diplomado'.
+    const plan_nombre = a.nivel === 'secundaria' ? 'Secundaria'
+                      : a.nivel === 'diplomado'  ? 'Diplomado'
+                      : 'Preparatoria'
 
     return NextResponse.json({
       documentos,

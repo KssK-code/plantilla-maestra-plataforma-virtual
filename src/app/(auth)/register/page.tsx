@@ -8,6 +8,7 @@ import { Mail, Lock, Loader2, Eye, EyeOff, Phone, User, CheckCircle2 } from 'luc
 import { createClient } from '@/lib/supabase/client'
 import { getModalidadesActivas } from '@/lib/modalidades'
 import { CONFIG } from '@/lib/config'
+import { esSoloCursos, aterrizajeAlumno } from '@/lib/modo'
 
 const WA_URL = `https://wa.me/${CONFIG.whatsapp}`
 
@@ -198,6 +199,10 @@ export default function RegisterPage() {
   const [error,           setError]           = useState<string | null>(null)
   const [loading,         setLoading]         = useState(false)
 
+  // B7 — en modo solo_cursos no hay nivel ni modalidad que elegir: el alumno se
+  // inscribe a diplomados, y el servidor le pone nivel='diplomado'.
+  const soloCursos = esSoloCursos()
+
   useEffect(() => { setModalidad('') }, [nivel])
 
   // Derive current progress step
@@ -211,8 +216,10 @@ export default function RegisterPage() {
 
     if (password.length < 8) { setError('La contraseña debe tener al menos 8 caracteres.'); return }
     if (password !== confirmPassword) { setError('Las contraseñas no coinciden.'); return }
-    if (!nivel) { setError('Selecciona tu nivel educativo.'); return }
-    if (!modalidad) { setError('Selecciona la modalidad.'); return }
+    // B7 — en solo_cursos no se piden nivel ni modalidad (el servidor pone
+    // 'diplomado'), así que exigirlos aquí bloquearía el registro entero.
+    if (!soloCursos && !nivel) { setError('Selecciona tu nivel educativo.'); return }
+    if (!soloCursos && !modalidad) { setError('Selecciona la modalidad.'); return }
 
     setLoading(true)
     try {
@@ -259,7 +266,7 @@ export default function RegisterPage() {
         return
       }
 
-      router.push('/alumno')
+      router.push(aterrizajeAlumno())
     } catch {
       setError('Error al crear la cuenta. Intenta de nuevo.')
     } finally {
@@ -400,7 +407,12 @@ export default function RegisterPage() {
               </div>
             </div>
 
-            {/* ─── Sección 3: Plan de estudios ─────────────────────────── */}
+            {/* ─── Sección 3: Plan de estudios ───────────────────────────
+                B7 — La sección entera desaparece en modo solo_cursos: no hay
+                nivel ni modalidad que elegir, porque el alumno se inscribe a
+                diplomados y el ritmo lo fija cada curso. El nivel lo pone el
+                SERVIDOR ('diplomado'); aquí no se manda nada. */}
+            {!soloCursos && (
             <div>
               <SectionHeader step={3} label="Plan de estudios" />
 
@@ -430,6 +442,7 @@ export default function RegisterPage() {
               </div>
 
             </div>
+            )}
 
             {/* Error */}
             {error && (

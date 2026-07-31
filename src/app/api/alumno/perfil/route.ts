@@ -95,7 +95,12 @@ export async function GET() {
         meses_desbloqueados: a.meses_desbloqueados ?? 0,
         inscripcion_pagada:  a.inscripcion_pagada ?? false,
         nivel:               a.nivel ?? null,
-        plan_nombre:         a.nivel === 'preparatoria' ? 'Preparatoria' : 'Secundaria',
+        // B7 — el ternario binario le decía «Secundaria» a un alumno de
+        // diplomado. Aditivo: antes de B7 nada podía crear ese nivel, así que
+        // ningún alumno de un cliente tradicional cambia de etiqueta.
+        plan_nombre:         a.nivel === 'preparatoria' ? 'Preparatoria'
+                           : a.nivel === 'diplomado'    ? 'Diplomado'
+                           : 'Secundaria',
         duracion_meses:      6,
         nombre_completo:     nombreCompleto,
         email:               u?.email ?? user.email ?? '',

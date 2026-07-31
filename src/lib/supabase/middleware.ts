@@ -1,5 +1,6 @@
 import { createServerClient } from '@supabase/ssr'
 import { NextResponse, type NextRequest } from 'next/server'
+import { destinoSiEsRutaDeProgama, aterrizajeAlumno } from '@/lib/modo'
 
 export async function updateSession(request: NextRequest) {
   let supabaseResponse = NextResponse.next({ request })
@@ -51,10 +52,13 @@ export async function updateSession(request: NextRequest) {
 
     // Normalizar rol a mayúsculas para soportar 'admin' y 'ADMIN'
     const rol = (usuario?.rol as string | undefined)?.toUpperCase()
+    // B7 — el alumno aterriza en sus diplomados si el cliente es solo_cursos.
+    // `aterrizajeAlumno()` devuelve '/alumno' en tradicional, así que este mapa
+    // queda idéntico al de antes para los 144.
     const roleRedirects: Record<string, string> = {
       ADMIN: '/admin',
       SECRETARIO: '/admin/alumnos',
-      ALUMNO: '/alumno',
+      ALUMNO: aterrizajeAlumno(),
     }
 
     const destination = rol ? (roleRedirects[rol] ?? '/alumno') : '/alumno'
@@ -97,6 +101,27 @@ export async function updateSession(request: NextRequest) {
     if (isAlumnoRoute && esStaff) {
       const url = request.nextUrl.clone()
       url.pathname = rol === 'SECRETARIO' ? '/admin/alumnos' : '/admin'
+      return NextResponse.redirect(url)
+    }
+
+    // ── B7: rutas del PROGRAMA en modo solo_cursos ──────────────────────────
+    // Ocultar la entrada del menú es UX; la URL sigue existiendo y circula por
+    // WhatsApp o en un favorito viejo. Aquí se ataja server-side para que un
+    // enlace directo a /alumno/materias no aterrice en una pantalla que
+    // consulta materias que este cliente nunca sembró.
+    //
+    // Va DESPUÉS de la comprobación de rol a propósito: primero se decide si la
+    // persona puede estar en esa zona, y solo entonces si la ruta aplica a este
+    // cliente. Al revés, un alumno que pisara /admin/contenido se llevaría un
+    // redirect a /admin (zona que no le corresponde) en vez del de rol.
+    //
+    // En modo tradicional `destinoSiEsRutaDeProgama` devuelve null siempre y
+    // este bloque no hace absolutamente nada.
+    const destinoModo = destinoSiEsRutaDeProgama(request.nextUrl.pathname)
+    if (destinoModo) {
+      const url = request.nextUrl.clone()
+      url.pathname = destinoModo
+      url.search = ''
       return NextResponse.redirect(url)
     }
   }

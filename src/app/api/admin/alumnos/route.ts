@@ -4,6 +4,7 @@ import { createAdminClient } from '@/lib/supabase/admin'
 import { verifyStaff } from '@/lib/supabase/verify-admin'
 import { CONFIG } from '@/lib/config'
 import { getMesesByModalidad, getDefaultModalidadId } from '@/lib/modalidades'
+import { nivelForzadoDeRegistro } from '@/lib/modo'
 
 // ─── Verificar rol ADMIN (normaliza mayúsculas) ───────────────────────────────
 async function checkAdmin(userId: string): Promise<boolean> {
@@ -211,10 +212,19 @@ export async function POST(request: NextRequest) {
     if (!nombre || !email || !password) {
       return NextResponse.json({ error: 'nombre, email y password son requeridos' }, { status: 400 })
     }
+    // ── B7: en solo_cursos el nivel lo decide el SERVIDOR ─────────────────────
+    // Esta es la SEGUNDA puerta que escribe alumnos.nivel (la otra es el
+    // registro público). B7 cerró aquella y sin esto dejaba esta abierta: el
+    // admin que diera de alta a mano en un instituto de diplomados creaba un
+    // alumno 'preparatoria', y `nivel` es write-once — no hay pantalla ni
+    // endpoint para corregirlo después. Las dos puertas tienen que producir
+    // exactamente la misma fila.
+    const nivelForzado = nivelForzadoDeRegistro()   // 'diplomado' | null
+
     // Los valores deben coincidir EXACTAMENTE con alumnos_nivel_check
     // (supabase/schema.sql:30). Aceptar aquí un nivel que la BD rechaza hace
     // que el INSERT falle y que la ruta borre el usuario de Auth recién creado.
-    if (!nivel || !['secundaria', 'preparatoria', 'licenciatura'].includes(nivel)) {
+    if (!nivelForzado && (!nivel || !['secundaria', 'preparatoria', 'licenciatura'].includes(nivel))) {
       return NextResponse.json({ error: 'nivel es requerido (secundaria, preparatoria o licenciatura)' }, { status: 400 })
     }
 
@@ -252,14 +262,18 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: usuarioError.message }, { status: 500 })
     }
 
-    // Insertar en alumnos (nivel + modalidad obligatorios)
+    // Insertar en alumnos. En solo_cursos el nivel lo pone el servidor y la
+    // modalidad va a NULL: es la duración del PROGRAMA (3 o 6 meses de
+    // secundaria/prepa), no del diplomado, cuyo ritmo lo fija el curso con
+    // `modulos_por_mes`. Dejarle `getDefaultModalidadId()` le fabricaría una
+    // `duracion_meses` (columna GENERATED) de un programa que no cursa.
     const { data: alumnoData, error: alumnoError } = await admin
       .from('alumnos')
       .insert({
         id:                  newUserId,
         matricula,
-        nivel:               nivel as 'secundaria' | 'preparatoria' | 'licenciatura',
-        modalidad:           modalidad ?? getDefaultModalidadId(),
+        nivel:               nivelForzado ?? (nivel as 'secundaria' | 'preparatoria' | 'licenciatura'),
+        modalidad:           nivelForzado ? null : (modalidad ?? getDefaultModalidadId()),
         meses_desbloqueados: 0,
       })
       .select()

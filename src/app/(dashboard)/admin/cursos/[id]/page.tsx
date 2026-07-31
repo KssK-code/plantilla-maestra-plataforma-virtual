@@ -175,7 +175,14 @@ export default function EditorCursoPage() {
       {/* Contenido de pestañas */}
       {tab === 'contenido' && (
         <div className="space-y-5">
-          <CursoDatosForm curso={curso} onChanged={onChanged} onError={onError} />
+          {/* `inscritosActivos` alimenta la advertencia de cambio retroactivo:
+              tocar el ritmo con alumnos dentro les mueve la ventana (B2). */}
+          <CursoDatosForm
+            curso={curso}
+            inscritosActivos={inscritos.filter(i => i.estado === 'activa').length}
+            onChanged={onChanged}
+            onError={onError}
+          />
           <div>
             <h2 className="text-base font-bold mb-3" style={{ color: 'var(--color-primario)' }}>
               Módulos y lecciones

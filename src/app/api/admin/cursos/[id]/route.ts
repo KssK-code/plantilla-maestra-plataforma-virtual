@@ -3,6 +3,7 @@ import { createClient } from '@/lib/supabase/server'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { verifyAdmin } from '@/lib/supabase/verify-admin'
 import { removeFolder, signedUrl } from '@/lib/cursos/storage'
+import { validarParametrosCurso } from '@/lib/cursos/parametros'
 import type { Curso, CursoDetalle, CursoInscrito, CursoLeccion, CursoModulo } from '@/types/cursos'
 
 type LeccionRow = Omit<CursoLeccion, 'materialUrl'>
@@ -153,6 +154,16 @@ export async function PATCH(
       }
       updates.estado = body.estado
     }
+
+    // B7/T3 — parámetros comerciales y de ritmo. La validación vive en
+    // src/lib/cursos/parametros.ts, compartida con el POST de creación: los
+    // `min` del formulario son ayuda visual y un curl los ignora.
+    // Ojo con el nombre: `params` ya es el de la ruta de Next ({ id }). Llamar
+    // igual a esto lo sombreaba y `params.id` dejaba de compilar más abajo.
+    const parametros = validarParametrosCurso(body as Record<string, unknown>)
+    if (!parametros.ok) return NextResponse.json({ error: parametros.error }, { status: 400 })
+    Object.assign(updates, parametros.updates)
+
     if (Object.keys(updates).length === 0) {
       return NextResponse.json({ error: 'Nada que actualizar' }, { status: 400 })
     }
