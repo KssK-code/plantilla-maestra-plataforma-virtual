@@ -1,28 +1,25 @@
 /**
- * Emisión de la constancia de curso.
+ * Reglas de aprobación del examen final de curso.
  *
  * LA CADENA COMPLETA, y ninguna pieza sobra:
- *   curso pagado completo (B2/B3) → examen presentado → APROBADO → constancia.
+ *   curso pagado completo (B2/B3) → examen presentado → APROBADO →
+ *   → el ADMIN emite la constancia (B8.2).
  *
- * El avance de lecciones es informativo. Lo que certifica es aprobar el examen
- * final, y el examen final ya exige el curso completo liberado
- * (`puedeExamenFinal`, B2) — así que un diplomado pagado a 1 de 6 meses no
- * puede llegar hasta aquí.
+ * ⚠️ LA EMISIÓN ES MANUAL, Y ES A PROPÓSITO (decisión de producto de B8.2, que
+ * supersede la auto-emisión de B4). Aprobar es la CONDICIÓN de la constancia,
+ * no su gatillo: el folio es permanente e irrepetible, y un humano verificando
+ * antes de congelar el snapshot es feature (lección Bug 78). El único camino de
+ * emisión es POST /api/admin/inscripciones/[id]/constancia, con la sesión del
+ * admin — así el evento de bitácora registra QUIÉN emitió. El guard de "sin
+ * aprobación no hay emisión" vive en la función SQL `curso_emitir_constancia`,
+ * no en el código: nadie lo puede rodear, ni queriendo.
  *
- * Esto reemplaza al folio que se generaba con Math.random() EN EL NAVEGADOR y no
- * se persistía: cambiaba en cada recarga y dos alumnos podían colisionar,
- * mientras el documento decía "para verificar su autenticidad contacte a
- * administración".
+ * Aquí quedan solo las reglas que el `enviar` del examen necesita para dictar
+ * su veredicto (aprobado / no aprobado). `emitirConstanciaSiAprobo` e
+ * `inscripcionDe` se eliminaron con la auto-emisión — no dejar caminos muertos
+ * fue la lección del cadáver `'excel'` de B0.
  */
 import type { SupabaseClient } from '@supabase/supabase-js'
-import { CONFIG } from '@/lib/config'
-
-export interface ConstanciaEmitida {
-  id: string
-  folio: string
-  emitido_en: string
-  ya_existia: boolean
-}
 
 /** Umbral por curso; si faltara, 70 — nunca "sin umbral". */
 export const CALIFICACION_MINIMA_DEFAULT = 70
@@ -42,59 +39,4 @@ export async function leerCalificacionMinima(
 
 export function aprobo(porcentaje: number, minima: number): boolean {
   return Number.isFinite(porcentaje) && porcentaje >= minima
-}
-
-/**
- * Emite la constancia si el alumno aprobó, o devuelve la existente.
- *
- * IDEMPOTENTE: `curso_constancias` tiene UNIQUE (inscripcion_id) y la función de
- * Postgres devuelve la existente en vez de crear otra. Un reintento del examen,
- * o dos envíos aprobatorios simultáneos, no producen dos diplomas ni queman dos
- * folios.
- *
- * NO LANZA: un fallo emitiendo no puede tumbar el envío del examen. El alumno ya
- * contestó y su resultado ya está guardado; si el diploma falla, el admin puede
- * re-emitirlo a mano. Se registra en consola y se devuelve null.
- */
-export async function emitirConstanciaSiAprobo(
-  admin: SupabaseClient,
-  args: { inscripcionId: string; porcentaje: number; calificacionMinima: number }
-): Promise<ConstanciaEmitida | null> {
-  if (!aprobo(args.porcentaje, args.calificacionMinima)) return null
-
-  const { data, error } = await admin.rpc('curso_emitir_constancia', {
-    p_inscripcion_id: args.inscripcionId,
-    p_prefijo: CONFIG.diploma.folioPrefijo,
-    p_calificacion: args.porcentaje,
-  })
-
-  if (error) {
-    console.error('[emitirConstanciaSiAprobo]', error)
-    return null
-  }
-
-  const fila = Array.isArray(data) ? data[0] : data
-  if (!fila) return null
-
-  return {
-    id: fila.id as string,
-    folio: fila.folio as string,
-    emitido_en: fila.emitido_en as string,
-    ya_existia: Boolean(fila.ya_existia),
-  }
-}
-
-/** Inscripción del alumno en ese curso — la constancia cuelga de ella, no del alumno. */
-export async function inscripcionDe(
-  admin: SupabaseClient,
-  cursoId: string,
-  alumnoId: string
-): Promise<string | null> {
-  const { data } = await admin
-    .from('curso_inscripciones')
-    .select('id')
-    .eq('curso_id', cursoId)
-    .eq('alumno_id', alumnoId)
-    .maybeSingle()
-  return (data as { id: string } | null)?.id ?? null
 }

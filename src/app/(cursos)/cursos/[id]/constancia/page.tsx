@@ -32,7 +32,7 @@ interface Constancia {
   calificacion: number | null
 }
 
-type Motivo = 'sin_inscripcion' | 'examen_pendiente' | 'no_aprobado' | null
+type Motivo = 'sin_inscripcion' | 'examen_pendiente' | 'no_aprobado' | 'aprobado_en_emision' | null
 
 const MENSAJE: Record<string, { titulo: string; detalle: string }> = {
   sin_inscripcion: {
@@ -41,11 +41,18 @@ const MENSAJE: Record<string, { titulo: string; detalle: string }> = {
   },
   examen_pendiente: {
     titulo: 'Aún no presentas el examen final',
-    detalle: 'La constancia se emite automáticamente al aprobarlo.',
+    detalle: 'Al aprobarlo, tu institución emite la constancia.',
   },
   no_aprobado: {
     titulo: 'Todavía no apruebas el examen final',
     detalle: 'La constancia se emite al alcanzar la calificación mínima. Puedes volver a intentarlo si te quedan intentos.',
+  },
+  // B8.2 — el estado entre aprobar y tener el documento: la emisión es manual
+  // (el admin verifica y emite). Sin este mensaje, el alumno aprobado veía
+  // "todavía no apruebas", que es mentirle justo en su mejor momento.
+  aprobado_en_emision: {
+    titulo: '¡Examen aprobado! Tu constancia está en emisión',
+    detalle: 'Tu institución la está preparando. En cuanto la emitan, la verás aquí lista para descargar.',
   },
 }
 

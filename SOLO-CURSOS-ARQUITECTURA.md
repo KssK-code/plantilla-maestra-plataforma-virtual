@@ -59,9 +59,22 @@ no puede romper el otro.
 | **B6** | Reportes con desglose por vertical + export CSV | `20260730160000` |
 | **B7** | El modo + autoservicio de parámetros del curso | `20260730170000` |
 | **B8** | QA de cierre, docs, PR | — |
+| **B8.1/B8.2** | Gate E2E contra stack real; replay de la cadena (fix Bug 80); catálogo fresco por `revalidatePath`; **emisión manual con actor** | `20260730180000` |
 
-Las migraciones se aplican **en orden y una sola vez**. Ver el aviso de
-re-ejecución en `SETUP.md` §Paso 3.
+Las migraciones se aplican **en orden**. Desde B8.1 la cadena completa es
+re-ejecutable (dos pasadas limpias, verificado).
+
+### La emisión de constancias es MANUAL — no lo "arregles"
+
+Aprobar el examen es la **condición** de la constancia, no su gatillo. El único
+camino de emisión es `POST /api/admin/inscripciones/[id]/constancia`, **con la
+sesión del admin** — así la bitácora registra quién emitió. Es decisión de
+producto (B8.2, supersede la auto-emisión de B4): el folio es permanente e
+irrepetible y un humano verificando antes de congelar el snapshot es feature
+(Bug 78). Los candados viven en la función SQL, no en el código: sin examen
+aprobado la emisión se rechaza (422), un alumno que la invoque directo recibe
+403 (`es_admin()`), y una llamada con `service_role` **falla a propósito** —
+`auth.uid()` NULL dejaría el evento sin autor, que era el bug.
 
 ## 4. Los archivos que importan
 

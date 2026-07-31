@@ -150,7 +150,12 @@ Prospecto → landing → /diplomados/[id] → WhatsApp → el admin lo inscribe
 2. El admin lo inscribe al diplomado desde `/admin/cursos/[id]` → Alumnos.
 3. Registra el pago. Si es mensualidad, **Abrir mes** libera el siguiente bloque
    de módulos.
-4. Al aprobar el examen, se emite la constancia con su folio.
+4. Al aprobar el examen, **el admin emite la constancia** desde la ficha de la
+   inscripción. **La emisión es manual a propósito** (B8.2): el folio es
+   permanente e irrepetible, así que un humano verifica antes de congelar el
+   documento. No es un paso que falte automatizar — no lo "arregles" de vuelta:
+   el sistema rechaza emitir sin examen aprobado, no duplica folios, y el
+   alumno aprobado ve «constancia en emisión» mientras tanto.
 
 ---
 

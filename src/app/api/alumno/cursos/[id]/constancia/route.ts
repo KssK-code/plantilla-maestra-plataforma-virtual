@@ -42,16 +42,37 @@ export async function GET(
     }
 
     // Sin constancia: se dice POR QUÉ, en vez de un vacío mudo.
-    const { count: intentos } = await supabase
+    //
+    // B8.2 — con la emisión MANUAL existe un estado nuevo entre "aprobó" y
+    // "tiene constancia": el admin aún no emite. Sin distinguirlo, el alumno
+    // aprobado caía en `no_aprobado` y la pantalla le decía que no aprobó
+    // cuando sí lo hizo — mentirle justo en su mejor momento.
+    const { data: resultados } = await supabase
       .from('curso_examen_resultados')
-      .select('id', { count: 'exact', head: true })
+      .select('porcentaje')
       .eq('curso_id', params.id)
       .eq('alumno_id', user.id)
+      .order('porcentaje', { ascending: false })
+      .limit(1)
 
-    return NextResponse.json({
-      constancia: null,
-      motivo: (intentos ?? 0) === 0 ? 'examen_pendiente' : 'no_aprobado',
-    })
+    const mejor = (resultados?.[0] as { porcentaje: number } | undefined)?.porcentaje
+
+    let motivo: 'examen_pendiente' | 'no_aprobado' | 'aprobado_en_emision'
+    if (mejor === undefined) {
+      motivo = 'examen_pendiente'
+    } else {
+      // El umbral real del curso; el alumno puede leer `cursos` de su
+      // inscripción por RLS, y si no llegara, 70 — el mismo default de siempre.
+      const { data: curso } = await supabase
+        .from('cursos')
+        .select('calificacion_minima')
+        .eq('id', params.id)
+        .maybeSingle()
+      const minima = (curso as { calificacion_minima: number | null } | null)?.calificacion_minima ?? 70
+      motivo = mejor >= minima ? 'aprobado_en_emision' : 'no_aprobado'
+    }
+
+    return NextResponse.json({ constancia: null, motivo })
   } catch (err) {
     console.error('[GET /api/alumno/cursos/[id]/constancia]', err)
     return NextResponse.json({ error: 'Error interno del servidor' }, { status: 500 })

@@ -8,9 +8,7 @@ import {
   puedeExamenFinal,
   puedeVerCurso,
 } from '@/lib/cursos/examen'
-import {
-  emitirConstanciaSiAprobo, inscripcionDe, leerCalificacionMinima,
-} from '@/lib/cursos/constancia'
+import { leerCalificacionMinima } from '@/lib/cursos/constancia'
 import type { RespuestaEnviada } from '@/types/cursos-examen'
 
 // ─── POST /api/alumno/cursos/[id]/examen/enviar ──────────────────────────────
@@ -138,21 +136,16 @@ export async function POST(
       return NextResponse.json({ error: 'No se pudo guardar el resultado' }, { status: 500 })
     }
 
-    // ── B4: emisión de la constancia ─────────────────────────────────────────
-    // Aprobar el examen final ES el criterio de emisión. Va DESPUÉS de guardar
-    // el resultado y NO puede tumbar la respuesta: si algo falla emitiendo, el
-    // alumno ya contestó, su resultado está a salvo y el admin re-emite a mano.
-    // La emisión es idempotente (UNIQUE por inscripción), así que un reintento
-    // aprobatorio devuelve el mismo folio en vez de crear un segundo diploma.
+    // ── B8.2: aquí YA NO se emite constancia ─────────────────────────────────
+    // Aprobar es la CONDICIÓN de la constancia, no su gatillo. La emisión es
+    // MANUAL y del admin (POST /api/admin/inscripciones/[id]/constancia), que
+    // verifica y emite a conciencia — el folio es permanente e irrepetible y un
+    // humano delante del snapshot es feature (Bug 78). El guard de "sin
+    // aprobación no hay emisión" vive en la función SQL, así que este cambio no
+    // afloja nada: solo mueve el gatillo.
+    // La UI del alumno muestra "aprobado — constancia en emisión" mientras
+    // tanto (motivo `aprobado_en_emision` del GET de constancia).
     const minima = await leerCalificacionMinima(admin, params.id)
-    const inscripcionId = await inscripcionDe(admin, params.id, alumnoId)
-    const constancia = inscripcionId
-      ? await emitirConstanciaSiAprobo(admin, {
-          inscripcionId,
-          porcentaje,
-          calificacionMinima: minima,
-        })
-      : null
 
     return NextResponse.json({
       id: guardado.id,
@@ -169,9 +162,6 @@ export async function POST(
       // dictaminaba aprobado/no aprobado.
       calificacion_minima: minima,
       aprobado: porcentaje >= minima,
-      constancia: constancia
-        ? { folio: constancia.folio, emitido_en: constancia.emitido_en }
-        : null,
     })
   } catch (err) {
     console.error('[POST /api/alumno/cursos/[id]/examen/enviar]', err)

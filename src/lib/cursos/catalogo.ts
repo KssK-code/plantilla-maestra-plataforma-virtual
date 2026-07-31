@@ -20,6 +20,11 @@
  */
 import { createAdminClient } from '@/lib/supabase/admin'
 
+// La purga del catálogo (revalidatePath al publicar/editar/borrar) vive en
+// src/lib/cursos/purga.ts, NO aquí: este archivo lo importa LandingClient
+// ('use client') por precioMXN, y traer next/cache por esa cadena metía código
+// de caché de servidor al bundle del navegador (+14 kB en la landing de los 144).
+
 /** Lista blanca de campos del catálogo. Todo lo que no esté aquí, no sale. */
 const CAMPOS_CATALOGO =
   'id, nombre, descripcion, tipo, horas, duracion_meses, precio_inscripcion, precio_mensualidad, orden'

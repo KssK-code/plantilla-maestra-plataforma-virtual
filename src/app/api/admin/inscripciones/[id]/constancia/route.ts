@@ -1,17 +1,27 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
-import { createAdminClient } from '@/lib/supabase/admin'
 import { verifyAdmin } from '@/lib/supabase/verify-admin'
 import { CONFIG } from '@/lib/config'
 import { errorDeRpcCurso } from '@/lib/cursos/inscripciones'
 
 // ─── POST /api/admin/inscripciones/[id]/constancia ───────────────────────────
-// Re-emisión MANUAL, para el borde en que la emisión automática del `enviar`
-// falló (un error de red al final del flujo, por ejemplo).
+// LA emisión de la constancia. No es un respaldo de nada: desde B8.2 la emisión
+// es MANUAL y este es el único camino — el admin verifica y emite a conciencia,
+// porque el folio es permanente e irrepetible (decisión de producto, ver
+// SOLO-CURSOS-ARQUITECTURA.md).
 //
-// NUNCA crea una segunda: si ya existe, la función devuelve la existente con
-// ya_existia = true y no quema folio. No hay forma de duplicar un diploma desde
-// aquí, ni queriendo.
+// ⚠️ LA LLAMADA VA CON LA SESIÓN, NO CON service_role. Es la trampa que B3
+// documentó: `curso_emitir_constancia` registra `actor = auth.uid()` en la
+// bitácora, y con service_role eso es NULL — el evento más consecuente del
+// sistema (emitir un folio) quedaba sin autor. Con la sesión, el actor es el
+// admin que emitió, que es además el único dato correcto posible. La función
+// tiene GRANT a authenticated + guard es_admin() interno (patrón B3), así que
+// la sesión del admin pasa y la de un alumno recibe 403.
+//
+// Los guards viven EN LA FUNCIÓN, no aquí: sin examen aprobado no hay emisión
+// (422), y si la constancia ya existe se devuelve la existente sin quemar folio.
+// La calificación del snapshot también la calcula la función — este endpoint ya
+// no manda ninguna: no se confía del caller lo que se va a congelar (Bug 78).
 export async function POST(
   _request: NextRequest,
   { params }: { params: { id: string } }
@@ -23,33 +33,9 @@ export async function POST(
     const denied = await verifyAdmin(supabase, user.id)
     if (denied) return denied
 
-    const admin = createAdminClient()
-
-    // El mejor resultado del alumno en ese curso: es la calificación que se
-    // congela como snapshot en el diploma.
-    const { data: insc } = await admin
-      .from('curso_inscripciones')
-      .select('curso_id, alumno_id')
-      .eq('id', params.id)
-      .maybeSingle()
-    if (!insc) return NextResponse.json({ error: 'Inscripción no encontrada' }, { status: 404 })
-
-    const i = insc as { curso_id: string; alumno_id: string }
-
-    const { data: mejor } = await admin
-      .from('curso_examen_resultados')
-      .select('porcentaje')
-      .eq('curso_id', i.curso_id)
-      .eq('alumno_id', i.alumno_id)
-      .order('porcentaje', { ascending: false })
-      .limit(1)
-
-    const porcentaje = mejor?.[0]?.porcentaje ?? null
-
-    const { data, error } = await admin.rpc('curso_emitir_constancia', {
+    const { data, error } = await supabase.rpc('curso_emitir_constancia', {
       p_inscripcion_id: params.id,
       p_prefijo: CONFIG.diploma.folioPrefijo,
-      p_calificacion: porcentaje,
     })
 
     if (error) {

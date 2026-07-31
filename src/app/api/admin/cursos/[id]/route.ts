@@ -4,6 +4,7 @@ import { createAdminClient } from '@/lib/supabase/admin'
 import { verifyAdmin } from '@/lib/supabase/verify-admin'
 import { removeFolder, signedUrl } from '@/lib/cursos/storage'
 import { validarParametrosCurso } from '@/lib/cursos/parametros'
+import { purgarCatalogoPublico } from '@/lib/cursos/purga'
 import type { Curso, CursoDetalle, CursoInscrito, CursoLeccion, CursoModulo } from '@/types/cursos'
 
 type LeccionRow = Omit<CursoLeccion, 'materialUrl'>
@@ -182,6 +183,14 @@ export async function PATCH(
       return NextResponse.json({ error: error.message }, { status: 500 })
     }
     if (!curso) return NextResponse.json({ error: 'Curso no encontrado' }, { status: 404 })
+
+    // B8.2 — TODO lo que este PATCH puede tocar cambia lo que el público ve:
+    // `estado` decide si el curso aparece, y nombre/descripcion/precios/horas/
+    // duración son exactamente los campos que el catálogo pinta. Sin esta purga,
+    // la landing estática seguía sirviendo el HTML del build y publicar un
+    // diplomado no lo ponía a la venta hasta el siguiente deploy.
+    purgarCatalogoPublico(params.id)
+
     return NextResponse.json(curso)
   } catch (err) {
     console.error('[PATCH /api/admin/cursos/[id]]', err)
@@ -246,6 +255,9 @@ export async function DELETE(
     // Limpieza de storage: materiales ({cursoId}/...) y portadas (portadas/{cursoId}/...)
     await removeFolder(admin, params.id)
     await removeFolder(admin, `portadas/${params.id}`)
+
+    // B8.2 — un curso publicado que se borra debe salir del catálogo sin redeploy.
+    purgarCatalogoPublico(params.id)
 
     return NextResponse.json({ ok: true })
   } catch (err) {
