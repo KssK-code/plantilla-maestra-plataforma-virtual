@@ -169,7 +169,46 @@ Las URLs del programa siguen existiendo pero redirigen: un enlace viejo a
 
 ---
 
-## 6. Checklist de entrega
+## 6. Limitaciones conocidas
+
+Cosas que están así **a propósito**, para que nadie las reporte como defectos ni
+las "arregle" sin saber por qué existen.
+
+### `materias.nivel` no admite `'diplomado'` — y no debe
+
+El CHECK de `materias.nivel` acepta `secundaria`, `preparatoria`, `demo` y
+`licenciatura`. **No** `diplomado`, aunque `alumnos.nivel` sí lo acepte desde B1.
+
+No es un olvido. `materias` es el temario del PROGRAMA académico: meses, semanas,
+evaluaciones, quiz semanal. Un alumno de diplomado no cursa nada de eso — su
+contenido vive en `curso_modulos` y `curso_lecciones`, que son otras tablas con
+otro gate (B2). Agregar `'diplomado'` al CHECK abriría un valor que **ningún
+consumidor lee**: no habría forma de crear una materia de diplomado desde el
+panel, ni pantalla que la mostrara. Sería un permisivo sin destinatario, y la
+próxima persona que lo viera tendría que averiguar para qué sirve.
+
+Consecuencia práctica: si un alumno de diplomado llegara a `/alumno/materias`, la
+lista saldría vacía. En modo `solo_cursos` esa ruta está redirigida (ver §5), y
+en un cliente híbrido el alumno de diplomado no tiene por qué entrar ahí.
+
+### `alumnos.nivel` es de una sola escritura
+
+Se fija al dar de alta —por registro público o por el panel— y **no hay pantalla
+ni endpoint para cambiarlo después**. El `PATCH` de `/api/admin/alumnos/[id]`
+solo acepta `contactado_whatsapp`.
+
+En modo `solo_cursos` no duele: las dos puertas fuerzan `'diplomado'`, así que no
+hay forma de equivocarse. Donde sí importa es en un cliente **híbrido**, donde el
+admin elige el nivel a mano: si se equivoca, la corrección hoy es un `UPDATE`
+directo en la base.
+
+Queda registrado como deuda operativa. Cerrarla es una pantalla de edición de
+nivel con su propia validación — no entró en esta línea porque ningún flujo de
+Solo-Cursos la necesita.
+
+---
+
+## 7. Checklist de entrega
 
 - [ ] `modo: 'solo_cursos'` en `config.ts`
 - [ ] `landing.mostrarCatalogoCursos: true` + los dos textos
