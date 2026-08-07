@@ -232,7 +232,7 @@ export default function LoginPage() {
                   style={{
                     width: '100%', border: '1.5px solid #E2E8F0', borderRadius: 10,
                     padding: '12px 14px 12px 38px', fontSize: 15, color: 'var(--color-primario)',
-                    outline: 'none', transition: 'border-color .2s, box-shadow .2s', background: 'var(--color-fondo)',
+                    outline: 'none', transition: 'border-color .2s, box-shadow .2s', background: '#FFFFFF',
                   }}
                 />
               </div>
@@ -263,7 +263,7 @@ export default function LoginPage() {
                   style={{
                     width: '100%', border: '1.5px solid #E2E8F0', borderRadius: 10,
                     padding: '12px 40px 12px 38px', fontSize: 15, color: 'var(--color-primario)',
-                    outline: 'none', transition: 'border-color .2s, box-shadow .2s', background: 'var(--color-fondo)',
+                    outline: 'none', transition: 'border-color .2s, box-shadow .2s', background: '#FFFFFF',
                   }}
                 />
                 <button type="button" tabIndex={-1} onClick={() => setShowPass(v => !v)}
