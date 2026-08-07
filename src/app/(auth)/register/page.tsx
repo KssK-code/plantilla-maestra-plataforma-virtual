@@ -33,7 +33,7 @@ const inputStyle: React.CSSProperties = {
   width: '100%', border: '1.5px solid #E2E8F0', borderRadius: 10,
   padding: '11px 14px 11px 38px', fontSize: 14, color: 'var(--color-primario)',
   outline: 'none', transition: 'border-color .2s, box-shadow .2s',
-  background: 'var(--color-fondo)',
+  background: '#FFFFFF',
 }
 const inputNoIcon: React.CSSProperties = { ...inputStyle, paddingLeft: 14 }
 const selectStyle: React.CSSProperties = {
