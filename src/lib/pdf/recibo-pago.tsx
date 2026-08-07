@@ -53,7 +53,10 @@ const styles = StyleSheet.create({
 })
 
 function logoPath(): string | null {
-  const logo = CONFIG.logoOscuro || CONFIG.logo
+  // El recibo se imprime sobre papel BLANCO: va la variante para fondo claro.
+  // Antes se prefería `logoOscuro`, lo cual daba igual mientras ambos campos
+  // apuntaran al mismo archivo; con un logo oscuro real el recibo salía en blanco.
+  const logo = CONFIG.logo || CONFIG.logoOscuro
   if (!logo || !/\.(png|jpe?g)$/i.test(logo)) return null
   const abs = path.join(process.cwd(), 'public', logo)
   return existsSync(abs) ? abs : null
