@@ -90,16 +90,19 @@ export async function GET(
         contenido:   s.contenido ?? s.descripcion ?? '',
         contenido_en: s.contenido ?? s.descripcion ?? '',
         url_en:      '',
+        // Un video NO es la semana: no heredan ni su titulo ni su tiempo estimado.
+        // Antes se copiaba `s.titulo` a los tres (tres tarjetas con el mismo nombre,
+        // escondiendo videos distintos) y `s.tiempo_estimado_minutos` a cada uno,
+        // que el encabezado sumaba: 3 videos x 60 min = "180 min de videos" para
+        // una semana estimada en 60. El titulo real lo muestra el propio reproductor.
         videos:      [s.video_url, s.video_url_2, s.video_url_3]
           .filter(Boolean)
-          .map(url => ({
-            titulo:    s.titulo,
-            titulo_en: s.titulo,
+          .map((url, i, arr) => ({
+            titulo:    arr.length > 1 ? `Video ${i + 1} de ${arr.length}` : 'Video de la semana',
+            titulo_en: arr.length > 1 ? `Video ${i + 1} of ${arr.length}` : 'Week video',
             url:       url as string,
             url_en:    url as string,
-            duracion:  s.tiempo_estimado_minutos
-              ? `${s.tiempo_estimado_minutos} min`
-              : '',
+            duracion:  '',
           })),
       }))
     )

@@ -300,13 +300,12 @@ export default function MateriaPage() {
                         {(() => {
                           const palabras = contenidoSemana.trim() ? contenidoSemana.trim().split(/\s+/).length : 0
                           const minLectura = palabras > 0 ? Math.ceil(palabras / 200) : 0
-                          const minVideos = (semana.videos ?? []).reduce((acc, v) => {
-                            const match = v.duracion?.match(/(\d+)/)
-                            return acc + (match ? parseInt(match[1]) : 0)
-                          }, 0)
+                          // Contamos videos, no minutos: la API ya no inventa una
+                          // duracion por video (el tiempo estimado es de la SEMANA).
+                          const numVideos = (semana.videos ?? []).length
                           const partes = []
                           if (minLectura > 0) partes.push(`📖 ${minLectura} min lectura`)
-                          if (minVideos > 0) partes.push(`🎬 ${minVideos} min de videos`)
+                          if (numVideos > 0) partes.push(`🎬 ${numVideos} video${numVideos !== 1 ? 's' : ''}`)
                           if (partes.length === 0) return null
                           return (
                             <p className="text-xs mt-1.5" style={{ color: '#94A3B8' }}>
