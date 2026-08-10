@@ -53,12 +53,36 @@ export async function GET(
       .select('id, acreditado, materia_id, evaluacion_id, materias(nombre)')
       .eq('alumno_id', params.id)
 
+    // `calificaciones` no guarda puntaje en este esquema: solo el booleano
+    // `acreditado`. La nota real vive en `intentos_evaluacion.puntaje`, asi que
+    // se toma de ahi el MEJOR intento por materia. Antes se pintaba
+    // `acreditado ? 100 : 0`, que mentia en los dos extremos: un examen de 60
+    // aprobado salia como 100, y una materia sin presentar salia como 0 (que se
+    // lee «saco cero», no «no ha presentado»).
+    const { data: intentosCalif } = await admin
+      .from('intentos_evaluacion')
+      .select('puntaje, evaluaciones(materia_id)')
+      .eq('alumno_id', params.id)
+
+    const mejorPorMateria = new Map<string, number>()
+    for (const row of (intentosCalif ?? []) as Record<string, unknown>[]) {
+      const ev = row.evaluaciones as { materia_id?: string } | null | undefined
+      const materiaId = ev?.materia_id
+      const puntaje = Number(row.puntaje)
+      if (!materiaId || !Number.isFinite(puntaje)) continue
+      const previo = mejorPorMateria.get(materiaId)
+      if (previo === undefined || puntaje > previo) mejorPorMateria.set(materiaId, puntaje)
+    }
+
     const calificaciones = (calificacionesRaw ?? []).map((row: Record<string, unknown>) => {
       const m = row.materias as { nombre?: string } | null | undefined
       const acreditado = Boolean(row.acreditado)
+      const materiaId  = row.materia_id as string | undefined
+      const mejor      = materiaId ? mejorPorMateria.get(materiaId) : undefined
       return {
         id:                  row.id,
-        calificacion_final:  acreditado ? 100 : 0,
+        // null = sin intentos registrados. La UI lo pinta como «—», nunca como 0.
+        calificacion_final:  mejor ?? null,
         aprobada:            acreditado,
         materias:            { nombre: m?.nombre ?? '—', codigo: '' },
       }

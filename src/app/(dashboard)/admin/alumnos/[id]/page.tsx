@@ -17,7 +17,7 @@ interface AlumnoDetalle {
   viewer_rol?: string
   usuario: { id: string; nombre_completo: string; email: string; activo: boolean; telefono: string | null }
   plan: { id: string; nombre: string; duracion_meses: number; precio_mensual: number }
-  calificaciones: { id: string; calificacion_final: number; aprobada: boolean; materias: { nombre: string; codigo: string } }[]
+  calificaciones: { id: string; calificacion_final: number | null; aprobada: boolean; materias: { nombre: string; codigo: string } }[]
   intentos: {
     id: string
     numero_intento: number
@@ -789,7 +789,10 @@ export default function AlumnoDetallePage() {
                   <tr key={c.id} style={{ borderBottom: '1px solid rgba(42,47,62,0.5)' }}>
                     <td className="px-4 py-3 font-mono text-xs" style={{ color: '#94A3B8' }}>{c.materias.codigo}</td>
                     <td className="px-4 py-3 font-medium" style={{ color: '#F1F5F9' }}>{c.materias.nombre}</td>
-                    <td className="px-4 py-3 font-bold" style={{ color: '#F1F5F9' }}>{c.calificacion_final}</td>
+                    {/* null = sin intentos registrados; «—» para no leerse como un cero */}
+                    <td className="px-4 py-3 font-bold" style={{ color: c.calificacion_final === null ? '#64748B' : '#F1F5F9' }}>
+                      {c.calificacion_final ?? '—'}
+                    </td>
                     <td className="px-4 py-3">
                       <span
                         className="px-2 py-0.5 rounded-full text-xs font-medium"
