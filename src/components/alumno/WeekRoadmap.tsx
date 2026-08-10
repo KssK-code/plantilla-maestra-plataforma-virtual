@@ -190,6 +190,16 @@ export default function WeekRoadmap({
               >
                 {loc(semana.titulo, semana.titulo_en)}
               </p>
+
+              {/* El candado es de avance, no de pago: sin este texto el alumno
+                  cree que le falta pagar y escribe a soporte. */}
+              {estado === 'bloqueado' && (
+                <p className="text-xs mt-1 leading-snug" style={{ color: '#64748B' }}>
+                  {lang === 'en'
+                    ? 'Complete the previous week to unlock this one'
+                    : 'Completa la semana anterior para desbloquear esta'}
+                </p>
+              )}
             </button>
           </div>
         )
