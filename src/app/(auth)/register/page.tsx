@@ -9,6 +9,7 @@ import { createClient } from '@/lib/supabase/client'
 import { getModalidadesActivas } from '@/lib/modalidades'
 import { CONFIG } from '@/lib/config'
 import { esSoloCursos, aterrizajeAlumno } from '@/lib/modo'
+import { getOfertasIngreso } from '@/lib/cursos/oferta'
 
 const WA_URL = `https://wa.me/${CONFIG.whatsapp}`
 
@@ -196,12 +197,20 @@ export default function RegisterPage() {
   const [showConfirm,     setShowConfirm]     = useState(false)
   const [nivel,           setNivel]           = useState('')
   const [modalidad,       setModalidad]       = useState('')
+  const [cursoIngreso,    setCursoIngreso]    = useState('')
   const [error,           setError]           = useState<string | null>(null)
   const [loading,         setLoading]         = useState(false)
 
   // B7 — en modo solo_cursos no hay nivel ni modalidad que elegir: el alumno se
   // inscribe a diplomados, y el servidor le pone nivel='diplomado'.
   const soloCursos = esSoloCursos()
+
+  // Cursos de ingreso: producto de pago único, aparte del plan de Sec/Prepa/Lic.
+  // Vacío si el cliente no los vende, y entonces el bloque ni se dibuja. Antes
+  // el alumno no tenía dónde decir qué contrató y el admin se enteraba por
+  // WhatsApp; ahora lo pide aquí y el admin se lo activa desde /admin/alumnos.
+  const ofertasIngreso = getOfertasIngreso()
+  const pidioCurso     = Boolean(cursoIngreso)
 
   useEffect(() => { setModalidad('') }, [nivel])
 
@@ -218,8 +227,14 @@ export default function RegisterPage() {
     if (password !== confirmPassword) { setError('Las contraseñas no coinciden.'); return }
     // B7 — en solo_cursos no se piden nivel ni modalidad (el servidor pone
     // 'diplomado'), así que exigirlos aquí bloquearía el registro entero.
-    if (!soloCursos && !nivel) { setError('Selecciona tu nivel educativo.'); return }
-    if (!soloCursos && !modalidad) { setError('Selecciona la modalidad.'); return }
+    //
+    // El plan deja de ser obligatorio SI el alumno se lleva un curso de
+    // ingreso: son productos distintos y hay quien solo quiere el curso. Lo que
+    // no se permite es quedarse sin ninguno de los dos.
+    if (!soloCursos && !nivel && !pidioCurso) {
+      setError('Selecciona tu nivel educativo o un curso de preparación.'); return
+    }
+    if (!soloCursos && nivel && !modalidad) { setError('Selecciona la modalidad.'); return }
 
     setLoading(true)
     try {
@@ -257,6 +272,7 @@ export default function RegisterPage() {
           modalidad,
           es_sindicalizado: false,
           sindicato:        null,
+          curso_solicitado: cursoIngreso || null,
         }),
       })
       const data = await res.json()
@@ -418,19 +434,23 @@ export default function RegisterPage() {
 
               {/* Nivel + Modalidad */}
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-3">
+                {/* Sin `required` en el HTML: quien solo quiere el curso de
+                    ingreso deja el plan en blanco, y el atributo lo bloquearía
+                    con un tooltip del navegador antes de llegar al submit. La
+                    regla plan-o-curso se valida en handleSubmit y en el servidor. */}
                 <div>
-                  <Label text="Nivel educativo" required />
-                  <select value={nivel} onChange={e => { setNivel(e.target.value); setModalidad('') }} required
+                  <Label text="Nivel educativo" required={!pidioCurso} />
+                  <select value={nivel} onChange={e => { setNivel(e.target.value); setModalidad('') }}
                     style={selectStyle} onFocus={onFocus} onBlur={onBlur}>
-                    <option value="">Selecciona…</option>
+                    <option value="">{pidioCurso ? 'Ninguno (solo el curso)' : 'Selecciona…'}</option>
                     <option value="secundaria">Secundaria</option>
                     <option value="preparatoria">Preparatoria</option>
                     <option value="licenciatura">Licenciatura</option>
                   </select>
                 </div>
                 <div>
-                  <Label text="Modalidad" required />
-                  <select value={modalidad} onChange={e => setModalidad(e.target.value)} required
+                  <Label text="Modalidad" required={!pidioCurso} />
+                  <select value={modalidad} onChange={e => setModalidad(e.target.value)}
                     style={{ ...selectStyle, opacity: nivel ? 1 : 0.5 }}
                     onFocus={onFocus} onBlur={onBlur} disabled={!nivel}>
                     <option value="">{nivel ? 'Selecciona…' : 'Primero elige nivel'}</option>
@@ -440,6 +460,60 @@ export default function RegisterPage() {
                   </select>
                 </div>
               </div>
+
+              {/* ─── Curso de ingreso (opcional) ──────────────────────────
+                  Producto de pago único, aparte del plan. Se puede llevar solo,
+                  o junto con Sec/Prepa/Lic. El admin lo activa tras el pago. */}
+              {ofertasIngreso.length > 0 && (
+                <div className="mt-4 pt-4" style={{ borderTop: '1px solid #E8F0F7' }}>
+                  <Label text="Curso de preparación para examen de ingreso (opcional)" />
+                  <p className="text-xs mb-2.5" style={{ color: '#64748B' }}>
+                    Pago único, independiente del plan. Un asesor te contacta para
+                    el pago y te lo activa.
+                  </p>
+
+                  <div className="space-y-2">
+                    {ofertasIngreso.map(o => {
+                      const sel = cursoIngreso === o.id
+                      return (
+                        <button
+                          key={o.id}
+                          type="button"
+                          onClick={() => setCursoIngreso(sel ? '' : o.id)}
+                          className="w-full flex items-start gap-2.5 text-left px-3 py-2.5 rounded-xl text-sm"
+                          style={sel
+                            ? { background: 'rgba(27,48,104,0.06)', border: '1px solid var(--color-primario)' }
+                            : { background: '#fff', border: '1px solid #E8F0F7' }}
+                        >
+                          <span
+                            className="flex-shrink-0 w-4 h-4 rounded-full mt-0.5"
+                            style={sel
+                              ? { background: 'var(--color-primario)', border: '4px solid var(--color-primario)', boxShadow: 'inset 0 0 0 2px #fff' }
+                              : { border: '2px solid #CBD5E1' }}
+                          />
+                          <span className="flex-1 min-w-0">
+                            <span className="block font-semibold" style={{ color: '#1E293B' }}>{o.nombre}</span>
+                            {o.detalle && (
+                              <span className="block text-xs mt-0.5" style={{ color: '#64748B' }}>{o.detalle}</span>
+                            )}
+                          </span>
+                          {o.precio > 0 && (
+                            <span className="flex-shrink-0 text-sm font-bold" style={{ color: 'var(--color-acento)' }}>
+                              ${o.precio.toLocaleString('es-MX')}
+                            </span>
+                          )}
+                        </button>
+                      )
+                    })}
+                  </div>
+
+                  {pidioCurso && (
+                    <p className="text-xs mt-2" style={{ color: '#64748B' }}>
+                      Si solo quieres el curso, deja el nivel educativo en blanco.
+                    </p>
+                  )}
+                </div>
+              )}
 
             </div>
             )}

@@ -7,6 +7,8 @@
 import { createClient } from '@/lib/supabase/server'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { nivelForzadoDeRegistro } from '@/lib/modo'
+import { sincronizarPrefijoMatricula } from '@/lib/matricula'
+import { getOfertaIngreso } from '@/lib/cursos/oferta'
 
 export async function POST(request: Request) {
   try {
@@ -43,8 +45,25 @@ export async function POST(request: Request) {
     const nivel            = nivelForzado ?? body.nivel ?? null
     const modalidad        = nivelForzado ? null : (body.modalidad ?? null)
 
+    // Curso de ingreso solicitado. Se pasa por la whitelist de ofertas del
+    // config en vez de guardarse tal cual: este endpoint es público, así que
+    // sin esto cualquiera podría dejar texto arbitrario en la columna.
+    // Desconocido → null, igual que si no hubiera pedido nada.
+    const curso_solicitado = getOfertaIngreso(body.curso_solicitado)?.id ?? null
+
     if (!nombre) {
       return Response.json({ error: 'El nombre es requerido' }, { status: 400 })
+    }
+
+    // Misma regla plan-o-curso que valida el formulario, repetida aquí porque
+    // el formulario no es la única forma de llamar a este endpoint. Sin nivel
+    // ni curso el alumno entraría sin nada que estudiar y sin nada que el admin
+    // pueda activarle. En solo_cursos no aplica: el nivel lo pone el servidor.
+    if (!nivelForzado && !nivel && !curso_solicitado) {
+      return Response.json(
+        { error: 'Selecciona tu nivel educativo o un curso de preparación.' },
+        { status: 400 },
+      )
     }
 
     const admin = createAdminClient()
@@ -63,13 +82,18 @@ export async function POST(request: Request) {
     }
 
     // ── 2. Crear fila en public.alumnos ────────────────────────────────────────
-    // La matrícula la genera el trigger trg_asignar_matricula automáticamente
+    // La matrícula la genera el trigger trg_asignar_matricula automáticamente,
+    // leyendo el prefijo de public.ajustes; hay que dejarlo al día ANTES del
+    // insert o el trigger usaría el de la corrida anterior. No bloquea el alta.
+    await sincronizarPrefijoMatricula(admin)
+
     const alumnoPayload = {
       id:                  user.id,
       nivel,               // 'secundaria' | 'preparatoria' | 'licenciatura' | 'diplomado' | null
       modalidad,           // ModalidadId | null
       es_sindicalizado,
       sindicato:           es_sindicalizado ? sindicato : null,
+      curso_solicitado,    // id de oferta, no UUID — ver src/lib/cursos/oferta.ts
       inscripcion_pagada:  false,
       meses_desbloqueados: 0,
       activo:              true,

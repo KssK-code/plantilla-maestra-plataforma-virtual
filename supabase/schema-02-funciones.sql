@@ -4,21 +4,41 @@
 -- ============================================================
 
 -- ── FUNCIÓN: GENERAR MATRÍCULA ───────────────────────────────
+-- El prefijo se LEE de public.ajustes, no se escribe aquí. Antes iba literal
+-- en el SQL, así que cada cliente nuevo heredaba el prefijo del cliente
+-- anterior: la plataforma decía 'ANGELOPOLIS' en su config.ts y emitía
+-- matrículas 'IVS-2026-0001'. La fuente de verdad es CONFIG.prefijoMatricula,
+-- y el servidor la siembra aquí al dar de alta un alumno (src/lib/matricula.ts),
+-- de modo que no hay ningún paso manual que se pueda olvidar al aprovisionar.
+-- SECURITY DEFINER porque public.ajustes tiene RLS sin políticas: sin esto la
+-- lectura del prefijo devolvería vacío y todas las matrículas saldrían 'MEV-'.
 CREATE OR REPLACE FUNCTION public.generar_matricula()
 RETURNS TEXT
 LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public, pg_temp
 AS $$
 DECLARE
   anio     TEXT := TO_CHAR(NOW(), 'YYYY');
+  prefijo  TEXT;
   contador INTEGER;
   nueva    TEXT;
 BEGIN
+  SELECT valor INTO prefijo FROM public.ajustes WHERE clave = 'prefijo_matricula';
+  -- 'MEV' solo aplica si el servidor todavía no sembró el ajuste. Es un valor
+  -- neutro a propósito: si algún día vuelve a aparecer el prefijo de otro
+  -- cliente en una matrícula, el culpable es un literal, no este default.
+  prefijo := NULLIF(TRIM(COALESCE(prefijo, '')), '');
+  IF prefijo IS NULL THEN
+    prefijo := 'MEV';
+  END IF;
+
   SELECT COUNT(*) + 1 INTO contador FROM public.alumnos;
-  nueva := 'CEEVA-' || anio || '-' || LPAD(contador::TEXT, 4, '0');
+  nueva := prefijo || '-' || anio || '-' || LPAD(contador::TEXT, 4, '0');
   -- evitar colisiones en caso de concurrencia
   WHILE EXISTS (SELECT 1 FROM public.alumnos WHERE matricula = nueva) LOOP
     contador := contador + 1;
-    nueva := 'CEEVA-' || anio || '-' || LPAD(contador::TEXT, 4, '0');
+    nueva := prefijo || '-' || anio || '-' || LPAD(contador::TEXT, 4, '0');
   END LOOP;
   RETURN nueva;
 END;

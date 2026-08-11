@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation'
 import { Users, Search, Plus, X, Loader2, Eye, MessageSquare, CheckCheck, Clock, AlertCircle } from 'lucide-react'
 import { useToast, ToastContainer } from '@/components/ui/toast'
 import { getModalidadesActivas } from '@/lib/modalidades'
+import { hayOfertasIngreso } from '@/lib/cursos/oferta'
 
 interface Alumno {
   id: string
@@ -19,6 +20,14 @@ interface Alumno {
   contactado_whatsapp: boolean
   created_at: string
   telefono: string | null
+  /** Id de la oferta que pidió al registrarse. null = no pidió curso. */
+  curso_solicitado: string | null
+  /** Nombre comercial de esa oferta, ya resuelto por la API. */
+  curso_solicitado_nombre: string | null
+  /** UUID(s) de `cursos` a inscribir al activar. El paquete trae varios. */
+  curso_solicitado_ids: string[]
+  /** Derivado de curso_inscripciones, no es un flag guardado. */
+  curso_activado: boolean
 }
 
 
@@ -63,6 +72,11 @@ export default function AlumnosPage() {
   const [submitting, setSubmitting] = useState(false)
   const [formError, setFormError] = useState<string | null>(null)
   const [marcandoId, setMarcandoId] = useState<string | null>(null)
+  const [activando, setActivando] = useState<string | null>(null)
+
+  // La columna de curso de ingreso solo existe para quien vende el add-on; en
+  // el resto de clientes sería una columna vacía en toda la tabla.
+  const vendeCursosIngreso = hayOfertasIngreso()
   const [form, setForm] = useState({
     nombre_completo: '',
     email: '',
@@ -134,6 +148,45 @@ export default function AlumnosPage() {
       setFormError('Error inesperado. Intenta de nuevo.')
     } finally {
       setSubmitting(false)
+    }
+  }
+
+  /**
+   * Inscribe al alumno en el/los curso(s) de la oferta que pidió al registrarse.
+   *
+   * Es el paso que cierra el circuito: el alumno elige el curso en /register, y
+   * el admin se lo activa aquí cuando confirma el pago. Sin esto el alumno se
+   * registraba y nadie sabía qué había contratado.
+   *
+   * Recorre `curso_solicitado_ids` porque una oferta puede ser un paquete de
+   * varios cursos. Recarga desde el servidor en vez de actualizar el estado
+   * local: `curso_activado` se DERIVA de curso_inscripciones, así que la
+   * verdad la tiene la API, no esta pantalla.
+   */
+  async function activarCurso(a: Alumno) {
+    if (!a.curso_solicitado_ids.length) return
+    setActivando(a.id)
+    try {
+      const fallos: string[] = []
+      for (const cursoId of a.curso_solicitado_ids) {
+        const res = await fetch(`/api/admin/cursos/${cursoId}/inscripciones`, {
+          method:  'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body:    JSON.stringify({ alumno_id: a.id }),
+        })
+        // 409 = ya estaba inscrito: no es un fallo, es el resultado deseado.
+        if (!res.ok && res.status !== 409) fallos.push(cursoId)
+      }
+      if (fallos.length) {
+        showToast(`No se pudo activar ${fallos.length} de ${a.curso_solicitado_ids.length} curso(s)`, 'error')
+      } else {
+        showToast(`✓ Curso activado para ${a.nombre_completo}`, 'success')
+      }
+      await cargarAlumnos()
+    } catch {
+      showToast('Error de red al activar el curso', 'error')
+    } finally {
+      setActivando(null)
     }
   }
 
@@ -437,6 +490,28 @@ export default function AlumnosPage() {
                       <span>·</span>
                       <span>{a.meses_desbloqueados}/{a.duracion_meses} meses</span>
                     </div>
+                    {a.curso_solicitado_nombre && (
+                      <div className="flex items-center justify-between gap-2 rounded-lg px-2.5 py-2"
+                        style={{ background: 'rgba(148,163,184,0.06)' }}>
+                        <span className="text-xs min-w-0 truncate" style={{ color: '#94A3B8' }}>
+                          Solicitó: <span style={{ color: '#F1F5F9' }}>{a.curso_solicitado_nombre}</span>
+                        </span>
+                        {a.curso_activado ? (
+                          <span className="flex-shrink-0 px-2 py-0.5 rounded-full text-xs font-medium"
+                            style={{ background: 'rgba(16,185,129,0.15)', color: '#10B981' }}>
+                            Activado
+                          </span>
+                        ) : (
+                          <button
+                            onClick={() => activarCurso(a)}
+                            disabled={activando === a.id}
+                            className="flex-shrink-0 px-2.5 py-1 rounded-lg text-xs font-semibold disabled:opacity-50"
+                            style={{ background: 'rgba(245,158,11,0.15)', color: '#F59E0B', border: '1px solid rgba(245,158,11,0.3)' }}>
+                            {activando === a.id ? 'Activando…' : 'Activar'}
+                          </button>
+                        )}
+                      </div>
+                    )}
                     <button
                       onClick={() => router.push(`/admin/alumnos/${a.id}`)}
                       className="w-full flex items-center justify-center gap-1.5 py-2.5 rounded-lg text-xs font-medium"
@@ -454,7 +529,9 @@ export default function AlumnosPage() {
                 <table className="w-full text-sm">
                   <thead>
                     <tr style={{ borderBottom: '1px solid #2A2F3E' }}>
-                      {['Matrícula', 'Nombre', 'Email', 'Plan', 'Meses', 'Inscripción', 'Estado', 'Acciones'].map(h => (
+                      {['Matrícula', 'Nombre', 'Email', 'Plan',
+                        ...(vendeCursosIngreso ? ['Curso de ingreso'] : []),
+                        'Meses', 'Inscripción', 'Estado', 'Acciones'].map(h => (
                         <th key={h} className="text-left px-4 py-3 font-medium" style={{ color: '#94A3B8' }}>{h}</th>
                       ))}
                     </tr>
@@ -471,6 +548,28 @@ export default function AlumnosPage() {
                         <td className="px-4 py-3 font-medium" style={{ color: '#F1F5F9' }}>{a.nombre_completo}</td>
                         <td className="px-4 py-3" style={{ color: '#94A3B8' }}>{a.email}</td>
                         <td className="px-4 py-3" style={{ color: '#94A3B8' }}>{a.plan_nombre}</td>
+                        {vendeCursosIngreso && (
+                          <td className="px-4 py-3">
+                            {!a.curso_solicitado_nombre ? (
+                              <span style={{ color: '#475569' }}>—</span>
+                            ) : a.curso_activado ? (
+                              <span className="px-2 py-0.5 rounded-full text-xs font-medium"
+                                style={{ background: 'rgba(16,185,129,0.15)', color: '#10B981' }}
+                                title={a.curso_solicitado_nombre}>
+                                Activado
+                              </span>
+                            ) : (
+                              <button
+                                onClick={() => activarCurso(a)}
+                                disabled={activando === a.id}
+                                className="px-2.5 py-1 rounded-lg text-xs font-semibold disabled:opacity-50"
+                                style={{ background: 'rgba(245,158,11,0.15)', color: '#F59E0B', border: '1px solid rgba(245,158,11,0.3)' }}
+                                title={`Activar: ${a.curso_solicitado_nombre}`}>
+                                {activando === a.id ? 'Activando…' : 'Activar'}
+                              </button>
+                            )}
+                          </td>
+                        )}
                         <td className="px-4 py-3">
                           <span style={{ color: '#F1F5F9' }}>{a.meses_desbloqueados}</span>
                           <span style={{ color: '#94A3B8' }}>/{a.duracion_meses}</span>

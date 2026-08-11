@@ -155,6 +155,40 @@ export const CONFIG = {
     facebook:  '',
     instagram: '',
   },
+
+  // === ADD-ON CURSOS DE INGRESO (opcional) =================================
+  // Cursos de preparación a examen de admisión, vendidos como producto de PAGO
+  // ÚNICO aparte del plan de Sec/Prepa/Lic. No es el modo 'solo_cursos': aquí
+  // la plataforma sigue siendo la de siempre y el curso es un extra que el
+  // alumno puede llevar solo o encima de su plan.
+  //
+  // Con `activa: false` el bloque del registro y la columna de /admin/alumnos
+  // no se dibujan. Para encenderlo en un cliente: poner `activa: true` y una
+  // entrada por curso vendido.
+  //
+  //   cursoIds → UUID del curso en la tabla `cursos`. Los seeds del banco usan
+  //              UUID v5 deterministas, así que el mismo curso tiene el mismo
+  //              UUID en todos los clientes. Van en arreglo porque una oferta
+  //              puede ser un paquete de varios cursos.
+  //   precio   → pago único en MXN. El módulo no tiene checkout: el alumno paga
+  //              por fuera y el admin le activa el curso desde /admin/alumnos.
+  //
+  // Para vender varios cursos como PAQUETE ÚNICO en vez de sueltos, usar
+  // `precioPaquete: <monto>` en lugar de `precio` por curso: src/lib/cursos/
+  // oferta.ts los colapsa en una sola oferta que inscribe a todos.
+  cursosIngreso: {
+    activa: false,
+    pagoUnico: true,
+    cursos: [] as ReadonlyArray<{
+      /** Id estable de la oferta. Se guarda en alumnos.curso_solicitado. */
+      id: string
+      nombre: string
+      /** Examen al que prepara, para el subtítulo del registro. */
+      examen?: string
+      precio: number
+      cursoIds: readonly string[]
+    }>,
+  },
 } as const
 
 // === COMPATIBILIDAD ===
