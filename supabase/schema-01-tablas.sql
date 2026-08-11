@@ -6,6 +6,24 @@
 -- ── EXTENSIONES ────────────────────────────────────────────
 CREATE EXTENSION IF NOT EXISTS "pgcrypto";
 
+-- ── AJUSTES ─────────────────────────────────────────────────
+-- Los pocos valores de config que la BD necesita conocer por su cuenta, porque
+-- corren en triggers y funciones donde no hay acceso a src/lib/config.ts.
+-- No es un espejo del config: solo entra lo que el SQL de verdad usa. Hoy:
+--   prefijo_matricula → lo consume generar_matricula()
+-- La siembra el servidor desde CONFIG (src/lib/matricula.ts); no hay que
+-- capturarla a mano al aprovisionar un cliente.
+-- RLS activo y SIN políticas: en Supabase toda tabla de `public` sale por
+-- PostgREST, así que "sin RLS" habría significado legible por cualquiera.
+-- Nadie la lee desde el navegador; el service role la escribe saltándose RLS y
+-- generar_matricula() la lee por ser SECURITY DEFINER.
+CREATE TABLE IF NOT EXISTS public.ajustes (
+  clave       TEXT        PRIMARY KEY,
+  valor       TEXT        NOT NULL,
+  updated_at  TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+ALTER TABLE public.ajustes ENABLE ROW LEVEL SECURITY;
+
 -- ── USUARIOS ────────────────────────────────────────────────
 CREATE TABLE IF NOT EXISTS public.usuarios (
   id          UUID        PRIMARY KEY REFERENCES auth.users(id) ON DELETE CASCADE,
@@ -38,8 +56,17 @@ CREATE TABLE IF NOT EXISTS public.alumnos (
   fecha_inicio         TIMESTAMPTZ,
   activo               BOOLEAN     NOT NULL DEFAULT true,
   notas_admin          TEXT,
+  -- Qué curso de ingreso pidió al registrarse, para que el admin sepa qué
+  -- activarle. Guarda el id de la OFERTA (ver src/lib/cursos/oferta.ts), no un
+  -- UUID de `cursos`: hay clientes que venden varios cursos como paquete único
+  -- y ahí una oferta son varios cursos. NULL = no pidió ninguno.
+  curso_solicitado     TEXT,
   created_at           TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
+
+CREATE INDEX IF NOT EXISTS idx_alumnos_curso_solicitado
+  ON public.alumnos (curso_solicitado)
+  WHERE curso_solicitado IS NOT NULL;
 
 -- ── MATERIAS ────────────────────────────────────────────────
 CREATE TABLE IF NOT EXISTS public.materias (
