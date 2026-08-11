@@ -82,12 +82,18 @@ export async function GET(
     // ── 4. Evidencia A: filas de progreso (por existencia) ────────────────────
     const { data: progresoRaw } = await admin
       .from('progreso_semanas')
-      .select('semana_id')
+      .select('semana_id, completada, fecha_completada, tiempo_visto_minutos')
       .eq('alumno_id', params.id)
 
-    const conProgreso = new Set(
-      ((progresoRaw ?? []) as { semana_id: string }[]).map(p => p.semana_id)
-    )
+    type ProgresoRow = {
+      semana_id: string
+      completada: boolean | null
+      fecha_completada: string | null
+      tiempo_visto_minutos: number | null
+    }
+    const progreso = ((progresoRaw ?? []) as ProgresoRow[])
+    const conProgreso = new Set(progreso.map(p => p.semana_id))
+    const datosProgreso = new Map(progreso.map(p => [p.semana_id, p]))
 
     // ── 5. Evidencia B: respuestas de quiz (con fecha) ────────────────────────
     //    Se filtra primero por alumno para acotar el conjunto; despues se
@@ -149,13 +155,22 @@ export async function GET(
         orden:         mat.orden ?? 0,
         total_semanas: lista.length,
         trabajadas:    conEvidencia.filter(Boolean).length,
-        semanas: lista.map((s, i) => ({
-          id:                s.id,
-          numero:            s.numero_semana,
-          titulo:            s.titulo,
-          estado:            conEvidencia[i] ? 'trabajada' : i === idxEnCurso ? 'en_curso' : 'pendiente',
-          ultima_actividad:  ultimaPorSemana.get(s.id) ?? null,
-        })),
+        semanas: lista.map((s, i) => {
+          const p = datosProgreso.get(s.id)
+          // Telemetría real (issue #54 F2). Puede venir vacía en dos casos
+          // legítimos: filas anteriores al fix del Bug 89, y semanas que el
+          // alumno aún no marca. La UI pinta «—»; nunca se rellena con nada.
+          const tiempo = Number(p?.tiempo_visto_minutos ?? 0)
+          return {
+            id:                s.id,
+            numero:            s.numero_semana,
+            titulo:            s.titulo,
+            estado:            conEvidencia[i] ? 'trabajada' : i === idxEnCurso ? 'en_curso' : 'pendiente',
+            ultima_actividad:  ultimaPorSemana.get(s.id) ?? null,
+            fecha_completada:  p?.fecha_completada ?? null,
+            tiempo_minutos:    Number.isFinite(tiempo) && tiempo > 0 ? tiempo : null,
+          }
+        }),
       }
     })
 

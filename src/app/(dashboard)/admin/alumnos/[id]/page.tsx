@@ -104,6 +104,9 @@ interface SemanaAvance {
   titulo: string
   estado: EstadoSemanaAvance
   ultima_actividad: string | null
+  // Telemetría real (F2). null en el histórico anterior al fix del Bug 89.
+  fecha_completada: string | null
+  tiempo_minutos: number | null
 }
 interface MateriaAvance {
   materia_id: string
@@ -125,6 +128,15 @@ function fmtFechaActividad(iso: string | null): string {
   const d = new Date(iso)
   if (Number.isNaN(d.getTime())) return ''
   return d.toLocaleDateString('es-MX', { day: '2-digit', month: 'short', year: 'numeric' })
+}
+
+/** Minutos a "45 min" / "2 h 05 min". null → «—» (nunca se inventa un 0). */
+function fmtTiempo(min: number | null): string {
+  if (min === null || !Number.isFinite(min) || min <= 0) return '—'
+  if (min < 60) return `${min} min`
+  const h = Math.floor(min / 60)
+  const m = min % 60
+  return m === 0 ? `${h} h` : `${h} h ${String(m).padStart(2, '0')} min`
 }
 
 export default function AlumnoDetallePage() {
@@ -862,7 +874,11 @@ export default function AlumnoDetallePage() {
                     <ul className="px-5 pb-4 space-y-1.5">
                       {mat.semanas.map(s => {
                         const est = AVANCE_ESTILO[s.estado]
-                        const fecha = fmtFechaActividad(s.ultima_actividad)
+                        // Fecha de cierre real si existe; si no, la última actividad
+                        // de quiz, que es la señal fechada del histórico.
+                        const cierre = fmtFechaActividad(s.fecha_completada)
+                        const actividad = fmtFechaActividad(s.ultima_actividad)
+                        const fecha = cierre || actividad
                         return (
                           <li key={s.id} className="flex items-start gap-2.5 text-sm">
                             <span style={{ fontSize: '0.9rem', lineHeight: 1.5, flexShrink: 0 }}>{est.icono}</span>
@@ -872,7 +888,16 @@ export default function AlumnoDetallePage() {
                             <span className="flex-1 min-w-0" style={{ color: s.estado === 'pendiente' ? '#64748B' : '#CBD5E1' }}>
                               {s.titulo}
                             </span>
-                            <span className="text-xs flex-shrink-0 mt-0.5" style={{ color: est.color }}>
+                            {/* Tiempo dedicado: «—» mientras no haya telemetría (histórico
+                                previo al fix del Bug 89, o semana recién porteada). */}
+                            <span
+                              className="text-xs flex-shrink-0 mt-0.5 text-right"
+                              style={{ color: s.tiempo_minutos ? '#94A3B8' : '#475569', minWidth: '4.5rem' }}
+                              title={s.tiempo_minutos ? 'Tiempo dedicado registrado' : 'Sin registro de tiempo para esta semana'}
+                            >
+                              {fmtTiempo(s.tiempo_minutos)}
+                            </span>
+                            <span className="text-xs flex-shrink-0 mt-0.5 text-right" style={{ color: est.color, minWidth: '9.5rem' }}>
                               {fecha ? `${est.etiqueta} · ${fecha}` : est.etiqueta}
                             </span>
                           </li>
