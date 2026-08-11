@@ -31,22 +31,57 @@ export async function POST(request: NextRequest) {
     // Verificar si ya existía el progreso
     const { data: existente } = await supabase
       .from('progreso_semanas')
-      .select('id')
+      .select('id, completada, fecha_completada')
       .eq('alumno_id', alumno.id)
       .eq('semana_id', semana_id)
       .single()
 
     const ya_existia = !!existente
 
-    // Upsert progreso (ignora si ya existe)
-    const { error: upsertError } = await supabase
-      .from('progreso_semanas')
-      .upsert(
-        { alumno_id: alumno.id, semana_id },
-        { onConflict: 'alumno_id,semana_id', ignoreDuplicates: true }
-      )
+    // ── Marcar la semana como completada ──────────────────────────────────────
+    // A esta ruta solo se llega por una acción EXPLÍCITA del alumno ("Marcar
+    // semana como completada" o el botón de ReadingProgress al terminar la
+    // lectura). Nunca se llama por abrir la semana. Por eso la fila significa
+    // "el alumno la dio por terminada", y `completada` debe reflejarlo.
+    //
+    // Antes solo se insertaba {alumno_id, semana_id}: `completada` se quedaba en
+    // su DEFAULT false para siempre y `fecha_completada` en NULL (Bug 89). La UI
+    // lo disimulaba contando la EXISTENCIA de la fila, así que el hueco solo se
+    // veía al querer construir un reporte encima.
+    if (!ya_existia) {
+      const { error: insertError } = await supabase
+        .from('progreso_semanas')
+        .upsert(
+          {
+            alumno_id: alumno.id,
+            semana_id,
+            completada: true,
+            fecha_completada: new Date().toISOString(),
+          },
+          { onConflict: 'alumno_id,semana_id', ignoreDuplicates: true }
+        )
+      if (insertError) return NextResponse.json({ error: 'Error al guardar progreso' }, { status: 500 })
+    } else {
+      // Idempotente: re-marcar NO mueve la fecha original.
+      //
+      // Si la fila es anterior al fix (completada=false), se corrige el booleano
+      // — es inequívoco: la fila solo existe porque el alumno marcó la semana.
+      // Pero NO se rellena `fecha_completada` con la fecha de hoy: esa semana se
+      // terminó hace tiempo y estampar "hoy" sería inventar historia, peor que
+      // dejarla vacía. Esa fecha la reconstruye el backfill del rollout a partir
+      // de `quiz_respuestas`, que sí es evidencia fechada.
+      const fila = existente as { id: string; completada: boolean | null; fecha_completada: string | null }
+      const parche: Record<string, unknown> = {}
+      if (fila.completada !== true) parche.completada = true
 
-    if (upsertError) return NextResponse.json({ error: 'Error al guardar progreso' }, { status: 500 })
+      if (Object.keys(parche).length > 0) {
+        const { error: updateError } = await supabase
+          .from('progreso_semanas')
+          .update(parche)
+          .eq('id', fila.id)
+        if (updateError) return NextResponse.json({ error: 'Error al guardar progreso' }, { status: 500 })
+      }
+    }
 
     // Si ya existía, no re-evaluar logros
     if (ya_existia) return NextResponse.json({ ok: true, ya_existia: true })

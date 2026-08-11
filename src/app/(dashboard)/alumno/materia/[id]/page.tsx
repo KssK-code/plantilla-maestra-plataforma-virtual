@@ -12,6 +12,7 @@ import CelebrationBanner from '@/components/alumno/CelebrationBanner'
 import FadeIn from '@/components/ui/FadeIn'
 import SemanaQuiz from '@/components/alumno/SemanaQuiz'
 import NotasPersonales from '@/components/alumno/NotasPersonales'
+import { useTiempoEstudio } from '@/components/alumno/useTiempoEstudio'
 import gsap from 'gsap'
 import { useGSAP } from '@gsap/react'
 import { CONFIG } from '@/lib/config'
@@ -81,6 +82,9 @@ export default function MateriaPage() {
     if (tab === 'examen') setMostrarGuia(true)
   }, [tab])
 
+  // Tiempo real de estudio sobre la semana abierta (Bug 89 / issue #54 F2)
+  const { descargar: descargarTiempo } = useTiempoEstudio(semanaSeleccionada)
+
   const marcarSemana = async (semanaId: string) => {
     if (guardandoProgreso || semanasCompletadas.has(semanaId)) return
     setGuardandoProgreso(true)
@@ -95,6 +99,9 @@ export default function MateriaPage() {
       if (materia && materia.semanas.every(s => nuevas.has(s.id))) {
         setMateriaCompletada(true)
       }
+      // Ya existe la fila: se descarga el tiempo de lectura que quedó pendiente
+      // desde antes de marcarla (el endpoint de tiempo no crea filas).
+      void descargarTiempo()
     } catch {
       // silencioso — no bloquear al alumno
     } finally {
@@ -401,6 +408,8 @@ export default function MateriaPage() {
                           if (materia && materia.semanas.every(s => nuevas.has(s.id))) {
                             setMateriaCompletada(true)
                           }
+                          // La fila ya existe: descargar el tiempo pendiente
+                          void descargarTiempo()
                         }}
                       />
 
