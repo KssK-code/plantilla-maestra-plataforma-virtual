@@ -117,20 +117,34 @@ $$;
 -- Name: generar_matricula(); Type: FUNCTION; Schema: public; Owner: -
 --
 
+-- SECURITY DEFINER porque public.ajustes tiene RLS sin politicas: sin esto
+-- la lectura del prefijo devolveria vacio y todo saldria 'MEV-'.
 CREATE FUNCTION public.generar_matricula() RETURNS text
     LANGUAGE plpgsql
+    SECURITY DEFINER
+    SET search_path TO 'public', 'pg_temp'
     AS $$
 DECLARE
   anio     TEXT := TO_CHAR(NOW(), 'YYYY');
+  prefijo  TEXT;
   contador INTEGER;
   nueva    TEXT;
 BEGIN
+  SELECT valor INTO prefijo FROM public.ajustes WHERE clave = 'prefijo_matricula';
+  -- 'MEV' solo aplica mientras el servidor no haya sembrado el ajuste. Es
+  -- neutro a proposito: si vuelve a aparecer el prefijo de otro cliente en una
+  -- matricula, el culpable es un literal, no este default.
+  prefijo := NULLIF(TRIM(COALESCE(prefijo, '')), '');
+  IF prefijo IS NULL THEN
+    prefijo := 'MEV';
+  END IF;
+
   SELECT COUNT(*) + 1 INTO contador FROM public.alumnos;
-  nueva := 'IVS-' || anio || '-' || LPAD(contador::TEXT, 4, '0');
+  nueva := prefijo || '-' || anio || '-' || LPAD(contador::TEXT, 4, '0');
   -- evitar colisiones en caso de concurrencia
   WHILE EXISTS (SELECT 1 FROM public.alumnos WHERE matricula = nueva) LOOP
     contador := contador + 1;
-    nueva := 'IVS-' || anio || '-' || LPAD(contador::TEXT, 4, '0');
+    nueva := prefijo || '-' || anio || '-' || LPAD(contador::TEXT, 4, '0');
   END LOOP;
   RETURN nueva;
 END;
@@ -176,6 +190,28 @@ $$;
 -- Name: alumnos; Type: TABLE; Schema: public; Owner: -
 --
 
+--
+-- Name: ajustes; Type: TABLE; Schema: public; Owner: -
+--
+-- Valores de config que la BD necesita por su cuenta, porque corren en
+-- triggers y funciones sin acceso a src/lib/config.ts. Hoy solo el prefijo de
+-- matricula, que consume generar_matricula(). Lo siembra el servidor desde
+-- CONFIG.prefijoMatricula al dar de alta un alumno (src/lib/matricula.ts): no
+-- hay que capturarlo a mano al aprovisionar.
+--
+-- RLS activo y SIN politicas: en Supabase toda tabla de `public` sale por
+-- PostgREST, asi que sin RLS quedaria legible por cualquier visitante.
+--
+
+CREATE TABLE IF NOT EXISTS public.ajustes (
+    clave text NOT NULL,
+    valor text NOT NULL,
+    updated_at timestamp with time zone DEFAULT now() NOT NULL,
+    CONSTRAINT ajustes_pkey PRIMARY KEY (clave)
+);
+
+ALTER TABLE public.ajustes ENABLE ROW LEVEL SECURITY;
+
 CREATE TABLE public.alumnos (
     id uuid NOT NULL,
     matricula text,
@@ -196,6 +232,10 @@ END) STORED,
     notas_admin text,
     created_at timestamp with time zone DEFAULT now() NOT NULL,
     contactado_whatsapp boolean DEFAULT false NOT NULL,
+    -- Que curso de ingreso pidio al registrarse, para que el admin sepa que
+    -- activarle. Guarda el id de la OFERTA (src/lib/cursos/oferta.ts), no un
+    -- UUID de `cursos`: hay clientes que venden varios como paquete unico.
+    curso_solicitado text,
     CONSTRAINT alumnos_modalidad_check CHECK ((modalidad = ANY (ARRAY['6_meses'::text, '3_meses'::text]))),
     -- 'diplomado' habilita la línea Solo-Cursos (B1). Debe coincidir con
     -- supabase/migrations/20260730120000_b1_fundacion_solo_cursos.sql
