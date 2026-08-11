@@ -212,6 +212,65 @@ export async function POST(
         )
     }
 
+    // ── Logros "Mes completado" y "Mitad del camino" ──────────────────────────
+    // Existían en el catálogo de BadgesGrid pero NINGUNA ruta los otorgaba: eran
+    // insaculables por diseño. Se calculan aquí, que es el único punto donde una
+    // materia pasa a acreditada, con el mismo criterio que usa la palomita del
+    // dashboard: acreditación real de las materias del mes.
+    if (acreditado) {
+      try {
+        // `admin` de arriba es local a otro bloque; aqui se crea el propio.
+        const adminLogros = createAdminClient()
+        const { data: acreditadasRows } = await adminLogros
+          .from('calificaciones')
+          .select('materia_id')
+          .eq('alumno_id', alumno.id)
+          .eq('acreditado', true)
+        const acreditadasSet = new Set((acreditadasRows ?? []).map(r => (r as { materia_id: string }).materia_id))
+
+        // Materias del MISMO mes que la materia recién acreditada.
+        const { data: mesDeEsta } = await adminLogros
+          .from('meses_contenido')
+          .select('numero_mes')
+          .eq('materia_id', ev.materia_id)
+        const numerosMes = (mesDeEsta ?? []).map(r => (r as { numero_mes: number }).numero_mes)
+
+        if (numerosMes.length > 0) {
+          // OJO: `meses_contenido` numera meses para TODOS los niveles a la vez,
+          // así que hay que filtrar por el nivel del alumno. Sin ese filtro, el
+          // mes 1 incluiría materias de secundaria, prepa y licenciatura y el
+          // every() no se cumpliría nunca.
+          const { data: hermanas } = await adminLogros
+            .from('meses_contenido')
+            .select('materia_id, materias!inner(nivel, activa)')
+            .in('numero_mes', numerosMes)
+            .eq('materias.nivel', alumno.nivel)
+            .eq('materias.activa', true)
+          const idsMes = [...new Set((hermanas ?? []).map(r => (r as { materia_id: string }).materia_id))]
+          if (idsMes.length > 0 && idsMes.every(id => acreditadasSet.has(id))) {
+            await supabase.from('logros_alumno').upsert(
+              { alumno_id: alumno.id, tipo_logro: 'mes_completado' },
+              { onConflict: 'alumno_id,tipo_logro', ignoreDuplicates: true })
+          }
+        }
+
+        // Mitad del camino: la mitad de las materias regulares de su nivel.
+        const { count: totalNivel } = await adminLogros
+          .from('materias')
+          .select('id', { count: 'exact', head: true })
+          .eq('nivel', alumno.nivel)
+          .eq('activa', true)
+        if (totalNivel && acreditadasSet.size >= Math.ceil(totalNivel / 2)) {
+          await supabase.from('logros_alumno').upsert(
+            { alumno_id: alumno.id, tipo_logro: 'mitad_carrera' },
+            { onConflict: 'alumno_id,tipo_logro', ignoreDuplicates: true })
+        }
+      } catch (e) {
+        // Un logro no debe tumbar el envío del examen.
+        console.error('[evaluacion/enviar] logros mes/mitad:', e)
+      }
+    }
+
     // Respuesta backward-compatible con el componente EDVEX
     return NextResponse.json({
       calificacion:    puntaje / 10, // escala 0-10 para compatibilidad

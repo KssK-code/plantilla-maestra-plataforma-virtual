@@ -99,8 +99,8 @@ export async function POST(request: NextRequest) {
       await supabase
         .from('logros_alumno')
         .upsert(
-          { alumno_id: alumno.id, tipo: 'primera_semana' },
-          { onConflict: 'alumno_id,tipo', ignoreDuplicates: true }
+          { alumno_id: alumno.id, tipo_logro: 'primera_semana' },
+          { onConflict: 'alumno_id,tipo_logro', ignoreDuplicates: true }
         )
     }
 
@@ -136,62 +136,43 @@ export async function POST(request: NextRequest) {
         await supabase
           .from('logros_alumno')
           .upsert(
-            { alumno_id: alumno.id, tipo: 'materia_completada', metadata: { materia_id } },
-            { onConflict: 'alumno_id,tipo', ignoreDuplicates: true }
+            { alumno_id: alumno.id, tipo_logro: 'materia_completada' },
+            { onConflict: 'alumno_id,tipo_logro', ignoreDuplicates: true }
           )
       }
     }
 
     // ── Racha de días ─────────────────────────────────────────────────────────
-    const ahora = new Date()
-    const hoy = new Date(ahora.getFullYear(), ahora.getMonth(), ahora.getDate())
-
-    const { data: rachaActual } = await supabase
-      .from('logros_alumno')
-      .select('metadata')
+    // Antes esta racha se guardaba en `logros_alumno.metadata` con el discriminador
+    // `tipo: 'racha_actual'`. Ninguna de esas dos columnas existe en la tabla real
+    // (que es `tipo_logro` + `fecha_obtenido`), así que el SELECT devolvía null, el
+    // UPSERT fallaba en silencio —nunca se comprobaba el error— y `diasRacha` valía
+    // siempre 1: los logros de 3 y 7 días no se otorgaban jamás.
+    //
+    // La racha real ya la mantiene el trigger de `progreso_semanas` sobre la tabla
+    // `racha_actividad` (ver supabase/schema-02-funciones.sql). Aquí solo se lee.
+    const { data: racha } = await supabase
+      .from('racha_actividad')
+      .select('racha_actual')
       .eq('alumno_id', alumno.id)
-      .eq('tipo', 'racha_actual')
-      .single()
+      .maybeSingle()
 
-    const rachaPrevia = (rachaActual?.metadata as { dias?: number; ultima_actividad?: string } | null)
-
-    let diasRacha = 1
-
-    if (rachaPrevia?.ultima_actividad) {
-      const ultimaFecha = new Date(rachaPrevia.ultima_actividad)
-      const ultimaDia = new Date(ultimaFecha.getFullYear(), ultimaFecha.getMonth(), ultimaFecha.getDate())
-      const diffDias = Math.round((hoy.getTime() - ultimaDia.getTime()) / (1000 * 60 * 60 * 24))
-
-      if (diffDias === 0)      diasRacha = rachaPrevia.dias ?? 1
-      else if (diffDias === 1) diasRacha = (rachaPrevia.dias ?? 1) + 1
-      else                     diasRacha = 1
-    }
-
-    await supabase
-      .from('logros_alumno')
-      .upsert(
-        {
-          alumno_id: alumno.id,
-          tipo: 'racha_actual',
-          metadata: { dias: diasRacha, ultima_actividad: ahora.toISOString() },
-        },
-        { onConflict: 'alumno_id,tipo', ignoreDuplicates: false }
-      )
+    const diasRacha = (racha as { racha_actual?: number } | null)?.racha_actual ?? 1
 
     if (diasRacha >= 3) {
       await supabase
         .from('logros_alumno')
         .upsert(
-          { alumno_id: alumno.id, tipo: 'racha_3_dias' },
-          { onConflict: 'alumno_id,tipo', ignoreDuplicates: true }
+          { alumno_id: alumno.id, tipo_logro: 'racha_3_dias' },
+          { onConflict: 'alumno_id,tipo_logro', ignoreDuplicates: true }
         )
     }
     if (diasRacha >= 7) {
       await supabase
         .from('logros_alumno')
         .upsert(
-          { alumno_id: alumno.id, tipo: 'racha_7_dias' },
-          { onConflict: 'alumno_id,tipo', ignoreDuplicates: true }
+          { alumno_id: alumno.id, tipo_logro: 'racha_7_dias' },
+          { onConflict: 'alumno_id,tipo_logro', ignoreDuplicates: true }
         )
     }
 

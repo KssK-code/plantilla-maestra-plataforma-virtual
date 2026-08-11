@@ -98,6 +98,10 @@ export default function AlumnoDashboard() {
   const [meses,              setMeses]               = useState<Mes[]>([])
   const [demo,               setDemo]               = useState(false)
   const [materiasAcreditadas, setMateriasAcreditadas] = useState(0)
+  // Ids de las materias realmente acreditadas. El dashboard ya pedia
+  // /api/alumno/calificaciones pero solo usaba `resumen` y tiraba el arreglo
+  // `materias`; ahora hace falta el detalle para saber si un mes esta terminado.
+  const [acreditadasIds, setAcreditadasIds] = useState<Set<string>>(new Set())
   const [logros,             setLogros]             = useState<Array<{ tipo_logro: string; fecha_obtenido: string }>>([])
   const [diasRacha,          setDiasRacha]          = useState(0)
   const [loading,            setLoading]            = useState(true)
@@ -131,6 +135,12 @@ export default function AlumnoDashboard() {
         setDemo(false); setMeses(Array.isArray(m) ? m : [])
       }
       setMateriasAcreditadas(c?.resumen?.materias_acreditadas ?? 0)
+
+      type CalifRow = { materia_id: string; estado: string }
+      const califRows: CalifRow[] = Array.isArray(c?.materias) ? c.materias : []
+      setAcreditadasIds(new Set(
+        califRows.filter(r => r.estado === 'Acreditada').map(r => r.materia_id)
+      ))
 
       type MatRow = { id: string; orden?: number; disponible?: boolean }
       const list = Array.isArray(mat?.materias) ? (mat.materias as MatRow[]) : []
@@ -405,10 +415,21 @@ export default function AlumnoDashboard() {
                   : mes.materias
                     ? [mes.materias as unknown as MateriaResumen]
                     : []
-                const completado = mes.desbloqueado && numMes < mesActivo
-                const activo     = mes.desbloqueado && numMes === mesActivo
-                const bloqueado  = !mes.desbloqueado
                 const nMat       = materiasArr.length
+                // ANTES: `numMes < mesActivo` — eso preguntaba "¿ya se desbloqueó
+                // un mes POSTERIOR a este?", no si el mes está terminado. Por eso
+                // un mes con todo acreditado no palomeaba hasta abrir el
+                // siguiente, y el ÚLTIMO mes del plan no podía cumplirlo NUNCA
+                // (no existe un mes N+1 que desbloquear).
+                // AHORA: acreditación real de las materias del propio mes.
+                // `nMat > 0` protege la rama de meses placeholder de
+                // /api/alumno/meses, cuyos ids son sintéticos: un every() sobre
+                // arreglo vacío devuelve true y los palomearía todos.
+                const completado = mes.desbloqueado
+                                && nMat > 0
+                                && materiasArr.every(m => acreditadasIds.has(m.id))
+                const activo     = mes.desbloqueado && numMes === mesActivo && !completado
+                const bloqueado  = !mes.desbloqueado
                 const subMaterias = nMat === 1 ? '1 materia' : `${nMat} materias`
 
                 return (
