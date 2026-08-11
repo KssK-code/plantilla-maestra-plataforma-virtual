@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback } from 'react'
 import { useRouter, useParams } from 'next/navigation'
-import { ArrowLeft, X, Loader2, Key, Eye, EyeOff, Download, FileText, FileDown, StickyNote, Save, LockOpen, Lock, CheckCircle2, CreditCard, DollarSign, Plus, Trash2 } from 'lucide-react'
+import { ArrowLeft, X, Loader2, Key, Eye, EyeOff, Download, FileText, FileDown, StickyNote, Save, LockOpen, Lock, CheckCircle2, CreditCard, DollarSign, Plus, Trash2, ChevronDown, ChevronRight } from 'lucide-react'
 import { useToast, ToastContainer } from '@/components/ui/toast'
 import { config } from '@/lib/config'
 
@@ -96,6 +96,37 @@ const DOC_LABELS: Record<DocTipo, string> = {
 const CARD_STYLE = { background: '#181C26', border: '1px solid #2A2F3E' }
 const INPUT_STYLE = { background: '#0B0D11', border: '1px solid #2A2F3E', color: '#F1F5F9' }
 
+// Avance intra-materia (issue #54 F1)
+type EstadoSemanaAvance = 'trabajada' | 'en_curso' | 'pendiente'
+interface SemanaAvance {
+  id: string
+  numero: number
+  titulo: string
+  estado: EstadoSemanaAvance
+  ultima_actividad: string | null
+}
+interface MateriaAvance {
+  materia_id: string
+  nombre: string
+  orden: number
+  total_semanas: number
+  trabajadas: number
+  semanas: SemanaAvance[]
+}
+
+const AVANCE_ESTILO: Record<EstadoSemanaAvance, { icono: string; color: string; etiqueta: string }> = {
+  trabajada: { icono: '✅', color: '#34D399', etiqueta: 'Trabajada' },
+  en_curso:  { icono: '🔵', color: '#38BDF8', etiqueta: 'En curso' },
+  pendiente: { icono: '⚪', color: '#64748B', etiqueta: 'Pendiente' },
+}
+
+function fmtFechaActividad(iso: string | null): string {
+  if (!iso) return ''
+  const d = new Date(iso)
+  if (Number.isNaN(d.getTime())) return ''
+  return d.toLocaleDateString('es-MX', { day: '2-digit', month: 'short', year: 'numeric' })
+}
+
 export default function AlumnoDetallePage() {
   const router = useRouter()
   const params = useParams()
@@ -104,6 +135,8 @@ export default function AlumnoDetallePage() {
   const { toasts, showToast, removeToast } = useToast()
 
   const [alumno, setAlumno] = useState<AlumnoDetalle | null>(null)
+  const [avance, setAvance] = useState<MateriaAvance[]>([])
+  const [avanceAbierto, setAvanceAbierto] = useState<Set<string>>(new Set())
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [modalPago, setModalPago] = useState(false)
@@ -150,14 +183,22 @@ export default function AlumnoDetallePage() {
     setLoading(true)
     setError(null)
     try {
-      const [alumnoRes, docsRes, pagosRes] = await Promise.all([
+      const [alumnoRes, docsRes, pagosRes, avanceRes] = await Promise.all([
         fetch(`/api/admin/alumnos/${id}`),
         fetch(`/api/admin/documentos/${id}`),
         fetch(`/api/admin/alumnos/${id}/pagos`),
+        fetch(`/api/admin/alumnos/${id}/avance`),
       ])
       if (!alumnoRes.ok) throw new Error('Alumno no encontrado')
       const alumnoData = await alumnoRes.json()
       setAlumno(alumnoData)
+      // El avance es informativo: si falla, la ficha se muestra igual
+      if (avanceRes.ok) {
+        const avanceData = await avanceRes.json()
+        setAvance(avanceData.materias ?? [])
+      } else {
+        setAvance([])
+      }
       if (pagosRes.ok) {
         const pagosData = await pagosRes.json()
         setPagos(pagosData.pagos ?? [])
@@ -763,6 +804,92 @@ export default function AlumnoDetallePage() {
                 ))}
               </tbody>
             </table>
+          </div>
+        )}
+      </div>
+
+      {/* Avance por semana (issue #54 F1) */}
+      <div className="rounded-xl overflow-hidden" style={CARD_STYLE}>
+        <div className="px-5 py-4" style={{ borderBottom: '1px solid #2A2F3E' }}>
+          <h3 className="text-sm font-semibold text-gray-100">Avance por semana</h3>
+          <p className="text-xs mt-0.5" style={{ color: '#94A3B8' }}>
+            Semanas con actividad registrada dentro de cada materia
+          </p>
+        </div>
+
+        {avance.length === 0 ? (
+          <div className="px-5 py-8 text-center text-sm" style={{ color: '#94A3B8' }}>
+            Sin materias en el plan de este alumno
+          </div>
+        ) : (
+          <div>
+            {avance.map(mat => {
+              const abierto = avanceAbierto.has(mat.materia_id)
+              const sinRegistro = mat.trabajadas === 0
+              return (
+                <div key={mat.materia_id} style={{ borderBottom: '1px solid rgba(42,47,62,0.5)' }}>
+                  <button
+                    onClick={() => setAvanceAbierto(prev => {
+                      const s = new Set(prev)
+                      if (s.has(mat.materia_id)) s.delete(mat.materia_id); else s.add(mat.materia_id)
+                      return s
+                    })}
+                    aria-expanded={abierto}
+                    className="w-full px-5 py-3 flex items-center gap-3 text-left transition-colors"
+                    style={{ background: 'transparent' }}
+                    onMouseEnter={e => { e.currentTarget.style.background = 'rgba(255,255,255,0.03)' }}
+                    onMouseLeave={e => { e.currentTarget.style.background = 'transparent' }}
+                  >
+                    {abierto
+                      ? <ChevronDown className="w-4 h-4 flex-shrink-0" style={{ color: '#94A3B8' }} />
+                      : <ChevronRight className="w-4 h-4 flex-shrink-0" style={{ color: '#94A3B8' }} />}
+                    <span className="flex-1 text-sm font-medium min-w-0" style={{ color: '#F1F5F9' }}>
+                      {mat.nombre}
+                    </span>
+                    <span
+                      className="text-xs px-2 py-0.5 rounded-full font-medium flex-shrink-0"
+                      style={sinRegistro
+                        ? { background: 'rgba(100,116,139,0.15)', color: '#94A3B8' }
+                        : { background: 'rgba(52,211,153,0.12)', color: '#34D399' }}
+                    >
+                      {sinRegistro
+                        ? 'Sin registro de avance'
+                        : `${mat.trabajadas} de ${mat.total_semanas} semanas trabajadas`}
+                    </span>
+                  </button>
+
+                  {abierto && (
+                    <ul className="px-5 pb-4 space-y-1.5">
+                      {mat.semanas.map(s => {
+                        const est = AVANCE_ESTILO[s.estado]
+                        const fecha = fmtFechaActividad(s.ultima_actividad)
+                        return (
+                          <li key={s.id} className="flex items-start gap-2.5 text-sm">
+                            <span style={{ fontSize: '0.9rem', lineHeight: 1.5, flexShrink: 0 }}>{est.icono}</span>
+                            <span className="text-xs font-mono flex-shrink-0 mt-0.5" style={{ color: '#475569' }}>
+                              S{s.numero}
+                            </span>
+                            <span className="flex-1 min-w-0" style={{ color: s.estado === 'pendiente' ? '#64748B' : '#CBD5E1' }}>
+                              {s.titulo}
+                            </span>
+                            <span className="text-xs flex-shrink-0 mt-0.5" style={{ color: est.color }}>
+                              {fecha ? `${est.etiqueta} · ${fecha}` : est.etiqueta}
+                            </span>
+                          </li>
+                        )
+                      })}
+                      {sinRegistro && (
+                        <li className="text-xs pt-2" style={{ color: '#64748B' }}>
+                          No hay actividad registrada en esta materia. Si la alumna ya la
+                          acreditó, puede deberse a que el registro de avance no existía
+                          cuando la cursó.
+                        </li>
+                      )}
+                    </ul>
+                  )}
+                </div>
+              )
+            })}
           </div>
         )}
       </div>
