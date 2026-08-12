@@ -7,6 +7,7 @@
 import { createClient } from '@/lib/supabase/server'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { nivelForzadoDeRegistro } from '@/lib/modo'
+import { getCarreras } from '@/lib/licenciatura-utils'
 import { sincronizarPrefijoMatricula } from '@/lib/matricula'
 import { getOfertaIngreso } from '@/lib/cursos/oferta'
 
@@ -44,6 +45,15 @@ export async function POST(request: Request) {
     const nivelForzado     = nivelForzadoDeRegistro()
     const nivel            = nivelForzado ?? body.nivel ?? null
     const modalidad        = nivelForzado ? null : (body.modalidad ?? null)
+
+    // `carrera` decide qué catálogo ve el alumno. Este endpoint es PÚBLICO, así
+    // que el valor no se guarda tal cual: se contrasta contra el catálogo del
+    // config, igual que se hace con `curso_solicitado` unas líneas abajo. Fuera
+    // de licenciatura siempre va NULL.
+    const carreraPedida = String(body.carrera ?? '').trim()
+    const carrera = nivel === 'licenciatura' && getCarreras().some(c => c.slug === carreraPedida)
+      ? carreraPedida
+      : null
 
     // Curso de ingreso solicitado. Se pasa por la whitelist de ofertas del
     // config en vez de guardarse tal cual: este endpoint es público, así que
@@ -91,6 +101,7 @@ export async function POST(request: Request) {
       id:                  user.id,
       nivel,               // 'secundaria' | 'preparatoria' | 'licenciatura' | 'diplomado' | null
       modalidad,           // ModalidadId | null
+      carrera,             // slug de carrera | null (solo licenciatura)
       es_sindicalizado,
       sindicato:           es_sindicalizado ? sindicato : null,
       curso_solicitado,    // id de oferta, no UUID — ver src/lib/cursos/oferta.ts

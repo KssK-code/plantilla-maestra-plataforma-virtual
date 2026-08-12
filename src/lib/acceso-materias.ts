@@ -366,8 +366,9 @@ export async function tieneAccesoSemana(
  * Trae el catálogo de materias visible para el alumno + el set de acreditadas.
  *
  * El catálogo es EL MISMO universo que lista /api/alumno/materias (nivel del
- * alumno + demo, y en licenciatura además carrera y modalidad); si divergiera,
- * el índice de la ventana se correría y lista y gate dejarían de coincidir.
+ * alumno + demo, y en licenciatura además la carrera —nunca la modalidad—); si
+ * divergiera, el índice de la ventana se correría y lista y gate dejarían de
+ * coincidir.
  *
  * Funciona igual con el cliente de sesión (RLS: materias/meses_contenido son
  * lectura-autenticados y calificaciones filtra a las propias) o con el admin.
@@ -386,9 +387,13 @@ export async function cargarContextoAcceso(
     ? materiasQuery.or(`nivel.eq.${alumno.nivel},nivel.eq.demo`)
     : materiasQuery.eq('nivel', 'demo')
 
-  if (alumno.nivel === 'licenciatura') {
-    if (alumno.carrera) materiasQuery = materiasQuery.eq('carrera', alumno.carrera)
-    if (alumno.modalidad) materiasQuery = materiasQuery.eq('modalidad', alumno.modalidad)
+  // Scope SOLO por carrera, NUNCA por modalidad. El catálogo de licenciatura se
+  // siembra una sola vez etiquetado con la modalidad de REFERENCIA (la más
+  // larga), y la modalidad del alumno solo define el RITMO de desbloqueo, no
+  // qué materias existen: filtrar por ella dejaba al alumno de 6 meses con
+  // cero materias. El `.or` conserva la materia demo, que no tiene carrera.
+  if (alumno.nivel === 'licenciatura' && alumno.carrera) {
+    materiasQuery = materiasQuery.or(`carrera.eq.${alumno.carrera},nivel.eq.demo`)
   }
 
   const [matsRes, califsRes] = await Promise.all([

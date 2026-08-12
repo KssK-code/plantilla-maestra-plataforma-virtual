@@ -20,6 +20,45 @@ export type ModalidadId = typeof CONFIG.modalidades[number]['id']
 export type Modalidad = typeof CONFIG.modalidades[number]
 
 /**
+ * Forma mínima que comparten las modalidades del programa (Sec/Prepa) y las de
+ * licenciatura. Las de licenciatura viven aparte en CONFIG.licenciaturas porque
+ * tienen su propia tabla de precios y duraciones ('9_meses' no existe en el
+ * plan de Prepa), pero los helpers de abajo deben resolver AMBAS: un alumno de
+ * licenciatura en '9_meses' que no se encuentre aquí cae al fallback y estudia
+ * con el ritmo de otro plan.
+ */
+type ModalidadBase = {
+  id: string
+  label: string
+  meses: number
+  mensualidad: number
+  materiasPorMes: number
+  activa?: boolean
+}
+
+function modalidadesLic(): readonly ModalidadBase[] {
+  const lic = (CONFIG as { licenciaturas?: { activas?: boolean; modalidades?: readonly ModalidadBase[] } }).licenciaturas
+  if (!lic?.activas) return []
+  return lic.modalidades ?? []
+}
+
+/** Modalidades de licenciatura activas, para los selectores de carrera. */
+export function getModalidadesLicenciatura(): readonly ModalidadBase[] {
+  return modalidadesLic().filter(m => m.activa !== false)
+}
+
+/**
+ * Busca una modalidad en el plan del programa y, si no está, en el de
+ * licenciatura. Este es el único punto que conoce las dos tablas.
+ */
+function buscarModalidad(id: string | null | undefined): ModalidadBase | undefined {
+  if (!id) return undefined
+  const base = CONFIG.modalidades.find(m => m.id === id && m.activa)
+  if (base) return base as unknown as ModalidadBase
+  return modalidadesLic().find(m => m.id === id && m.activa !== false)
+}
+
+/**
  * Obtiene la modalidad por ID. Solo devuelve modalidades ACTIVAS.
  * Si el ID no existe o está desactivado, devuelve undefined.
  */
@@ -35,7 +74,7 @@ export function getModalidad(id: string | null | undefined): Modalidad | undefin
  * Si no hay modalidades activas (config rota), devuelve 3 como último recurso.
  */
 export function getMesesByModalidad(id: string | null | undefined): number {
-  const found = getModalidad(id)
+  const found = buscarModalidad(id)
   if (found) return found.meses
 
   const firstActive = CONFIG.modalidades.find(m => m.activa)
@@ -84,7 +123,9 @@ export function getLabelByModalidad(id: string | null | undefined): string {
  * la densidad académica del alumno (cuántas materias ve cada mes).
  */
 export function getMateriasPorMesByModalidad(id: string | null | undefined): number {
-  const found = getModalidad(id)
+  // Resuelve también las modalidades de licenciatura: sin esto, un alumno en
+  // '9_meses' caía al fallback y desbloqueaba materias al ritmo de otro plan.
+  const found = buscarModalidad(id)
   if (found) return found.materiasPorMes
 
   const firstActive = CONFIG.modalidades.find(m => m.activa)

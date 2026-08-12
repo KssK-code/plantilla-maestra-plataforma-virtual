@@ -3,6 +3,7 @@ import { createClient as createServiceClient } from '@supabase/supabase-js'
 import { CONFIG } from '@/lib/config'
 import { getMesesByModalidad } from '@/lib/modalidades'
 import { esSoloCursos } from '@/lib/modo'
+import { licenciaturasActivas } from '@/lib/licenciatura-utils'
 
 // ─── helpers ──────────────────────────────────────────────────────────────────
 function getServiceClient() {
@@ -48,8 +49,9 @@ function NivelBadge({ nivel }: { nivel?: string | null }) {
   // B7 — 'diplomado' tenía que caer en 'Sin nivel'. Aditivo: antes de B7 ningún
   // camino podía crear ese nivel, así que ningún alumno existente cambia.
   const label = isPrepa ? 'Preparatoria'
-    : nivel === 'secundaria' ? 'Secundaria'
-    : nivel === 'diplomado'  ? 'Diplomado'
+    : nivel === 'secundaria'   ? 'Secundaria'
+    : nivel === 'diplomado'    ? 'Diplomado'
+    : nivel === 'licenciatura' ? 'Licenciatura'
     : 'Sin nivel'
   return (
     <span
@@ -85,6 +87,15 @@ export default async function AdminDashboardPage() {
     .from('alumnos')
     .select('*', { count: 'exact', head: true })
     .eq('nivel', 'secundaria')
+
+  let totalLicenciatura: number | null = null
+  if (licenciaturasActivas()) {
+    const { count: lic } = await supabase
+      .from('alumnos')
+      .select('*', { count: 'exact', head: true })
+      .eq('nivel', 'licenciatura')
+    totalLicenciatura = lic ?? 0
+  }
 
   // B7 — cifras del vertical de diplomados, solo en solo_cursos. Se consultan
   // únicamente en ese modo para no agregar dos queries por carga a los 144
@@ -169,6 +180,11 @@ export default async function AdminDashboardPage() {
         {soloCursos
           ? <StatCard emoji="🎓" label="Inscripciones activas" value={inscripcionesActivas ?? 0} sub={`${totalDiplomados ?? 0} diplomado${totalDiplomados === 1 ? '' : 's'} publicado${totalDiplomados === 1 ? '' : 's'}`} color="var(--color-primario)" />
           : <StatCard emoji="🎓" label="Preparatoria"        value={totalPrepa ?? 0}   sub={`${totalSecundaria ?? 0} en Secundaria`} color="var(--color-primario)" />}
+        {/* El tercer programa va en su propia tarjeta: meterlo como `sub` de
+            Preparatoria escondería la cifra detrás de otras dos. */}
+        {!soloCursos && totalLicenciatura !== null && (
+          <StatCard emoji="⚖️" label="Licenciatura" value={totalLicenciatura} color="var(--color-acento)" />
+        )}
         <StatCard emoji="📅" label="Registros este mes"  value={esteMes ?? 0}      color="#22C55E" />
         <StatCard emoji="📄" label="Docs. pendientes"    value={docsPendientes ?? 0} color="#F59E0B" />
       </div>

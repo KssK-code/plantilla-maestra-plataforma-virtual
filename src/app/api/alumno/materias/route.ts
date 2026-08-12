@@ -58,9 +58,12 @@ export async function GET() {
       ? materiasQuery.or(`nivel.eq.${nivel},nivel.eq.demo`)
       : materiasQuery.eq('nivel', 'demo')
 
-    if (nivel === 'licenciatura') {
-      if (alumno.carrera)   materiasQuery = materiasQuery.eq('carrera', alumno.carrera)
-      if (alumno.modalidad) materiasQuery = materiasQuery.eq('modalidad', alumno.modalidad)
+    // Scope SOLO por carrera, NUNCA por modalidad — debe ser IDÉNTICO al de
+    // cargarContextoAcceso() en lib/acceso-materias (ver Bug 59 arriba). La
+    // modalidad define el ritmo de desbloqueo, no el catálogo: filtrar por ella
+    // dejaba en cero al alumno cuyo plan no fuera el de referencia.
+    if (nivel === 'licenciatura' && alumno.carrera) {
+      materiasQuery = materiasQuery.or(`carrera.eq.${alumno.carrera},nivel.eq.demo`)
     }
 
     const { data: materias, error } = await materiasQuery.order('orden')

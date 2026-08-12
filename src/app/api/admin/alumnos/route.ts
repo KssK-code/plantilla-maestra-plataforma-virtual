@@ -5,6 +5,7 @@ import { verifyStaff } from '@/lib/supabase/verify-admin'
 import { CONFIG } from '@/lib/config'
 import { getMesesByModalidad, getDefaultModalidadId } from '@/lib/modalidades'
 import { nivelForzadoDeRegistro } from '@/lib/modo'
+import { getCarreras, getPlanNombre } from '@/lib/licenciatura-utils'
 import { sincronizarPrefijoMatricula } from '@/lib/matricula'
 import { getOfertaIngreso } from '@/lib/cursos/oferta'
 
@@ -107,6 +108,7 @@ export async function GET() {
         matricula,
         nivel,
         modalidad,
+        carrera,
         es_sindicalizado,
         activo,
         meses_desbloqueados,
@@ -128,7 +130,7 @@ export async function GET() {
 
     if (!error && data && data.length > 0) {
       type Row = {
-        id: string; matricula?: string; nivel?: string; modalidad?: string
+        id: string; matricula?: string; nivel?: string; modalidad?: string; carrera?: string | null
         es_sindicalizado?: boolean; sindicalizado?: boolean; activo?: boolean; meses_desbloqueados?: number
         inscripcion_pagada?: boolean; contactado_whatsapp?: boolean; created_at: string
         usuarios: { nombre?: string; apellidos?: string; email?: string; foto_url?: string | null; telefono?: string | null } | null
@@ -139,6 +141,8 @@ export async function GET() {
           id:                   a.id,
           matricula:            a.matricula ?? `${CONFIG.nombre}-0000`,
           nivel:                a.nivel ?? null,
+          carrera:              a.carrera ?? null,
+          plan_nombre:          getPlanNombre(a.nivel, a.carrera),
           modalidad:            a.modalidad ?? getDefaultModalidadId(),
           sindicalizado:        a.es_sindicalizado ?? a.sindicalizado ?? false,
           activo:               a.activo ?? false,
@@ -164,6 +168,7 @@ export async function GET() {
         matricula,
         nivel,
         modalidad,
+        carrera,
         es_sindicalizado,
         activo,
         meses_desbloqueados,
@@ -186,7 +191,7 @@ export async function GET() {
 
     if (!error2 && data2 && data2.length > 0) {
       type Row2 = {
-        id: string; matricula?: string; nivel?: string; modalidad?: string
+        id: string; matricula?: string; nivel?: string; modalidad?: string; carrera?: string | null
         es_sindicalizado?: boolean; sindicalizado?: boolean; activo?: boolean; meses_desbloqueados?: number
         inscripcion_pagada?: boolean; contactado_whatsapp?: boolean; created_at: string; usuario_id?: string
         usuarios: { nombre?: string; apellidos?: string; email?: string; foto_url?: string | null; telefono?: string | null } | null
@@ -197,6 +202,8 @@ export async function GET() {
           id:                   a.id,
           matricula:            a.matricula ?? `${CONFIG.nombre}-0000`,
           nivel:                a.nivel ?? null,
+          carrera:              a.carrera ?? null,
+          plan_nombre:          getPlanNombre(a.nivel, a.carrera),
           modalidad:            a.modalidad ?? getDefaultModalidadId(),
           sindicalizado:        a.es_sindicalizado ?? a.sindicalizado ?? false,
           activo:               a.activo ?? false,
@@ -227,7 +234,7 @@ export async function GET() {
 
     const resultFallback = []
     for (const a of (alumnos ?? []) as {
-      id: string; matricula?: string; nivel?: string; modalidad?: string
+      id: string; matricula?: string; nivel?: string; modalidad?: string; carrera?: string | null
       es_sindicalizado?: boolean; sindicalizado?: boolean; activo?: boolean; meses_desbloqueados?: number
       inscripcion_pagada?: boolean; contactado_whatsapp?: boolean; created_at: string
     }[]) {
@@ -240,6 +247,8 @@ export async function GET() {
         id:                   a.id,
         matricula:            a.matricula ?? `${CONFIG.nombre}-0000`,
         nivel:                a.nivel ?? null,
+        carrera:              a.carrera ?? null,
+        plan_nombre:          getPlanNombre(a.nivel, a.carrera),
         modalidad:            a.modalidad ?? getDefaultModalidadId(),
         sindicalizado:        a.es_sindicalizado ?? a.sindicalizado ?? false,
         activo:               a.activo ?? false,
@@ -272,7 +281,7 @@ export async function POST(request: NextRequest) {
     if (!isAdmin) return NextResponse.json({ error: 'Acceso denegado' }, { status: 403 })
 
     const body = await request.json()
-    const { nombre_completo, email, password, nivel, modalidad, telefono } = body
+    const { nombre_completo, email, password, nivel, modalidad, telefono, carrera } = body
 
     // Aceptar "nombre_completo" del form y dividirlo en nombre / apellidos
     const partes     = (nombre_completo as string | undefined)?.trim().split(/\s+/) ?? []
@@ -296,6 +305,22 @@ export async function POST(request: NextRequest) {
     // que el INSERT falle y que la ruta borre el usuario de Auth recién creado.
     if (!nivelForzado && (!nivel || !['secundaria', 'preparatoria', 'licenciatura'].includes(nivel))) {
       return NextResponse.json({ error: 'nivel es requerido (secundaria, preparatoria o licenciatura)' }, { status: 400 })
+    }
+
+    // La carrera decide QUÉ catálogo ve el alumno (lib/acceso-materias) y, como
+    // `nivel`, no hay pantalla para corregirla después: un alumno de
+    // licenciatura sin carrera se queda sin materias. Se valida contra el
+    // catálogo real, no contra texto libre.
+    const carreraNormalizada =
+      (nivelForzado ?? nivel) === 'licenciatura' ? String(carrera ?? '').trim() : ''
+    if ((nivelForzado ?? nivel) === 'licenciatura') {
+      const validas = getCarreras().map(c => c.slug)
+      if (!carreraNormalizada || !validas.includes(carreraNormalizada)) {
+        return NextResponse.json(
+          { error: `carrera es requerida para licenciatura (${validas.join(', ')})` },
+          { status: 400 },
+        )
+      }
     }
 
     const admin = createAdminClient()
@@ -347,6 +372,7 @@ export async function POST(request: NextRequest) {
         id:                  newUserId,
         nivel:               nivelForzado ?? (nivel as 'secundaria' | 'preparatoria' | 'licenciatura'),
         modalidad:           nivelForzado ? null : (modalidad ?? getDefaultModalidadId()),
+        carrera:             carreraNormalizada || null,
         meses_desbloqueados: 0,
       })
       .select()
