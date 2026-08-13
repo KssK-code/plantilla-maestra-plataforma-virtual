@@ -35,6 +35,25 @@ interface Calificado {
   revision: RevisionPregunta[]
 }
 
+/** Listado de intentos previos. Se usa en la vista de resultados y, antes de
+ *  contestar, en el aviso de "ya presentaste este examen". */
+function ListaHistorial({ items }: { items: ResultadoHistorial[] }) {
+  return (
+    <div className="rounded-2xl p-4 space-y-2" style={{ background: 'var(--color-superficie)', border: '1px solid #E8F0F7' }}>
+      {items.map(h => (
+        <div key={h.id} className="flex justify-between text-xs py-1">
+          <span style={{ color: '#64748B' }}>
+            {new Date(h.created_at).toLocaleDateString('es-MX', { day: '2-digit', month: 'short', year: 'numeric' })}
+          </span>
+          <span className="font-semibold" style={{ color: '#334155' }}>
+            {h.aciertos}/{h.total} · {Math.round(Number(h.porcentaje))}%
+          </span>
+        </div>
+      ))}
+    </div>
+  )
+}
+
 export default function ExamenCursoPage() {
   const params = useParams<{ id: string }>()
   const router = useRouter()
@@ -223,20 +242,7 @@ export default function ExamenCursoPage() {
                 </button>
               </div>
 
-              {verHistorial && (
-                <div className="rounded-2xl p-4 space-y-2" style={{ background: 'var(--color-superficie)', border: '1px solid #E8F0F7' }}>
-                  {historial.map(h => (
-                    <div key={h.id} className="flex justify-between text-xs py-1">
-                      <span style={{ color: '#64748B' }}>
-                        {new Date(h.created_at).toLocaleDateString('es-MX', { day: '2-digit', month: 'short', year: 'numeric' })}
-                      </span>
-                      <span className="font-semibold" style={{ color: '#334155' }}>
-                        {h.aciertos}/{h.total} · {Math.round(Number(h.porcentaje))}%
-                      </span>
-                    </div>
-                  ))}
-                </div>
-              )}
+              {verHistorial && <ListaHistorial items={historial} />}
 
               <h2 className="text-sm font-bold pt-2" style={{ color: 'var(--color-primario)' }}>Revisión</h2>
               {resultado.revision.map((r, i) => (
@@ -289,6 +295,32 @@ export default function ExamenCursoPage() {
           {/* ── EXAMEN ── */}
           {!resultado && preguntas && (
             <>
+              {/* Intentos previos. El historial ya se cargaba al montar, pero su UI
+                  vivía SOLO dentro del bloque de resultados: quien ya había
+                  presentado el examen no podía consultarlo sin volver a enviarlo. */}
+              {historial.length > 0 && (
+                <div className="rounded-2xl p-4 space-y-3" style={{ background: 'var(--color-superficie)', border: '1px solid #E8F0F7' }}>
+                  <div className="flex items-center justify-between gap-3">
+                    <div className="min-w-0">
+                      <p className="text-sm font-bold" style={{ color: 'var(--color-primario)' }}>
+                        Ya presentaste este examen {historial.length === 1 ? 'una vez' : `${historial.length} veces`}
+                      </p>
+                      <p className="text-xs" style={{ color: '#64748B' }}>
+                        Mejor puntaje: {Math.round(Math.max(...historial.map(h => Number(h.porcentaje))))}%
+                      </p>
+                    </div>
+                    <button
+                      onClick={() => setVerHistorial(v => !v)}
+                      className="rounded-xl px-4 py-2 text-xs font-semibold flex-shrink-0"
+                      style={{ background: 'rgba(27,48,104,0.06)', color: 'var(--color-primario)', border: '1px solid rgba(27,48,104,0.2)' }}
+                    >
+                      {verHistorial ? 'Ocultar' : 'Ver intentos'}
+                    </button>
+                  </div>
+                  {verHistorial && <ListaHistorial items={historial} />}
+                </div>
+              )}
+
               <p className="text-xs" style={{ color: '#64748B' }}>
                 Contesta las {total} preguntas y envía. No hay límite de tiempo.{' '}
                 {sinIntentos
