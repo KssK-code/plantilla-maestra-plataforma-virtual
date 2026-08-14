@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { createAdminClient } from '@/lib/supabase/admin'
+import { urlDeAvatar } from '@/lib/avatar'
 import { CONFIG } from '@/lib/config'
 import { getMesesByModalidad, getDefaultModalidadId } from '@/lib/modalidades'
 
@@ -111,7 +112,11 @@ export async function GET() {
       .limit(1)
       .maybeSingle()
 
-    let fotoPerfilUrl: string | null = usuario?.foto_url ?? null
+    // `foto_url` es una ruta del bucket privado `avatars`: sin firmar, la
+    // constancia salía con la foto rota. El documento subido a `documentos`
+    // (abajo) sigue teniendo prioridad cuando existe, porque es el que el
+    // admin verificó.
+    let fotoPerfilUrl: string | null = await urlDeAvatar(admin, usuario?.foto_url)
     if (fotoDoc) {
       const doc = fotoDoc as { url_archivo?: string | null; nombre_archivo?: string | null }
       let storagePath: string | null = null

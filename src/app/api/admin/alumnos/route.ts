@@ -3,6 +3,7 @@ import { createClient } from '@/lib/supabase/server'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { verifyStaff } from '@/lib/supabase/verify-admin'
 import { CONFIG } from '@/lib/config'
+import { urlDeAvatar, urlesDeAvatar } from '@/lib/avatar'
 import { getMesesByModalidad, getDefaultModalidadId } from '@/lib/modalidades'
 import { nivelForzadoDeRegistro } from '@/lib/modo'
 import { sincronizarPrefijoMatricula } from '@/lib/matricula'
@@ -133,7 +134,13 @@ export async function GET() {
         inscripcion_pagada?: boolean; contactado_whatsapp?: boolean; created_at: string
         usuarios: { nombre?: string; apellidos?: string; email?: string; foto_url?: string | null; telefono?: string | null } | null
       }
-      const result = (data as unknown as Row[]).map(a => {
+      // Una sola llamada a Storage para todo el padrón, no una por alumno.
+      const filas = data as unknown as Row[]
+      const avatares = await urlesDeAvatar(
+        admin,
+        filas.map(a => (Array.isArray(a.usuarios) ? a.usuarios[0] : a.usuarios)?.foto_url),
+      )
+      const result = filas.map(a => {
         const u = Array.isArray(a.usuarios) ? a.usuarios[0] : a.usuarios
         return {
           id:                   a.id,
@@ -149,7 +156,8 @@ export async function GET() {
           created_at:           a.created_at,
           nombre_completo:      [u?.nombre, u?.apellidos].filter(Boolean).join(' ') || '—',
           email:                u?.email ?? '—',
-          foto_url:             u?.foto_url ?? null,
+          // Ruta del bucket privado -> URL firmada. Ver src/lib/avatar.ts.
+          foto_url:             avatares.get((u?.foto_url ?? '').trim()) ?? null,
           telefono:             u?.telefono ?? null,
         }
       })
@@ -191,7 +199,12 @@ export async function GET() {
         inscripcion_pagada?: boolean; contactado_whatsapp?: boolean; created_at: string; usuario_id?: string
         usuarios: { nombre?: string; apellidos?: string; email?: string; foto_url?: string | null; telefono?: string | null } | null
       }
-      const result2 = (data2 as unknown as Row2[]).map(a => {
+      const filas2 = data2 as unknown as Row2[]
+      const avatares2 = await urlesDeAvatar(
+        admin,
+        filas2.map(a => (Array.isArray(a.usuarios) ? a.usuarios[0] : a.usuarios)?.foto_url),
+      )
+      const result2 = filas2.map(a => {
         const u = Array.isArray(a.usuarios) ? a.usuarios[0] : a.usuarios
         return {
           id:                   a.id,
@@ -207,7 +220,7 @@ export async function GET() {
           created_at:           a.created_at,
           nombre_completo:      [u?.nombre, u?.apellidos].filter(Boolean).join(' ') || '—',
           email:                u?.email ?? '—',
-          foto_url:             u?.foto_url ?? null,
+          foto_url:             avatares2.get((u?.foto_url ?? '').trim()) ?? null,
           telefono:             u?.telefono ?? null,
         }
       })
@@ -250,7 +263,7 @@ export async function GET() {
         created_at:           a.created_at,
         nombre_completo:      [(u as {nombre?:string}|null)?.nombre, (u as {apellidos?:string}|null)?.apellidos].filter(Boolean).join(' ') || '—',
         email:                (u as {email?:string}|null)?.email ?? '—',
-        foto_url:             (u as {foto_url?:string|null}|null)?.foto_url ?? null,
+        foto_url:             await urlDeAvatar(admin, (u as {foto_url?:string|null}|null)?.foto_url),
         telefono:             (u as {telefono?:string|null}|null)?.telefono ?? null,
       })
     }

@@ -1,5 +1,7 @@
 import { redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
+import { createAdminClient } from '@/lib/supabase/admin'
+import { urlDeAvatar } from '@/lib/avatar'
 import { DashboardLayout } from '@/components/layout/dashboard-layout'
 import dynamic from 'next/dynamic'
 
@@ -41,7 +43,13 @@ export default async function AlumnoLayout({
     || user.email
     || 'Alumno'
 
-  const avatarUrl = (usuario as unknown as { foto_url?: string | null } | null)?.foto_url ?? null
+  // `foto_url` guarda la RUTA dentro del bucket privado `avatars`, así que hay
+  // que firmarla antes de dársela al <Image> del sidebar. Con service role
+  // porque el bucket no tiene policies de lectura. Ver src/lib/avatar.ts.
+  const avatarUrl = await urlDeAvatar(
+    createAdminClient(),
+    (usuario as unknown as { foto_url?: string | null } | null)?.foto_url,
+  )
 
   return (
     <DashboardLayout

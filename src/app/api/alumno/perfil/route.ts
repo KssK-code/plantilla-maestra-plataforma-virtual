@@ -1,5 +1,7 @@
 import { NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
+import { createAdminClient } from '@/lib/supabase/admin'
+import { urlDeAvatar } from '@/lib/avatar'
 import { CONFIG } from '@/lib/config'
 
 function buildNombre(nombre?: string | null, apellidos?: string | null, fallback?: string | null) {
@@ -17,7 +19,9 @@ export async function GET() {
     // ── Intentar con schema antiguo: alumnos.usuario_id ──────────────────────
     const { data, error } = await supabase
       .from('alumnos')
-      .select('*, planes_estudio(nombre, duracion_meses), usuarios(id, nombre, apellidos, email, avatar_url)')
+      // `foto_url`, no `avatar_url`: esa columna nunca existió en el schema y
+      // hacía fallar la consulta entera, no solo la foto.
+      .select('*, planes_estudio(nombre, duracion_meses), usuarios(id, nombre, apellidos, email, foto_url)')
       .eq('usuario_id', user.id)
       .single()
 
@@ -31,12 +35,13 @@ export async function GET() {
         inscripcion_pagada?: boolean
         nivel?: string
         planes_estudio: { nombre: string; duracion_meses: number } | null
-        usuarios: { id?: string; nombre?: string; apellidos?: string; email: string; avatar_url?: string | null } | null
+        usuarios: { id?: string; nombre?: string; apellidos?: string; email: string; foto_url?: string | null } | null
       }
 
       console.log('[perfil] usuarios join:', JSON.stringify(a.usuarios))
 
       const nombreCompleto = buildNombre(a.usuarios?.nombre, a.usuarios?.apellidos, user.email)
+      const avatarFirmado = await urlDeAvatar(createAdminClient(), a.usuarios?.foto_url)
 
       return NextResponse.json({
         id:                  a.id,
@@ -48,7 +53,7 @@ export async function GET() {
         duracion_meses:      a.planes_estudio?.duracion_meses ?? 0,
         nombre_completo:     nombreCompleto,
         email:               a.usuarios?.email ?? user.email ?? '',
-        avatar_url:          a.usuarios?.avatar_url ?? null,
+        avatar_url:          avatarFirmado,
       })
     }
 
@@ -86,6 +91,9 @@ export async function GET() {
       } | null
 
       const nombreCompleto = buildNombre(u?.nombre, u?.apellidos, user.email)
+      // El bucket `avatars` es privado y no tiene policies: firmar exige
+      // service role, la sesión del propio alumno no alcanza su archivo.
+      const avatarFirmado = await urlDeAvatar(createAdminClient(), u?.foto_url)
 
       console.log('[perfil] nombre construido:', nombreCompleto)
 
@@ -104,7 +112,7 @@ export async function GET() {
         duracion_meses:      6,
         nombre_completo:     nombreCompleto,
         email:               u?.email ?? user.email ?? '',
-        avatar_url:          u?.foto_url ?? null,
+        avatar_url:          avatarFirmado,
       })
     }
 
