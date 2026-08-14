@@ -3,6 +3,7 @@ import { createClient } from '@/lib/supabase/server'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { verifyAdmin } from '@/lib/supabase/verify-admin'
 import { getMesesByModalidad, getDefaultModalidadId } from '@/lib/modalidades'
+import { urlDeAvatar } from '@/lib/avatar'
 import { CONFIG } from '@/lib/config'
 
 export async function GET(
@@ -150,7 +151,8 @@ export async function GET(
         nombre_completo: [u?.nombre, u?.apellidos].filter(Boolean).join(' ') || '—',
         email:           u?.email ?? '—',
         telefono:        u?.telefono ?? null,
-        foto_url:        u?.foto_url ?? null,
+        // Ruta del bucket privado `avatars` -> URL firmada. Ver src/lib/avatar.ts.
+        foto_url:        await urlDeAvatar(admin, u?.foto_url),
         activo:          Boolean(a.activo),
       },
       calificaciones: calificaciones ?? [],

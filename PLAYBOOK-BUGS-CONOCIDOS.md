@@ -65,3 +65,77 @@ WHERE descripcion LIKE '%{{CLIENTE_NOMBRE}}%';
 ```
 
 ---
+
+### Bug 90 — El alumno nunca pudo subir su foto de perfil (columna inexistente + bucket privado)
+**Síntoma:** En `/alumno/perfil`, al elegir una imagen la subida falla siempre.
+La respuesta es 500 con:
+`{"error":"Could not find the 'avatar_url' column of 'usuarios' in the schema cache"}`
+El avatar nunca aparece: ni en el sidebar, ni en el header, ni en la constancia.
+**Afecta:** TODOS los clientes desplegados con la plantilla anterior a este fix.
+No es un problema de configuración de un cliente: el código nunca funcionó.
+
+**Causa — son DOS fallas, y la segunda estaba tapada por la primera:**
+
+1. `POST /api/alumno/avatar` escribía en `usuarios.avatar_url`. Esa columna
+   no existe: la real es `foto_url` (ver `scripts/schema.sql`, definición de
+   `public.usuarios`, y el `GRANT UPDATE (… foto_url)` del final del archivo).
+   El UPDATE fallaba y el endpoint devolvía 500 antes de llegar a nada más.
+2. Aunque la columna hubiera sido la correcta, la URL se armaba con
+   `getPublicUrl()` sobre el bucket `avatars`, que se crea **Public: OFF** y
+   sin ninguna policy de lectura. Esa URL responde 400 para todo el mundo,
+   incluido el dueño de la foto.
+
+Además, `GET /api/alumno/perfil` pedía `usuarios(… avatar_url)` en su primer
+intento. En PostgREST una columna inexistente tumba la consulta **entera**, no
+solo esa columna, así que ese endpoint venía sirviendo siempre por su rama de
+respaldo — se perdía la foto y de paso el resto del join.
+
+**Estado:** CORREGIDO en plantilla (rama
+`fix/avatar-alumno-columna-y-bucket-privado`).
+
+**Qué cambió:** se restablece la convención que el resto de la plantilla ya
+usaba para buckets privados (`documentos`, `cursos`): en la base se guarda la
+**RUTA** y se **firma al leer**. Guardar una URL firmada no sirve —caduca y la
+foto se rompe sola— y la pública tampoco, porque el bucket es privado.
+
+- Nuevo `src/lib/avatar.ts`: `urlDeAvatar()` firma un valor suelto y
+  `urlesDeAvatar()` firma un padrón completo en UNA sola llamada a Storage
+  (firmar dentro del `.map()` de `/admin/alumnos` dispararía una petición por
+  alumno).
+- Se firma en los cinco puntos de lectura: perfil, layout del alumno
+  (sidebar/header), constancia, lista de alumnos y ficha de alumno.
+- Firmar exige **service role**: el bucket no tiene policies, así que la sesión
+  del propio alumno no alcanza su archivo. Por eso el helper recibe siempre un
+  admin client y solo puede llamarse desde el servidor.
+
+**Recuperación de datos: NO hace falta migración.** `urlDeAvatar()` acepta los
+tres formatos que pueden convivir en la columna:
+ruta (lo nuevo), URL pública heredada del bucket —le extrae la ruta y la vuelve
+a firmar, así las filas viejas se recuperan solas— y URL externa, que respeta.
+
+**Cómo saber si un cliente sigue afectado:** revisar su repo.
+```bash
+grep -n "avatar_url\|getPublicUrl" src/app/api/alumno/avatar/route.ts
+# Con hits → tiene el bug. Sin hits → ya trae el fix.
+```
+El fix es de código: hay que subir la actualización de la plantilla al repo del
+cliente y redesplegar. No hay nada que correr en su base de datos.
+
+**Validación post-fix** (con sesión de alumno):
+```bash
+# 1. La subida responde 200 y devuelve una URL firmada
+curl -X POST "$URL/api/alumno/avatar" -H "Cookie: $SESION" -F "avatar=@foto.png"
+# -> {"url":"https://<ref>.supabase.co/storage/v1/object/sign/avatars/…?token=…"}
+
+# 2. En la base queda la RUTA, no una URL
+#    SELECT foto_url FROM usuarios WHERE email='…';  ->  "<uuid>.png"
+
+# 3. El perfil devuelve la URL ya firmada
+curl "$URL/api/alumno/perfil" -H "Cookie: $SESION" | grep -o 'object/sign/avatars'
+```
+
+**Nota para clientes nuevos:** el bucket `avatars` se crea a mano (Public: OFF)
+y la plantilla no le pone policies. No hace falta ponérselas — el fix firma con
+service role justamente para no depender de eso.
+
+---
