@@ -10,6 +10,7 @@ import { useToast, ToastContainer } from '@/components/ui/toast'
 import { createClient } from '@/lib/supabase/client'
 import BadgesGrid from '@/components/alumno/BadgesGrid'
 import { CONFIG } from '@/lib/config'
+import { getPlanNombre } from '@/lib/licenciatura-utils'
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 interface Perfil {
@@ -22,6 +23,7 @@ interface Perfil {
   nombre_completo:     string
   email:               string
   nivel?:              string
+  carrera?:            string | null
 }
 
 interface MateriaResumen {
@@ -216,8 +218,10 @@ export default function AlumnoDashboard() {
   const primerNombre  = perfil?.nombre_completo?.split(' ')?.[0] ?? 'Alumno'
   const mesActivo     = perfil.meses_desbloqueados
   const logrosCount   = logros.length
-  const nivelLabel    = perfil.nivel === 'preparatoria' ? 'Preparatoria'
-                      : perfil.nivel === 'secundaria'   ? 'Secundaria'
+  // getPlanNombre cubre licenciatura (devuelve el nombre de la carrera); el
+  // ternario anterior caía a 'Secundaria' para cualquier nivel desconocido.
+  const nivelLabel    = perfil.nivel
+                      ? getPlanNombre(perfil.nivel, perfil.carrera)
                       : perfil.plan_nombre?.toLowerCase().includes('prepa') ? 'Preparatoria'
                       : 'Secundaria'
 

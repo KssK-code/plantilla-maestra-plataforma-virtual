@@ -268,7 +268,8 @@ export function LandingClient({ catalogo }: { catalogo: CursoCatalogo[] }) {
               <span className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full text-xs font-semibold tracking-wider uppercase"
                 style={{ background: 'rgba(21,101,192,0.22)', color: C.azure, border: '1px solid rgba(66,165,245,0.22)' }}>
                 <span style={{ width: 6, height: 6, borderRadius: '50%', background: '#4ade80', flexShrink: 0 }} />
-                Centro de Apoyo para la Acreditación de Conocimientos · [Ciudad, México]
+                Centro de Apoyo para la Acreditación de Conocimientos
+                {CONFIG.landing.ciudad ? ` · ${CONFIG.landing.ciudad}` : ''}
               </span>
             </div>
 
@@ -711,7 +712,16 @@ export function LandingClient({ catalogo }: { catalogo: CursoCatalogo[] }) {
         {/* ── FOOTER ───────────────────────────────────────────────── */}
         <footer className="py-12 px-4 sm:px-8 text-center" style={{ background: '#050a14', color: 'rgba(227,242,253,0.45)' }}>
           <div className="flex justify-center mb-4">
-            <Image src={CONFIG.logoOscuro || CONFIG.logo} alt={CONFIG.nombreCompleto} width={200} height={80} className="h-16 md:h-20 w-auto brightness-0 invert drop-shadow-[0_0_20px_rgba(255,255,255,0.2)] object-contain" />
+            {/* `brightness-0 invert` fuerza el logo a blanco puro. Sirve cuando
+                el cliente NO entregó variante para fondo oscuro y `logoOscuro`
+                cae en el mismo archivo que `logo` (un lockup oscuro sería
+                invisible sobre este footer). Pero si el cliente SÍ entregó su
+                variante clara, el filtro le borra los colores de marca y la
+                deja toda blanca — por eso solo se aplica en el caso de
+                fallback. Ver Bug 97 del playbook. */}
+            <Image src={CONFIG.logoOscuro || CONFIG.logo} alt={CONFIG.nombreCompleto} width={200} height={80}
+              className={`h-16 md:h-20 w-auto drop-shadow-[0_0_20px_rgba(255,255,255,0.2)] object-contain${
+                CONFIG.logoOscuro && CONFIG.logoOscuro !== CONFIG.logo ? '' : ' brightness-0 invert'}`} />
           </div>
           <p className="text-sm font-semibold" style={{ color: C.ice }}>{CONFIG.nombreCompleto}</p>
           <p className="text-xs mt-1.5">{CONFIG.dominio}</p>

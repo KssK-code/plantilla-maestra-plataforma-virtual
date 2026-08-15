@@ -4,7 +4,10 @@ import { useState, useEffect, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
 import { Users, Search, Plus, X, Loader2, Eye, MessageSquare, CheckCheck, Clock, AlertCircle } from 'lucide-react'
 import { useToast, ToastContainer } from '@/components/ui/toast'
-import { getModalidadesActivas } from '@/lib/modalidades'
+import { getModalidadesActivas, getModalidadesLicenciatura } from '@/lib/modalidades'
+// El nombre del programa lo arma la API (plan_nombre); aquí solo hacen falta
+// el catálogo de carreras y el switch del add-on.
+import { getCarreras, licenciaturasActivas } from '@/lib/licenciatura-utils'
 import { hayOfertasIngreso } from '@/lib/cursos/oferta'
 
 interface Alumno {
@@ -84,6 +87,7 @@ export default function AlumnosPage() {
     telefono: '',
     nivel: '',
     modalidad: '',
+    carrera: '',
   })
 
   const cargarAlumnos = useCallback(async () => {
@@ -141,7 +145,7 @@ export default function AlumnosPage() {
       const nombre = form.nombre_completo
       const matricula = data.matricula ?? ''
       setModalOpen(false)
-      setForm({ nombre_completo: '', email: '', password: '', telefono: '', nivel: '', modalidad: '' })
+      setForm({ nombre_completo: '', email: '', password: '', telefono: '', nivel: '', modalidad: '', carrera: '' })
       await cargarAlumnos()
       showToast(`✓ Alumno ${nombre} creado${matricula ? ` con matrícula ${matricula}` : ''}`, 'success')
     } catch {
@@ -679,15 +683,34 @@ export default function AlumnosPage() {
                 <select
                   required
                   value={form.nivel}
-                  onChange={e => setForm(prev => ({ ...prev, nivel: e.target.value, modalidad: '' }))}
+                  onChange={e => setForm(prev => ({ ...prev, nivel: e.target.value, modalidad: '', carrera: '' }))}
                   className="w-full px-3 py-2.5 rounded-lg text-sm outline-none"
                   style={INPUT_STYLE}
                 >
                   <option value="">Selecciona nivel...</option>
                   <option value="secundaria">Secundaria</option>
                   <option value="preparatoria">Preparatoria</option>
+                  {licenciaturasActivas() && <option value="licenciatura">Licenciatura</option>}
                 </select>
               </div>
+
+              {form.nivel === 'licenciatura' && (
+                <div className="space-y-1.5">
+                  <label className="block text-sm font-medium" style={{ color: '#94A3B8' }}>Carrera</label>
+                  <select
+                    required
+                    value={form.carrera}
+                    onChange={e => setForm(prev => ({ ...prev, carrera: e.target.value }))}
+                    className="w-full px-3 py-2.5 rounded-lg text-sm outline-none"
+                    style={INPUT_STYLE}
+                  >
+                    <option value="">Selecciona carrera...</option>
+                    {getCarreras().map(c => (
+                      <option key={c.slug} value={c.slug}>{c.nombre}</option>
+                    ))}
+                  </select>
+                </div>
+              )}
 
               <div className="space-y-1.5">
                 <label className="block text-sm font-medium" style={{ color: '#94A3B8' }}>Modalidad</label>
@@ -700,7 +723,7 @@ export default function AlumnosPage() {
                   style={{ ...INPUT_STYLE, opacity: form.nivel ? 1 : 0.5 }}
                 >
                   <option value="">{form.nivel ? 'Selecciona modalidad...' : 'Primero elige nivel'}</option>
-                  {getModalidadesActivas().map(m => (
+                  {(form.nivel === 'licenciatura' ? getModalidadesLicenciatura() : getModalidadesActivas()).map(m => (
                     <option key={m.id} value={m.id}>{m.label}</option>
                   ))}
                 </select>

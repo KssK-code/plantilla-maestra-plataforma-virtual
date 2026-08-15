@@ -163,9 +163,16 @@ export default function DocumentosPage() {
   // preparatoria den exactamente el mismo resultado que antes de B7. La rama de
   // diplomado se intercala antes del fallback, que sigue siendo prepa.
   const plan = planNombre.toLowerCase()
+  const esLicenciatura = plan.includes('icenciatura')
   const tiposActivos = plan.includes('ecundaria') ? TIPOS_SECUNDARIA
                      : plan.includes('iplomado')  ? TIPOS_DIPLOMADO
                      : TIPOS_PREPA
+  // Licenciatura usa los mismos slots que prepa, pero el documento previo que
+  // debe acreditar es el bachillerato, no la secundaria. Solo cambia la etiqueta.
+  const tipoLabel = (t: DocTipo) =>
+    esLicenciatura && t === 'certificado_secundaria'
+      ? 'Certificado de Bachillerato'
+      : TIPO_LABEL[t]
   const docMap = new Map(documentos.map(d => [d.tipo, d]))
 
   return (
@@ -193,7 +200,7 @@ export default function DocumentosPage() {
                 </div>
                 <div className="flex-1 min-w-0">
                   <p className="text-white font-semibold text-sm truncate">
-                    {TIPO_LABEL[tipo]}
+                    {tipoLabel(tipo)}
                   </p>
                   {doc ? (
                     <div

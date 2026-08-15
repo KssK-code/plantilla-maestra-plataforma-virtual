@@ -35,8 +35,13 @@ export async function GET() {
     // diplomado caía al `else` y la app le exigía CERTIFICADO DE SECUNDARIA,
     // que es justo lo que un instituto de diplomados no acredita.
     // Aditivo: en tradicional ningún camino crea nivel='diplomado'.
-    const plan_nombre = a.nivel === 'secundaria' ? 'Secundaria'
-                      : a.nivel === 'diplomado'  ? 'Diplomado'
+    // Licenciatura: cae en la MISMA lista que prepa (los tipos de documento son
+    // los mismos slots), pero se etiqueta aparte para que la pantalla pida
+    // «Certificado de Bachillerato» y no «de Secundaria» — que es el nivel que
+    // el aspirante a licenciatura ya acreditó.
+    const plan_nombre = a.nivel === 'secundaria'   ? 'Secundaria'
+                      : a.nivel === 'diplomado'    ? 'Diplomado'
+                      : a.nivel === 'licenciatura' ? 'Licenciatura'
                       : 'Preparatoria'
 
     return NextResponse.json({

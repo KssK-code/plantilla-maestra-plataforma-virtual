@@ -108,6 +108,12 @@ export const CONFIG = {
     hero_highlight:             'desde casa',
     hero_subtitulo:             'Estudia Secundaria o Preparatoria en línea con acompañamiento certificado. Avanza a tu ritmo.',
     hero_badges:                ['Acompañamiento Certificado', 'Sin salir de casa', '100% en línea'],
+    // Ciudad que se muestra en el badge del hero. VACÍO = se omite el segmento
+    // por completo (correcto para un instituto 100% en línea sin domicilio).
+    // Antes esto era el literal '[Ciudad, México]' escrito en el JSX y llegaba
+    // así, entre corchetes, a producción: no rompía el build ni el smoke test
+    // por HTTP, solo se veía abriendo la página.
+    ciudad:                     '',
     convenios:                  [],
     respaldo_titulo:            'Respaldados por instituciones educativas de confianza',
     respaldo_badges:            [],
@@ -176,6 +182,58 @@ export const CONFIG = {
   // Para vender varios cursos como PAQUETE ÚNICO en vez de sueltos, usar
   // `precioPaquete: <monto>` en lugar de `precio` por curso: src/lib/cursos/
   // oferta.ts los colapsa en una sola oferta que inscribe a todos.
+  // === ADD-ON LICENCIATURAS =================================================
+  // Tercer programa, junto a Secundaria y Preparatoria.
+  //
+  // ⚠️ DEFAULT `activas: false` A PROPÓSITO, igual que `cursosIngreso` y
+  // `landing.mostrarCatalogoCursos`: los clientes que solo venden Sec/Prepa
+  // comparten esta plantilla y con este valor la app es IDÉNTICA a antes del
+  // add-on — no se dibuja la opción en el registro, ni la tarjeta del panel,
+  // ni la sección de la landing, y ninguna consulta extra se ejecuta.
+  //
+  // Para encenderlo en un cliente: `activas: true` + una entrada por carrera
+  // vendida + los planes de duración. Requiere además la migración
+  // `20260812120000_licenciaturas.sql` (columnas `carrera` / `modalidad`).
+  //
+  // ⚠️ `modalidades` es una tabla APARTE de `CONFIG.modalidades`. Los planes de
+  // licenciatura no son los del programa: pueden durar 9 o 12 meses, que no
+  // existen en Sec/Prepa. `src/lib/modalidades.ts` resuelve las dos.
+  //
+  // ⚠️ `materiasPorMes` es lo ÚNICO que cambia entre planes de una misma
+  // carrera. El catálogo de materias es el mismo y se filtra SOLO por carrera
+  // (ver `cargarContextoAcceso` en src/lib/acceso-materias.ts): filtrar además
+  // por modalidad deja sin materias a todo alumno cuyo plan no sea aquel con
+  // el que se sembró el catálogo.
+  licenciaturas: {
+    activas: false,
+    /** Pago único al inscribirse. */
+    inscripcion: 0,
+    /** Título y cédula profesional, con gestión administrativa. */
+    certificacion: 0,
+    carreras: [] as ReadonlyArray<{
+      /** Slug estable. Es el valor que se guarda en `alumnos.carrera`. */
+      slug: string
+      nombre: string
+      cuatrimestres: number
+      totalMaterias: number
+      /** Nombre de un icono de lucide-react (ej. 'Scale', 'Briefcase'). */
+      icono: string
+      desc: string
+      incluye: readonly string[]
+    }>,
+    modalidades: [] as ReadonlyArray<{
+      id: string
+      label: string
+      /** Etiqueta corta para las tarjetas de precio (ej. '9 meses'). */
+      sublabel: string
+      meses: number
+      mensualidad: number
+      activa: boolean
+      /** Ritmo de desbloqueo: materias nuevas por mes. */
+      materiasPorMes: number
+    }>,
+  },
+
   cursosIngreso: {
     activa: false,
     pagoUnico: true,

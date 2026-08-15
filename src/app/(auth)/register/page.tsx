@@ -6,7 +6,8 @@ import Image from 'next/image'
 import { useRouter } from 'next/navigation'
 import { Mail, Lock, Loader2, Eye, EyeOff, Phone, User, CheckCircle2 } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
-import { getModalidadesActivas } from '@/lib/modalidades'
+import { getModalidadesActivas, getModalidadesLicenciatura } from '@/lib/modalidades'
+import { getCarreras, licenciaturasActivas } from '@/lib/licenciatura-utils'
 import { CONFIG } from '@/lib/config'
 import { esSoloCursos, aterrizajeAlumno } from '@/lib/modo'
 import { getOfertasIngreso } from '@/lib/cursos/oferta'
@@ -17,7 +18,9 @@ const BENEFITS = [
   'Acompañamiento para tu certificado SEP',
   'Estudia desde casa, a tu ritmo',
   'Centro de Apoyo para la Acreditación de Conocimientos',
-  'Secundaria y Preparatoria',
+  licenciaturasActivas()
+    ? 'Secundaria, Preparatoria y Licenciaturas'
+    : 'Secundaria y Preparatoria',
 ]
 
 // ─── Input helpers ─────────────────────────────────────────────────────────────
@@ -197,6 +200,7 @@ export default function RegisterPage() {
   const [showConfirm,     setShowConfirm]     = useState(false)
   const [nivel,           setNivel]           = useState('')
   const [modalidad,       setModalidad]       = useState('')
+  const [carrera,         setCarrera]         = useState('')
   const [cursoIngreso,    setCursoIngreso]    = useState('')
   const [error,           setError]           = useState<string | null>(null)
   const [loading,         setLoading]         = useState(false)
@@ -212,7 +216,12 @@ export default function RegisterPage() {
   const ofertasIngreso = getOfertasIngreso()
   const pidioCurso     = Boolean(cursoIngreso)
 
-  useEffect(() => { setModalidad('') }, [nivel])
+  // Al cambiar de nivel se limpian plan y carrera: las modalidades de
+  // licenciatura (6/9) no son las del programa (3/6), y una carrera arrastrada
+  // desde una selección previa dejaría al alumno con un dato que no le toca.
+  useEffect(() => { setModalidad(''); setCarrera('') }, [nivel])
+
+  const esLicenciatura = nivel === 'licenciatura'
 
   // Derive current progress step
   const filledStep1 = !!(nombre && apellidoPat && apellidoMat && telefono)
@@ -235,6 +244,8 @@ export default function RegisterPage() {
       setError('Selecciona tu nivel educativo o un curso de preparación.'); return
     }
     if (!soloCursos && nivel && !modalidad) { setError('Selecciona la modalidad.'); return }
+    // Sin carrera el alta se completa pero el alumno entra a un catálogo vacío.
+    if (!soloCursos && esLicenciatura && !carrera) { setError('Selecciona tu carrera.'); return }
 
     setLoading(true)
     try {
@@ -270,6 +281,7 @@ export default function RegisterPage() {
           telefono:         telefono.trim(),
           nivel,
           modalidad,
+          carrera: esLicenciatura ? carrera : null,
           es_sindicalizado: false,
           sindicato:        null,
           curso_solicitado: cursoIngreso || null,
@@ -445,20 +457,37 @@ export default function RegisterPage() {
                     <option value="">{pidioCurso ? 'Ninguno (solo el curso)' : 'Selecciona…'}</option>
                     <option value="secundaria">Secundaria</option>
                     <option value="preparatoria">Preparatoria</option>
-                    <option value="licenciatura">Licenciatura</option>
+                    {licenciaturasActivas() && <option value="licenciatura">Licenciatura</option>}
                   </select>
                 </div>
                 <div>
                   <Label text="Modalidad" required={!pidioCurso} />
+                  {/* Licenciatura tiene su propia tabla de planes (6/9 meses).
+                      Con la lista del programa (3/6) el alumno elegía un plan
+                      que su carrera no ofrece. */}
                   <select value={modalidad} onChange={e => setModalidad(e.target.value)}
                     style={{ ...selectStyle, opacity: nivel ? 1 : 0.5 }}
                     onFocus={onFocus} onBlur={onBlur} disabled={!nivel}>
                     <option value="">{nivel ? 'Selecciona…' : 'Primero elige nivel'}</option>
-                    {getModalidadesActivas().map(m => (
+                    {(esLicenciatura ? getModalidadesLicenciatura() : getModalidadesActivas()).map(m => (
                       <option key={m.id} value={m.id}>{m.label}</option>
                     ))}
                   </select>
                 </div>
+                {esLicenciatura && (
+                  <div>
+                    <Label text="Carrera" required />
+                    {/* Sin carrera el alumno entra y no ve NINGUNA materia: el
+                        catálogo de licenciatura se filtra por ella. */}
+                    <select value={carrera} onChange={e => setCarrera(e.target.value)}
+                      style={selectStyle} onFocus={onFocus} onBlur={onBlur}>
+                      <option value="">Selecciona tu carrera…</option>
+                      {getCarreras().map(c => (
+                        <option key={c.slug} value={c.slug}>{c.nombre}</option>
+                      ))}
+                    </select>
+                  </div>
+                )}
               </div>
 
               {/* ─── Curso de ingreso (opcional) ──────────────────────────

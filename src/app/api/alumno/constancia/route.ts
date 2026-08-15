@@ -145,7 +145,10 @@ export async function GET() {
       modalidad:           alumno.modalidad   ?? getDefaultModalidadId(),
       meses_desbloqueados: mesesDesbloqueados,
       duracion_meses:      duracionMeses,
-      plan_nombre:         duracionMeses === 3 ? '3 Meses' : '6 Meses',
+      // El ternario binario etiquetaba «6 Meses» a cualquier plan que no fuera
+      // de 3, así que un alumno de licenciatura en 9 meses salía con 6 en su
+      // constancia. Se deriva de la duración real.
+      plan_nombre:         `${duracionMeses} Meses`,
       porcentaje_avance,
       fecha_inscripcion:   alumno.created_at,
       avatar_url:          fotoPerfilUrl,

@@ -18,6 +18,9 @@ export async function GET() {
 
     let nivelAlumno: string | null = null
     let modalidadAlumno: string | undefined
+    // Solo licenciatura: sin esto los meses salen de las materias de TODAS las
+    // carreras y el alumno de Derecho ve los meses de Administración.
+    let carreraAlumno: string | null = null
 
     // Intento 1: schema antiguo (alumnos.usuario_id)
     const { data: a1 } = await supabase
@@ -44,7 +47,7 @@ export async function GET() {
     if (!alumnoEncontrado) {
       const { data: a2 } = await supabase
         .from('alumnos')
-        .select('meses_desbloqueados, inscripcion_pagada, modalidad, nivel, duracion_meses')
+        .select('meses_desbloqueados, inscripcion_pagada, modalidad, nivel, carrera, duracion_meses')
         .eq('id', user.id)
         .single()
 
@@ -55,6 +58,7 @@ export async function GET() {
           inscripcion_pagada: boolean
           modalidad?: string
           nivel?: string | null
+          carrera?: string | null
           duracion_meses?: number | null
         }
         mesesDesbloqueados = row.meses_desbloqueados ?? 0
@@ -62,6 +66,7 @@ export async function GET() {
         duracionMeses      = row.duracion_meses ?? getMesesByModalidad(row.modalidad)
         nivelAlumno        = row.nivel ?? null
         modalidadAlumno    = row.modalidad
+        carreraAlumno      = row.carrera ?? null
       }
     }
 
@@ -86,6 +91,10 @@ export async function GET() {
 
     if (nivelAlumno) {
       mesesQuery = mesesQuery.eq('materias.nivel', nivelAlumno)
+    }
+    // El join es !inner, así que esto acota los meses a la carrera del alumno.
+    if (nivelAlumno === 'licenciatura' && carreraAlumno) {
+      mesesQuery = mesesQuery.eq('materias.carrera', carreraAlumno)
     }
 
     const { data: mesesRows, error: mesesError } = await mesesQuery

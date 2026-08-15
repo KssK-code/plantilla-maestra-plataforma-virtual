@@ -1,6 +1,8 @@
 import { NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { CONFIG } from '@/lib/config'
+import { getPlanNombre } from '@/lib/licenciatura-utils'
+import { getMesesByModalidad } from '@/lib/modalidades'
 
 function buildNombre(nombre?: string | null, apellidos?: string | null, fallback?: string | null) {
   return [nombre, apellidos].filter(Boolean).join(' ') || fallback || 'Alumno'
@@ -44,6 +46,7 @@ export async function GET() {
         meses_desbloqueados: a.meses_desbloqueados ?? 0,
         inscripcion_pagada:  a.inscripcion_pagada ?? false,
         nivel:               a.nivel ?? null,
+        carrera:             (a as { carrera?: string | null }).carrera ?? null,
         plan_nombre:         a.planes_estudio?.nombre ?? '',
         duracion_meses:      a.planes_estudio?.duracion_meses ?? 0,
         nombre_completo:     nombreCompleto,
@@ -95,13 +98,17 @@ export async function GET() {
         meses_desbloqueados: a.meses_desbloqueados ?? 0,
         inscripcion_pagada:  a.inscripcion_pagada ?? false,
         nivel:               a.nivel ?? null,
+        carrera:             (a as { carrera?: string | null }).carrera ?? null,
         // B7 — el ternario binario le decía «Secundaria» a un alumno de
         // diplomado. Aditivo: antes de B7 nada podía crear ese nivel, así que
         // ningún alumno de un cliente tradicional cambia de etiqueta.
-        plan_nombre:         a.nivel === 'preparatoria' ? 'Preparatoria'
-                           : a.nivel === 'diplomado'    ? 'Diplomado'
-                           : 'Secundaria',
-        duracion_meses:      6,
+        // Licenciaturas: getPlanNombre devuelve el nombre de la carrera; el
+        // ternario dejaba a esos alumnos también como «Secundaria».
+        plan_nombre:         a.nivel === 'diplomado' ? 'Diplomado'
+                           : getPlanNombre(a.nivel, (a as { carrera?: string | null }).carrera),
+        // Estaba fijo en 6: un alumno de licenciatura en '9_meses' veía 6.
+        // getMesesByModalidad resuelve también las modalidades de licenciatura.
+        duracion_meses:      getMesesByModalidad(a.modalidad),
         nombre_completo:     nombreCompleto,
         email:               u?.email ?? user.email ?? '',
         avatar_url:          u?.foto_url ?? null,
