@@ -123,6 +123,7 @@ export default function ContenidoPage() {
                         style={{ background: abierto ? 'rgba(21,101,192,0.2)' : 'rgba(255,255,255,0.06)' }}
                       >
                         {mes.id === 'cursos-ingreso' ? '🎯'
+                          : mes.id.startsWith('carrera-') ? '🎓'
                           : mes.titulo === 'Demo' ? '🎓'
                           : mes.titulo === 'Preparatoria' ? '📚' : '🏫'}
                       </span>
