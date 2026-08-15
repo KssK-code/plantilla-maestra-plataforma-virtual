@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { verifyAdmin } from '@/lib/supabase/verify-admin'
+import { hayOfertasIngreso } from '@/lib/cursos/oferta'
 
 export async function GET() {
   try {
@@ -84,7 +85,68 @@ export async function GET() {
           materias: materiasNivel,
         }
       })
-      .filter(Boolean)
+      .filter(Boolean) as { id: string; numero: number; titulo: string; materias: typeof materiasConStats }[]
+
+    // Cursos de Ingreso. Viven en otra jerarquia (cursos -> curso_modulos ->
+    // curso_lecciones) y `cursos` no tiene columna `nivel`, asi que no entran
+    // por la whitelist NIVELES: necesitan su propio grupo. Va detras de
+    // hayOfertasIngreso() para que los clientes sin el add-on no vean un
+    // acordeon vacio.
+    if (hayOfertasIngreso()) {
+      const { data: cursos } = await admin
+        .from('cursos')
+        .select('id, nombre, descripcion, estado, orden')
+        .order('orden')
+
+      const cursosConStats = await Promise.all(
+        ((cursos ?? []) as { id: string; nombre: string; descripcion: string | null }[])
+          .map(async (curso) => {
+            const { data: modulos } = await admin
+              .from('curso_modulos').select('id').eq('curso_id', curso.id)
+            const modIds = (modulos ?? []).map(m => m.id)
+
+            let lecCount = 0
+            if (modIds.length > 0) {
+              const { count } = await admin
+                .from('curso_lecciones')
+                .select('*', { count: 'exact', head: true })
+                .in('modulo_id', modIds)
+              lecCount = count ?? 0
+            }
+
+            const { count: pregCount } = await admin
+              .from('curso_examen_preguntas')
+              .select('*', { count: 'exact', head: true })
+              .eq('curso_id', curso.id)
+
+            totalMaterias++
+            totalSemanas      += lecCount
+            totalEvaluaciones += pregCount ?? 0
+
+            return {
+              id:               curso.id,
+              codigo:           '',
+              nombre:           curso.nombre,
+              color_hex:        '#8B5CF6',
+              descripcion:      curso.descripcion ?? '',
+              nivel:            'curso_ingreso',
+              num_semanas:      lecCount,
+              num_evaluaciones: pregCount ?? 0,
+              // Discriminador: la UI navega al editor de cursos, no al de materias.
+              tipoContenido:    'curso' as const,
+            }
+          })
+      )
+
+      if (cursosConStats.length > 0) {
+        meses.push({
+          id:       'cursos-ingreso',
+          numero:   meses.length + 1,
+          titulo:   'Cursos de Ingreso',
+          materias: cursosConStats as unknown as typeof materiasConStats,
+        })
+      }
+    }
 
     return NextResponse.json({
       meses,

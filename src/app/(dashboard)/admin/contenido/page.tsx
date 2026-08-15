@@ -12,6 +12,8 @@ interface MateriaItem {
   descripcion: string
   num_semanas: number
   num_evaluaciones: number
+  /** 'curso' para los Cursos de Ingreso; ausente en materias de sec/prepa. */
+  tipoContenido?: 'materia' | 'curso'
 }
 
 interface MesItem {
@@ -120,7 +122,9 @@ export default function ContenidoPage() {
                         className="flex items-center justify-center w-8 h-8 rounded-lg text-lg flex-shrink-0"
                         style={{ background: abierto ? 'rgba(21,101,192,0.2)' : 'rgba(255,255,255,0.06)' }}
                       >
-                        {mes.titulo === 'Demo' ? '🎓' : mes.titulo === 'Preparatoria' ? '📚' : '🏫'}
+                        {mes.id === 'cursos-ingreso' ? '🎯'
+                          : mes.titulo === 'Demo' ? '🎓'
+                          : mes.titulo === 'Preparatoria' ? '📚' : '🏫'}
                       </span>
                       <div>
                         <p className="text-white font-bold text-lg">
@@ -128,7 +132,7 @@ export default function ContenidoPage() {
                         </p>
                       </div>
                       <span className="ml-2 text-xs px-2 py-0.5 rounded-full" style={{ background: 'rgba(21,101,192,0.1)', color: 'var(--color-acento)' }}>
-                        {mes.materias?.length ?? 0} materias
+                        {mes.materias?.length ?? 0} {mes.id === 'cursos-ingreso' ? 'cursos' : 'materias'}
                       </span>
                     </div>
                     {abierto
@@ -159,14 +163,18 @@ export default function ContenidoPage() {
                                 )}
                               </div>
                               <button
-                                onClick={() => router.push(`/admin/contenido/${mat.id}`)}
+                                onClick={() => router.push(
+                                  mat.tipoContenido === 'curso'
+                                    ? `/admin/cursos/${mat.id}`
+                                    : `/admin/contenido/${mat.id}`
+                                )}
                                 className="flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-medium transition-all flex-shrink-0"
                                 style={{ background: 'rgba(21,101,192,0.1)', color: 'var(--color-acento)', border: '1px solid rgba(21,101,192,0.2)' }}
                                 onMouseEnter={e => { e.currentTarget.style.background = 'rgba(21,101,192,0.2)' }}
                                 onMouseLeave={e => { e.currentTarget.style.background = 'rgba(21,101,192,0.1)' }}
                               >
                                 <Eye className="w-3 h-3" />
-                                Ver contenido
+                                {mat.tipoContenido === 'curso' ? 'Gestionar curso' : 'Ver contenido'}
                               </button>
                             </div>
 
@@ -179,11 +187,13 @@ export default function ContenidoPage() {
                             <div className="flex items-center gap-2 flex-wrap">
                               <span className="flex items-center gap-1 text-xs px-2 py-0.5 rounded-full" style={{ background: 'rgba(16,185,129,0.1)', color: '#10B981' }}>
                                 <BookOpen className="w-3 h-3" />
-                                {mat.num_semanas} semanas
+                                {mat.num_semanas} {mat.tipoContenido === 'curso' ? 'lecciones' : 'semanas'}
                               </span>
                               <span className="flex items-center gap-1 text-xs px-2 py-0.5 rounded-full" style={{ background: 'rgba(245,158,11,0.1)', color: '#F59E0B' }}>
                                 <Award className="w-3 h-3" />
-                                {mat.num_evaluaciones} examen{mat.num_evaluaciones !== 1 ? 'es' : ''}
+                                {mat.tipoContenido === 'curso'
+                                  ? `${mat.num_evaluaciones} pregunta${mat.num_evaluaciones !== 1 ? 's' : ''}`
+                                  : `${mat.num_evaluaciones} examen${mat.num_evaluaciones !== 1 ? 'es' : ''}`}
                               </span>
                             </div>
                           </div>
