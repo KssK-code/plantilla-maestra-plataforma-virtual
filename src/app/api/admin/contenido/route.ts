@@ -3,6 +3,7 @@ import { createClient } from '@/lib/supabase/server'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { verifyAdmin } from '@/lib/supabase/verify-admin'
 import { hayOfertasIngreso } from '@/lib/cursos/oferta'
+import { getCarreras } from '@/lib/licenciatura-utils'
 
 export async function GET() {
   try {
@@ -19,7 +20,7 @@ export async function GET() {
     // Columnas reales del schema IVS (sin 'codigo' ni 'color_hex')
     const { data: materias, error: matErr } = await admin
       .from('materias')
-      .select('id, nombre, descripcion, nivel, orden, color, activa')
+      .select('id, nombre, descripcion, nivel, orden, color, activa, carrera')
       .order('orden')
 
     if (matErr) return NextResponse.json({ error: matErr.message }, { status: 500 })
@@ -27,6 +28,7 @@ export async function GET() {
     type MateriaRow = {
       id: string; nombre: string; descripcion: string | null
       nivel: string; orden: number | null; color: string | null; activa: boolean
+      carrera: string | null
     }
 
     let totalMaterias = 0, totalSemanas = 0, totalEvaluaciones = 0
@@ -66,6 +68,7 @@ export async function GET() {
           color_hex:        mat.color ?? '#1565C0',  // IVS usa 'color', mapeamos a color_hex para el frontend
           descripcion:      mat.descripcion ?? '',
           nivel:            mat.nivel,
+          carrera:          mat.carrera ?? null,
           num_semanas:      semCount,
           num_evaluaciones: evCount ?? 0,
         }
@@ -86,6 +89,24 @@ export async function GET() {
         }
       })
       .filter(Boolean) as { id: string; numero: number; titulo: string; materias: typeof materiasConStats }[]
+
+    // Licenciatura: un grupo POR CARRERA. 'licenciatura' no esta en NIVELES, asi
+    // que sin esto las materias de licenciatura no aparecen en ningun grupo. Y
+    // agruparlas todas juntas tampoco sirve: son 32 por carrera, asi que un
+    // cliente con 4 carreras tendria 128 materias en un solo acordeon sin forma
+    // de distinguir a cual pertenece cada una.
+    for (const c of getCarreras()) {
+      const materiasCarrera = materiasConStats.filter(
+        m => m.nivel === 'licenciatura' && m.carrera === c.slug
+      )
+      if (materiasCarrera.length === 0) continue
+      meses.push({
+        id:       `carrera-${c.slug}`,
+        numero:   meses.length + 1,
+        titulo:   c.nombre,
+        materias: materiasCarrera,
+      })
+    }
 
     // Cursos de Ingreso. Viven en otra jerarquia (cursos -> curso_modulos ->
     // curso_lecciones) y `cursos` no tiene columna `nivel`, asi que no entran
