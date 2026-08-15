@@ -139,8 +139,15 @@ export default function MateriaPage() {
 
   useEffect(() => {
     fetch(`/api/alumno/materia/${id}`)
-      .then(r => {
-        if (!r.ok) throw new Error('No tienes acceso a esta materia')
+      .then(async r => {
+        if (!r.ok) {
+          // El API si explica el motivo (meses sin desbloquear, materia fuera
+          // del progreso mensual). Descartarlo dejaba al alumno con un generico
+          // que no dice que hacer ni a quien acudir, y hace que un bloqueo de
+          // cuenta se reporte como "el contenido no carga".
+          const cuerpo = await r.json().catch(() => null)
+          throw new Error(cuerpo?.error || 'No tienes acceso a esta materia')
+        }
         return r.json()
       })
       .then(data => {
