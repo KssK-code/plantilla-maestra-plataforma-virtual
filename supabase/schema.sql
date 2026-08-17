@@ -1079,11 +1079,26 @@ GRANT  EXECUTE ON FUNCTION public.estado_cuenta_alumnos()             TO service
 -- =============================================================
 -- Corrección de CAPTURA del alta (nivel/carrera/modalidad), solo si el alumno
 -- no ha comenzado: seis candados (pagos+inscripción, meses, calificaciones,
--- progreso, intentos, quiz — los cuatro últimos excluyendo materias
--- nivel='demo', porque el tutorial de bienvenida genera esas filas). La
--- matrícula no se regenera. Las notas del alumno se borran en la misma
--- transacción y su conteo queda en la bitácora.
+-- progreso, intentos, quiz — los cuatro de contenido excluyendo materias
+-- TUTORIAL: nivel='demo' o nombre con 'tutor', es_materia_tutorial()). El gate
+-- de acceso (tieneAccesoMateria, acceso-materias.ts:186) abre los tutoriales
+-- sin pago, así que su avance nunca es evidencia de plan iniciado; los
+-- candados de dinero NO tienen excepción. La matrícula no se regenera. Las
+-- notas del alumno se borran en la misma transacción y su conteo queda en la
+-- bitácora.
 -- Espejo de supabase/migrations/20260817120000_corregir_plan_estudio.sql.
+
+-- ⚠️ es_materia_tutorial() debe mantenerse en sincronía con esTutorial()
+-- (acceso-materias.ts:95-97) — si cambia uno, cambia el otro. COALESCE a
+-- false: ante NULL la materia NO se da por tutorial y la fila bloquea.
+CREATE OR REPLACE FUNCTION public.es_materia_tutorial(p_nivel TEXT, p_nombre TEXT)
+RETURNS BOOLEAN
+LANGUAGE sql
+IMMUTABLE
+AS $$
+  SELECT COALESCE(p_nivel = 'demo', false)
+      OR COALESCE(p_nombre ILIKE '%tutor%', false);
+$$;
 
 CREATE TABLE IF NOT EXISTS public.alumno_plan_eventos (
   id                 UUID        PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -1132,9 +1147,9 @@ $g$;
 
 -- Devuelve NULL si los seis candados están en cero, o el código del primero
 -- que bloquea. Única fuente de verdad: la lee el GET de la ficha y la
--- re-ejecuta corregir_plan_estudio() dentro de su transacción. LEFT JOIN +
--- IS DISTINCT FROM: una fila cuyo encadenamiento a materias se rompa NO se da
--- por demo y bloquea (falla en la dirección segura).
+-- re-ejecuta corregir_plan_estudio() dentro de su transacción. Los JOIN a
+-- materias son LEFT: si el encadenamiento se rompe, es_materia_tutorial
+-- recibe NULL, devuelve false y la fila bloquea (dirección segura).
 CREATE OR REPLACE FUNCTION public.candado_corregir_plan(p_alumno UUID)
 RETURNS TEXT
 LANGUAGE plpgsql
@@ -1166,7 +1181,7 @@ BEGIN
       FROM public.calificaciones c
       LEFT JOIN public.materias m ON m.id = c.materia_id
      WHERE c.alumno_id = p_alumno
-       AND m.nivel IS DISTINCT FROM 'demo'
+       AND NOT public.es_materia_tutorial(m.nivel, m.nombre)
   ) THEN
     RETURN 'calificaciones';
   END IF;
@@ -1178,7 +1193,7 @@ BEGIN
       LEFT JOIN public.meses_contenido mc ON mc.id = s.mes_id
       LEFT JOIN public.materias        m  ON m.id  = mc.materia_id
      WHERE ps.alumno_id = p_alumno
-       AND m.nivel IS DISTINCT FROM 'demo'
+       AND NOT public.es_materia_tutorial(m.nivel, m.nombre)
   ) THEN
     RETURN 'progreso';
   END IF;
@@ -1191,7 +1206,7 @@ BEGIN
       LEFT JOIN public.evaluaciones e ON e.id = ie.evaluacion_id
       LEFT JOIN public.materias     m ON m.id = e.materia_id
      WHERE ie.alumno_id = p_alumno
-       AND m.nivel IS DISTINCT FROM 'demo'
+       AND NOT public.es_materia_tutorial(m.nivel, m.nombre)
   ) THEN
     RETURN 'intentos';
   END IF;
@@ -1204,7 +1219,7 @@ BEGIN
       LEFT JOIN public.meses_contenido mc ON mc.id = s.mes_id
       LEFT JOIN public.materias        m  ON m.id  = mc.materia_id
      WHERE qr.alumno_id = p_alumno
-       AND m.nivel IS DISTINCT FROM 'demo'
+       AND NOT public.es_materia_tutorial(m.nivel, m.nombre)
   ) THEN
     RETURN 'quiz';
   END IF;

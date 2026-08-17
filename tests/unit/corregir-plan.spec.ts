@@ -3,6 +3,7 @@ import { readFileSync } from 'node:fs'
 import { join } from 'node:path'
 import { CONFIG } from '@/lib/config'
 import { getModalidadesActivas } from '@/lib/modalidades'
+import { esTutorial } from '@/lib/acceso-materias'
 import {
   validarCorreccionPlan, mensajeCandado, MENSAJES_CANDADO,
   CAMPOS_PERMITIDOS, NIVELES_CORREGIBLES,
@@ -119,19 +120,70 @@ test('la ruta POST valida sesión y verifyAdmin ANTES de tocar la RPC', () => {
 
 // ────────────────── Los seis candados viven en la migración ──────────────────
 
-test('la migración implementa los seis candados, con demo excluido en ③④⑤⑥', () => {
+test('la migración implementa los seis candados, con tutoriales excluidos en ③④⑤⑥', () => {
   const sql = leer(MIGRACION)
   // ① pagos + inscripcion_pagada — ambos, no solo la tabla
   expect(sql).toContain("FROM public.pagos WHERE alumno_id")
   expect(sql).toContain('inscripcion_pagada')
   // ② meses
   expect(sql).toContain("RETURN 'meses_desbloqueados'")
-  // ③–⑥ con exclusión demo: cuatro apariciones del filtro determinista
-  const exclusiones = sql.match(/m\.nivel IS DISTINCT FROM 'demo'/g) ?? []
+  // ③–⑥: exclusión vía el predicado central, aplicado a las CUATRO tablas de
+  // contenido — ni una más (los candados de dinero no tienen excepción)
+  const exclusiones = sql.match(/AND NOT public\.es_materia_tutorial\(m\.nivel, m\.nombre\)/g) ?? []
   expect(exclusiones.length).toBe(4)
   for (const codigo of ['pagos', 'calificaciones', 'progreso', 'intentos', 'quiz']) {
     expect(sql).toContain(`RETURN '${codigo}'`)
   }
+  // Los candados de dinero van ANTES de la primera exclusión de tutorial:
+  // pagos/inscripción/meses se evalúan sin tocar es_materia_tutorial
+  const posPrimeraExclusion = sql.indexOf('AND NOT public.es_materia_tutorial')
+  expect(sql.indexOf("RETURN 'pagos'")).toBeLessThan(posPrimeraExclusion)
+  expect(sql.indexOf("RETURN 'meses_desbloqueados'")).toBeLessThan(posPrimeraExclusion)
+})
+
+test('el predicado SQL es espejo de esTutorial: mismos dos marcadores, NULL bloquea', () => {
+  const sql = leer(MIGRACION)
+  const fn = sql.match(/CREATE OR REPLACE FUNCTION public\.es_materia_tutorial[\s\S]*?\$\$;/)?.[0] ?? ''
+  expect(fn).not.toBe('')
+  // Mismos dos marcadores que esTutorial() (acceso-materias.ts:95-97)
+  expect(fn).toContain("p_nivel = 'demo'")
+  expect(fn).toContain("ILIKE '%tutor%'")
+  // COALESCE a false: ante NULL la materia NO es tutorial y la fila bloquea
+  expect(fn).toContain('COALESCE')
+  // Predicado puro: sin acceso a tablas y estable
+  expect(fn).toContain('IMMUTABLE')
+  expect(fn).not.toContain('FROM public.')
+})
+
+test('caso exacto: alumno de prepa que solo hizo "Tutoría de ingreso I" PASA; con materia normal FALLA', () => {
+  // Las filas de los candados ③–⑥ cuentan como avance si y solo si su materia
+  // NO es tutorial. esTutorial() es la fuente TS del mismo predicado que la
+  // migración aplica en SQL (verificado en el test anterior).
+  const cuentaComoAvance = (m: { nivel: string | null; nombre: string }) => !esTutorial(m as never)
+
+  // El seed estándar (scripts/seed-contenido-ivs.sql) trae AMBOS tutoriales,
+  // y el gate los abre sin pago (tieneAccesoMateria → motivo 'tutorial'):
+  const tutoriaPrepa  = { nivel: 'preparatoria', nombre: 'Tutoría de ingreso I' }   // nivel REAL, tutorial por nombre
+  const materiaDemo   = { nivel: 'demo',         nombre: 'Tutoría de Ingreso I' }
+  const materiaNormal = { nivel: 'preparatoria', nombre: 'Conocimiento matemático I' }
+
+  // Alumno que SOLO avanzó tutoriales → ninguna fila cuenta → candados en cero
+  expect([tutoriaPrepa, materiaDemo].some(cuentaComoAvance)).toBe(false)
+  // Alumno con avance en una materia normal → la fila cuenta → candado bloquea
+  expect([tutoriaPrepa, materiaDemo, materiaNormal].some(cuentaComoAvance)).toBe(true)
+})
+
+test('la referencia cruzada de sincronía existe en los DOS lados del predicado', () => {
+  // esTutorial() (TS) debe apuntar al espejo SQL, y la migración a esTutorial.
+  const ts  = leer('src/lib/acceso-materias.ts')
+  const sql = leer(MIGRACION)
+  expect(ts).toContain('es_materia_tutorial')
+  expect(ts).toContain('si cambia uno')
+  expect(sql).toContain('esTutorial()')
+  expect(sql).toContain('si cambia uno, cambia el otro')
+  // Y el espejo de schema.sql también lleva la advertencia
+  const schema = leer('supabase/schema.sql')
+  expect(schema).toContain('sincronía con esTutorial()')
 })
 
 test('la corrección es atómica: FOR UPDATE, candados dentro, notas con conteo, bitácora', () => {
@@ -178,11 +230,15 @@ test('toda migración va también a schema.sql (instalaciones nuevas)', () => {
   const schema = leer('supabase/schema.sql')
   for (const pieza of [
     'CREATE TABLE IF NOT EXISTS public.alumno_plan_eventos',
+    'FUNCTION public.es_materia_tutorial',
     'FUNCTION public.candado_corregir_plan',
     'FUNCTION public.corregir_plan_estudio',
   ]) {
     expect(schema).toContain(pieza)
   }
+  // Y con la MISMA exclusión en las cuatro tablas de contenido
+  const exclusiones = schema.match(/AND NOT public\.es_materia_tutorial\(m\.nivel, m\.nombre\)/g) ?? []
+  expect(exclusiones.length).toBe(4)
 })
 
 // ─────────────────────────── La ficha (botón y texto) ────────────────────────

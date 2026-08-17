@@ -9,16 +9,20 @@
 --
 --   ① cero filas en pagos Y inscripcion_pagada = false
 --   ② meses_desbloqueados = 0
---   ③ cero calificaciones          (excluyendo materias nivel='demo')
---   ④ cero progreso_semanas        (excluyendo materias nivel='demo')
---   ⑤ cero intentos_evaluacion     (excluyendo materias nivel='demo')
---   ⑥ cero quiz_respuestas         (excluyendo materias nivel='demo')
+--   ③ cero calificaciones          (excluyendo materias TUTORIAL)
+--   ④ cero progreso_semanas        (excluyendo materias TUTORIAL)
+--   ⑤ cero intentos_evaluacion     (excluyendo materias TUTORIAL)
+--   ⑥ cero quiz_respuestas         (excluyendo materias TUTORIAL)
 --
--- Se excluye la materia demo porque el tutorial de bienvenida genera progreso,
--- quiz e intentos REALES: sin la exclusión, un alumno que solo hizo el tutorial
--- quedaría bloqueado. La exclusión es SOLO por nivel='demo' (determinista); si
--- una materia de tutorial está mal etiquetada con un nivel real, el candado
--- bloquea de más — falla en la dirección segura.
+-- TUTORIAL = nivel='demo' O nombre contiene 'tutor' — es_materia_tutorial(),
+-- el espejo SQL de esTutorial() (src/lib/acceso-materias.ts:95-97). La razón
+-- de la simetría: el gate de acceso (tieneAccesoMateria, acceso-materias.ts:186)
+-- abre las materias tutorial SIN pago y SIN meses, así que el seed estándar
+-- deja a un alumno recién registrado avanzar tanto la materia demo como la
+-- «Tutoría de ingreso I» de preparatoria (nivel real, tutorial por nombre).
+-- Los candados excluyen EXACTAMENTE lo que el sistema regala sin pago: ese
+-- avance nunca es evidencia de que el alumno inició su plan. Los candados de
+-- dinero (①②) NO tienen excepción de tutorial.
 --
 -- La matrícula NO se regenera: el alumno nunca la usó para nada y el formato
 -- (prefijo-año-consecutivo, ver 20260811120000) no codifica el nivel.
@@ -85,15 +89,29 @@ BEGIN
 END
 $g$;
 
+-- ── PREDICADO: es_materia_tutorial(nivel, nombre) ───────────────────────────
+-- ⚠️ Debe mantenerse en sincronía con esTutorial() (acceso-materias.ts:95-97)
+-- — si cambia uno, cambia el otro. Un spec vigila la pareja
+-- (tests/unit/corregir-plan.spec.ts). El criterio vive UNA vez por lado:
+-- aquí para todo el SQL, allá para todo el TypeScript.
+--
+-- COALESCE a false: ante NULL (encadenamiento roto a materias en un LEFT
+-- JOIN) la materia NO se da por tutorial y la fila bloquea — fallar en la
+-- dirección segura.
+CREATE OR REPLACE FUNCTION public.es_materia_tutorial(p_nivel TEXT, p_nombre TEXT)
+RETURNS BOOLEAN
+LANGUAGE sql
+IMMUTABLE
+AS $$
+  SELECT COALESCE(p_nivel = 'demo', false)
+      OR COALESCE(p_nombre ILIKE '%tutor%', false);
+$$;
+
 -- ── CANDADOS: candado_corregir_plan(alumno) ─────────────────────────────────
 -- Devuelve NULL si los seis candados están en cero, o el código del PRIMER
 -- candado que bloquea. Es la única fuente de verdad: la lee el GET de la ficha
 -- (para decidir si pintar el botón) y la re-ejecuta corregir_plan_estudio()
 -- dentro de su transacción (para no confiar en que la UI escondió el botón).
---
--- Los JOIN a materias son LEFT y el filtro usa IS DISTINCT FROM: una fila cuyo
--- encadenamiento a materias se rompa (FK NULL, dato viejo) NO se da por demo y
--- bloquea — de nuevo, fallar en la dirección segura.
 CREATE OR REPLACE FUNCTION public.candado_corregir_plan(p_alumno UUID)
 RETURNS TEXT
 LANGUAGE plpgsql
@@ -122,18 +140,18 @@ BEGIN
     RETURN 'meses_desbloqueados';
   END IF;
 
-  -- ③ calificaciones (excluyendo demo)
+  -- ③ calificaciones (excluyendo tutoriales)
   IF EXISTS (
     SELECT 1
       FROM public.calificaciones c
       LEFT JOIN public.materias m ON m.id = c.materia_id
      WHERE c.alumno_id = p_alumno
-       AND m.nivel IS DISTINCT FROM 'demo'
+       AND NOT public.es_materia_tutorial(m.nivel, m.nombre)
   ) THEN
     RETURN 'calificaciones';
   END IF;
 
-  -- ④ progreso de semanas (excluyendo demo)
+  -- ④ progreso de semanas (excluyendo tutoriales)
   IF EXISTS (
     SELECT 1
       FROM public.progreso_semanas ps
@@ -141,25 +159,25 @@ BEGIN
       LEFT JOIN public.meses_contenido mc ON mc.id = s.mes_id
       LEFT JOIN public.materias        m  ON m.id  = mc.materia_id
      WHERE ps.alumno_id = p_alumno
-       AND m.nivel IS DISTINCT FROM 'demo'
+       AND NOT public.es_materia_tutorial(m.nivel, m.nombre)
   ) THEN
     RETURN 'progreso';
   END IF;
 
-  -- ⑤ intentos de evaluación (excluyendo demo). Un intento reprobado no deja
-  -- calificación ni progreso: sin este candado pasaría los cuatro originales.
+  -- ⑤ intentos de evaluación (excluyendo tutoriales). Un intento reprobado no
+  -- deja calificación ni progreso: sin este candado pasaría los 4 originales.
   IF EXISTS (
     SELECT 1
       FROM public.intentos_evaluacion ie
       LEFT JOIN public.evaluaciones e ON e.id = ie.evaluacion_id
       LEFT JOIN public.materias     m ON m.id = e.materia_id
      WHERE ie.alumno_id = p_alumno
-       AND m.nivel IS DISTINCT FROM 'demo'
+       AND NOT public.es_materia_tutorial(m.nivel, m.nombre)
   ) THEN
     RETURN 'intentos';
   END IF;
 
-  -- ⑥ respuestas de quiz (excluyendo demo)
+  -- ⑥ respuestas de quiz (excluyendo tutoriales)
   IF EXISTS (
     SELECT 1
       FROM public.quiz_respuestas qr
@@ -168,7 +186,7 @@ BEGIN
       LEFT JOIN public.meses_contenido mc ON mc.id = s.mes_id
       LEFT JOIN public.materias        m  ON m.id  = mc.materia_id
      WHERE qr.alumno_id = p_alumno
-       AND m.nivel IS DISTINCT FROM 'demo'
+       AND NOT public.es_materia_tutorial(m.nivel, m.nombre)
   ) THEN
     RETURN 'quiz';
   END IF;
