@@ -3,6 +3,7 @@ import { createClient } from '@/lib/supabase/server'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { verifyAdmin } from '@/lib/supabase/verify-admin'
 import { getMesesByModalidad, getDefaultModalidadId } from '@/lib/modalidades'
+import { getPlanNombre } from '@/lib/licenciatura-utils'
 import { CONFIG } from '@/lib/config'
 
 export async function GET(
@@ -122,10 +123,25 @@ export async function GET(
     const esDiplomado = a.nivel === 'diplomado'
     const duracion = esDiplomado ? 0 : getMesesByModalidad(a.modalidad as string | null)
 
+    // ── Paso 6: candados de corrección de plan ────────────────────────────────
+    // La fuente de verdad es candado_corregir_plan() (SQL); aquí solo se lee
+    // para que la ficha decida entre botón y texto explicativo. Si el cliente
+    // no corrió la migración 20260817120000 la RPC no existe: plan_correccion
+    // queda null y la UI no pinta ni botón ni texto — degrada, no rompe.
+    let planCorreccion: { permitida: boolean; candado: string | null } | null = null
+    if (esAdminViewer && !esDiplomado) {
+      const { data: candado, error: candadoError } = await admin
+        .rpc('candado_corregir_plan', { p_alumno: params.id })
+      if (!candadoError) {
+        planCorreccion = { permitida: candado === null, candado: (candado as string | null) ?? null }
+      }
+    }
+
     return NextResponse.json({
       id:                  a.id,
       matricula:           a.matricula ?? `${CONFIG.prefijoMatricula}-0000`,
       nivel:               a.nivel ?? null,
+      carrera:             (a.carrera as string | null) ?? null,
       modalidad:           (a.modalidad as string | null) ?? getDefaultModalidadId(),
       duracion_meses:      duracion,
       meses_desbloqueados: a.meses_desbloqueados ?? 0,
@@ -136,12 +152,15 @@ export async function GET(
       notas_admin:         esAdminViewer ? (a.notas_admin ?? '') : null,
       viewer_rol:          viewerRol,
       created_at:          a.created_at,
+      plan_correccion:     planCorreccion,
       // Objeto plan para compatibilidad con UI existente
       plan: {
         id:             a.id,
-        nombre:         a.nivel === 'preparatoria' ? 'Preparatoria'
-                      : esDiplomado                ? 'Diplomado'
-                      : 'Secundaria',
+        // getPlanNombre resuelve licenciatura por su carrera; el ternario
+        // anterior pintaba 'Secundaria' para un alumno de licenciatura.
+        nombre:         esDiplomado
+                      ? 'Diplomado'
+                      : getPlanNombre(a.nivel as string | null, a.carrera as string | null),
         duracion_meses: duracion,
         precio_mensual: 0,
       },
