@@ -85,13 +85,17 @@ $$;
 -- Name: es_admin(); Type: FUNCTION; Schema: public; Owner: -
 --
 
+-- Cuerpo post-S2 (20260729121000_fix_s2_es_admin.sql): LOWER(rol) — un rol
+-- guardado en mayusculas dejaba el panel muerto (Bug 67).
 CREATE FUNCTION public.es_admin() RETURNS boolean
     LANGUAGE plpgsql STABLE SECURITY DEFINER
+    SET search_path TO 'public'
     AS $$
 BEGIN
   RETURN EXISTS (
     SELECT 1 FROM public.usuarios
-     WHERE id = auth.uid() AND rol = 'admin'
+     WHERE id = auth.uid()
+       AND LOWER(rol) = 'admin'
   );
 END;
 $$;
@@ -102,13 +106,16 @@ $$;
 -- y registro de pagos; es_admin() se mantiene intacto para todo lo demás.
 --
 
+-- Cuerpo post-S2: mismo LOWER que es_admin().
 CREATE FUNCTION public.es_staff() RETURNS boolean
     LANGUAGE plpgsql STABLE SECURITY DEFINER
+    SET search_path TO 'public'
     AS $$
 BEGIN
   RETURN EXISTS (
     SELECT 1 FROM public.usuarios
-     WHERE id = auth.uid() AND rol IN ('admin', 'secretario')
+     WHERE id = auth.uid()
+       AND LOWER(rol) IN ('admin', 'secretario')
   );
 END;
 $$;
@@ -154,17 +161,21 @@ $$;
 -- Name: handle_new_user(); Type: FUNCTION; Schema: public; Owner: -
 --
 
+-- Cuerpo post-S1 (20260729120000_fix_s1_rol_alta.sql, Bug 66): el rol del alta
+-- es SIEMPRE 'alumno', literal. raw_user_meta_data->>'rol' lo controla quien
+-- llama a signUp — leerlo aqui era escalada de privilegios inmediata y total.
 CREATE FUNCTION public.handle_new_user() RETURNS trigger
     LANGUAGE plpgsql SECURITY DEFINER
     SET search_path TO 'public'
     AS $$
 BEGIN
+  -- rol FIJO. No se lee raw_user_meta_data->>'rol' bajo ninguna circunstancia.
   INSERT INTO public.usuarios (id, email, nombre, rol)
   VALUES (
     NEW.id,
     NEW.email,
     COALESCE(NEW.raw_user_meta_data->>'nombre', ''),
-    COALESCE(NEW.raw_user_meta_data->>'rol', 'alumno')
+    'alumno'
   )
   ON CONFLICT (id) DO NOTHING;
   RETURN NEW;
@@ -217,13 +228,28 @@ CREATE TABLE public.alumnos (
     matricula text,
     nivel text,
     modalidad text,
+    -- Slug de la carrera (CONFIG.licenciaturas.carreras[].slug). Solo
+    -- licenciatura; NULL en el resto. Sin esto el alumno de licenciatura entra
+    -- a un catalogo vacio — y el alta/registro (que SIEMPRE mandan carrera en
+    -- el payload) truenan con "column does not exist" y borran el usuario de
+    -- Auth recien creado. Espejo de 20260812120000_licenciaturas.sql.
+    carrera text,
     es_sindicalizado boolean DEFAULT false NOT NULL,
     sindicato text,
     inscripcion_pagada boolean DEFAULT false NOT NULL,
     meses_desbloqueados integer DEFAULT 0 NOT NULL,
+    -- Expresion COMPLETA (20260812): con la vieja (3 o 6) un alumno de
+    -- licenciatura en 12_meses quedaba con duracion 6 y su avance se calculaba
+    -- contra un plan que no cursa.
     duracion_meses integer GENERATED ALWAYS AS (
 CASE modalidad
     WHEN '3_meses'::text THEN 3
+    WHEN '6_meses'::text THEN 6
+    WHEN '9_meses'::text THEN 9
+    WHEN '12_meses'::text THEN 12
+    WHEN '18_meses'::text THEN 18
+    WHEN '24_meses'::text THEN 24
+    WHEN '36_meses'::text THEN 36
     ELSE 6
 END) STORED,
     fecha_inscripcion timestamp with time zone,
@@ -236,9 +262,14 @@ END) STORED,
     -- activarle. Guarda el id de la OFERTA (src/lib/cursos/oferta.ts), no un
     -- UUID de `cursos`: hay clientes que venden varios como paquete unico.
     curso_solicitado text,
-    CONSTRAINT alumnos_modalidad_check CHECK ((modalidad = ANY (ARRAY['6_meses'::text, '3_meses'::text]))),
+    -- Con los planes de licenciatura (20260812): sin ampliarlo, dar de alta un
+    -- alumno en '9_meses'+ falla con 23514 y la ruta de alta borra el usuario
+    -- de Auth que acababa de crear (Bug 68).
+    CONSTRAINT alumnos_modalidad_check CHECK ((modalidad IS NULL OR modalidad = ANY (ARRAY['3_meses'::text, '6_meses'::text, '9_meses'::text, '12_meses'::text, '18_meses'::text, '24_meses'::text, '36_meses'::text]))),
     -- 'diplomado' habilita la línea Solo-Cursos (B1). Debe coincidir con
     -- supabase/migrations/20260730120000_b1_fundacion_solo_cursos.sql
+    -- ⚠️ NO copiar el CHECK de 20260812120000_licenciaturas.sql, que lo recrea
+    -- SIN 'diplomado' (Bug 98 del playbook).
     CONSTRAINT alumnos_nivel_check CHECK ((nivel = ANY (ARRAY['secundaria'::text, 'preparatoria'::text, 'licenciatura'::text, 'diplomado'::text])))
 );
 
@@ -355,8 +386,17 @@ CREATE TABLE public.materias (
     color text,
     activa boolean DEFAULT true NOT NULL,
     created_at timestamp with time zone DEFAULT now() NOT NULL,
+    -- 20260812 (licenciaturas): `carrera` = a que carrera pertenece la materia
+    -- (NULL en Sec/Prepa/demo); `modalidad` = plan de REFERENCIA con el que se
+    -- sembro el escalonamiento — metadato del seed, NO filtrar el catalogo del
+    -- alumno por esta columna (Bugs 59/91).
+    carrera text,
+    modalidad text,
     CONSTRAINT materias_nivel_check CHECK ((nivel = ANY (ARRAY['secundaria'::text, 'preparatoria'::text, 'demo'::text, 'licenciatura'::text])))
 );
+
+CREATE INDEX IF NOT EXISTS idx_materias_carrera
+  ON public.materias (carrera) WHERE carrera IS NOT NULL;
 
 --
 -- Name: meses_contenido; Type: TABLE; Schema: public; Owner: -
@@ -1639,6 +1679,47 @@ REVOKE EXECUTE ON FUNCTION public.estado_cuenta_alumnos()             FROM PUBLI
 GRANT  EXECUTE ON FUNCTION public.reporte_ingresos_semanales(integer) TO service_role;
 GRANT  EXECUTE ON FUNCTION public.reporte_ingresos_mensuales(integer) TO service_role;
 GRANT  EXECUTE ON FUNCTION public.estado_cuenta_alumnos()             TO service_role;
+
+-- =============================================================
+-- KEEP-ALIVE HEARTBEAT (Bug 46 / regla 9)
+-- =============================================================
+-- Tabla minima usada por el latido central para generar actividad REAL de DB:
+-- los GET con anon responden 200 pero NO cuentan como actividad y Supabase
+-- free pausa a 7 dias. Sin esta tabla el POST del latido devuelve 404 y el
+-- proyecto termina pausado — es el modo de fallo del incidente del 30-jul, y
+-- ya mordio a Habsburgo y kas-kloud (combos nuevos nacian sin ella porque
+-- solo vivia en supabase/schema.sql, que el onboarding no ejecuta).
+-- RLS: anon SOLO puede INSERT. Sin SELECT/UPDATE/DELETE.
+-- =============================================================
+
+CREATE TABLE IF NOT EXISTS public.keep_alive_log (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  ts timestamptz NOT NULL DEFAULT now(),
+  -- Quien mando el latido ("central-YYYY-MM-DD", "rescate-manual-..."). Nullable:
+  -- el INSERT `{}` del workflow per-repo legacy sigue siendo valido.
+  source text
+);
+
+ALTER TABLE public.keep_alive_log ENABLE ROW LEVEL SECURITY;
+
+REVOKE ALL ON public.keep_alive_log FROM anon;
+
+DROP POLICY IF EXISTS keep_alive_anon_insert ON public.keep_alive_log;
+CREATE POLICY keep_alive_anon_insert ON public.keep_alive_log
+  FOR INSERT TO anon WITH CHECK (true);
+
+GRANT INSERT ON public.keep_alive_log TO anon;
+
+-- =============================================================
+-- TRIGGER trg_new_user (parte del efecto S1)
+-- =============================================================
+-- Crea la fila de public.usuarios al registrarse (con handle_new_user ya
+-- endurecido: rol fijo 'alumno'). Re-crearlo es inocuo si ya existe y repara
+-- el caso del cliente al que le falte — mismo racional de fix_s1.
+DROP TRIGGER IF EXISTS trg_new_user ON auth.users;
+CREATE TRIGGER trg_new_user
+  AFTER INSERT ON auth.users
+  FOR EACH ROW EXECUTE FUNCTION public.handle_new_user();
 
 -- =============================================================
 -- CORREGIR PLAN DE ESTUDIO — bitácora + candados + corrección

@@ -226,19 +226,29 @@ test('la RLS de la bitácora no consulta su propia tabla en USING (regla 8)', ()
   expect(sql).not.toContain('alumno_plan_eventos: escribir')
 })
 
-test('toda migración va también a schema.sql (instalaciones nuevas)', () => {
-  const schema = leer('supabase/schema.sql')
-  for (const pieza of [
-    'CREATE TABLE IF NOT EXISTS public.alumno_plan_eventos',
-    'FUNCTION public.es_materia_tutorial',
-    'FUNCTION public.candado_corregir_plan',
-    'FUNCTION public.corregir_plan_estudio',
-  ]) {
-    expect(schema).toContain(pieza)
+test('toda migración va también a los DOS schema.sql (espejo y el del onboarding)', () => {
+  // supabase/schema.sql es el espejo documental; scripts/schema.sql es el que
+  // mev-onboarding.py instala en los combos NUEVOS. Una migración que falte en
+  // el segundo nace ausente en todo cliente nuevo (deriva del 17-ago-2026).
+  for (const archivo of ['supabase/schema.sql', 'scripts/schema.sql']) {
+    const schema = leer(archivo)
+    for (const pieza of [
+      'CREATE TABLE IF NOT EXISTS public.alumno_plan_eventos',
+      'FUNCTION public.es_materia_tutorial',
+      'FUNCTION public.candado_corregir_plan',
+      'FUNCTION public.corregir_plan_estudio',
+    ]) {
+      expect(schema, `${archivo} sin: ${pieza}`).toContain(pieza)
+    }
+    // Y con la MISMA exclusión en las cuatro tablas de contenido
+    const exclusiones = schema.match(/AND NOT public\.es_materia_tutorial\(m\.nivel, m\.nombre\)/g) ?? []
+    expect(exclusiones.length, archivo).toBe(4)
   }
-  // Y con la MISMA exclusión en las cuatro tablas de contenido
-  const exclusiones = schema.match(/AND NOT public\.es_materia_tutorial\(m\.nivel, m\.nombre\)/g) ?? []
-  expect(exclusiones.length).toBe(4)
+  // Las dependencias de la corrección también viven en el schema del
+  // onboarding: sin alumnos.carrera la RPC revienta en instalación nueva.
+  const scripts = leer('scripts/schema.sql')
+  expect(scripts).toContain('carrera text')
+  expect(scripts).toContain('keep_alive_log')
 })
 
 // ─────────────────────────── La ficha (botón y texto) ────────────────────────
