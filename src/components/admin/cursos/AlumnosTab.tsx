@@ -85,6 +85,50 @@ Esto REVOCA acceso que el alumno ya tenia: ` +
     }
   }
 
+  /**
+   * Emite el diploma del curso.
+   *
+   * ⚠️ POR QUÉ EXISTE ESTE HANDLER. El endpoint
+   * `POST /api/admin/inscripciones/[id]/constancia` y la RPC
+   * `curso_emitir_constancia` ya estaban completos y probados, pero NINGÚN
+   * control de la interfaz los llamaba: el admin veía los folios ya emitidos en
+   * Reportes y no tenía forma de emitir el primero. La emisión manual es el
+   * diseño (que ningún diploma salga sin autorización), pero sin botón el
+   * diseño se vuelve una función inalcanzable.
+   *
+   * El folio lo asigna el servidor desde una secuencia; aquí no se inventa nada.
+   * `ya_existia` distingue "acabo de emitirlo" de "ya estaba emitido", para no
+   * hacer creer que se generó un folio nuevo en cada clic.
+   */
+  const emitirConstancia = async (inscripcionId: string, nombre: string) => {
+    const ok = window.confirm(
+      `Emitir el diploma de ${nombre}.\n\n` +
+      `Se le asigna un folio consecutivo y definitivo, y el alumno podrá ` +
+      `descargarlo de inmediato.\n\n¿Continuar?`
+    )
+    if (!ok) return
+    setOcupadoId(inscripcionId)
+    try {
+      const res = await fetch(`/api/admin/inscripciones/${inscripcionId}/constancia`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: '{}',
+      })
+      const json = await res.json().catch(() => ({}))
+      if (!res.ok) throw new Error(json.error ?? 'No se pudo emitir el diploma')
+      onError(
+        json.ya_existia
+          ? `${nombre} ya tenía diploma: folio ${json.folio}`
+          : `Diploma emitido — folio ${json.folio}`
+      )
+      onChanged()
+    } catch (e) {
+      onError(e instanceof Error ? e.message : 'No se pudo emitir el diploma')
+    } finally {
+      setOcupadoId(null)
+    }
+  }
+
   const resultados = useMemo(() => {
     const q = busqueda.trim().toLowerCase()
     if (!q) return []
@@ -295,6 +339,15 @@ Esto REVOCA acceso que el alumno ya tenia: ` +
                     style={{ background: 'var(--color-acento)', color: '#fff' }}
                   >
                     + Abrir mes
+                  </button>
+                  <button
+                    onClick={() => emitirConstancia(i.inscripcion_id, i.nombre)}
+                    disabled={ocupadoId === i.inscripcion_id}
+                    title="Emitir el diploma de este curso (folio consecutivo y definitivo)"
+                    className="px-3 py-1.5 rounded-lg text-xs font-bold disabled:opacity-40"
+                    style={{ border: '1px solid var(--color-primario)', color: 'var(--color-primario)', background: 'var(--color-superficie)' }}
+                  >
+                    Emitir diploma
                   </button>
                 </div>
 
