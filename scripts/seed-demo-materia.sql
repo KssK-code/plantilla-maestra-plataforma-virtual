@@ -7,7 +7,7 @@
 -- ── 1. ACTUALIZAR MATERIA DEMO ───────────────────────────────────────────────
 UPDATE public.materias SET
   nombre      = 'Tutoría de Ingreso I',
-  descripcion = 'Esta materia te acompaña en tu transición al bachillerato virtual. Desarrollarás habilidades de estudio, gestión del tiempo, uso de herramientas digitales educativas, y construirás tu proyecto académico personal.',
+  descripcion = 'Esta materia te acompaña en tu transición al estudio en línea. Desarrollarás habilidades de estudio, gestión del tiempo, uso de herramientas digitales educativas, y construirás tu proyecto académico personal.',
   color       = '#8B5CF6',
   icono       = '🎓',
   orden       = 0,
@@ -18,15 +18,15 @@ WHERE id = 'f0551b82-1c3e-4286-bfb4-878842bc6eff';
 INSERT INTO public.meses_contenido (id, materia_id, numero_mes, titulo, descripcion) VALUES (
   'aa000000-0000-4000-a000-000000000001', 'f0551b82-1c3e-4286-bfb4-878842bc6eff', 1,
   'Habilidades para el estudio virtual',
-  'Desarrolla las habilidades esenciales para tener éxito en el bachillerato virtual: técnicas de estudio, gestión del tiempo, herramientas digitales y tu proyecto académico personal.'
+  'Desarrolla las habilidades esenciales para tener éxito en tu programa virtual: técnicas de estudio, gestión del tiempo, herramientas digitales y tu proyecto académico personal.'
 ) ON CONFLICT (id) DO NOTHING;
 
 -- ── 3. SEMANAS ───────────────────────────────────────────────────────────────
 INSERT INTO public.semanas (id, mes_id, numero_semana, titulo, descripcion, video_url, tiempo_estimado_minutos, contenido) VALUES
-('cc000001-0000-4000-a000-000000000001','aa000000-0000-4000-a000-000000000001',1,'Bienvenida al bachillerato virtual — qué esperar','Bienvenida al bachillerato virtual — qué esperar','https://www.youtube.com/results?search_query=C%C3%B3mo+tener+%C3%A9xito+en+la+educaci%C3%B3n+en+l%C3%ADnea+bachillerato',60,'Decidiste estudiar el bachillerato virtual. Eso ya dice mucho de ti: tienes iniciativa, quieres superarte y estás tomando acción. Esta materia te va a dar las herramientas para que lo logres.
+('cc000001-0000-4000-a000-000000000001','aa000000-0000-4000-a000-000000000001',1,'Bienvenida a tu programa virtual — qué esperar','Bienvenida a tu programa virtual — qué esperar','https://www.youtube.com/results?search_query=C%C3%B3mo+tener+%C3%A9xito+en+la+educaci%C3%B3n+en+l%C3%ADnea+en+linea',60,'Decidiste retomar tus estudios en línea. Eso ya dice mucho de ti: tienes iniciativa, quieres superarte y estás tomando acción. Esta materia te va a dar las herramientas para que lo logres.
 
-**¿Qué es el bachillerato virtual?**
-Es la misma preparatoria, con la misma validez oficial, pero en formato 100% en línea. Estudias a tu ritmo, las 24 horas del día, los 7 días de la semana, desde cualquier lugar con internet.
+**¿Qué es estudiar en línea?**
+Es el mismo programa que en el sistema presencial, con la misma validez oficial, pero en formato 100% en línea. Estudias a tu ritmo, las 24 horas del día, los 7 días de la semana, desde cualquier lugar con internet.
 
 **Ventajas:**
 - Flexibilidad de horarios (tú decides cuándo estudiar)
@@ -57,15 +57,15 @@ Es la misma preparatoria, con la misma validez oficial, pero en formato 100% en 
 - Tienes hasta 3 intentos por examen
 
 **Compromiso contigo mismo:**
-El bachillerato virtual requiere más autodisciplina que el presencial. Nadie te va a despertar para ir a clase. Nadie te va a regañar si no estudias. La responsabilidad es 100% tuya — y ese es el mayor aprendizaje de esta modalidad.
+Estudiar en línea requiere más autodisciplina que el presencial. Nadie te va a despertar para ir a clase. Nadie te va a regañar si no estudias. La responsabilidad es 100% tuya — y ese es el mayor aprendizaje de esta modalidad.
 
 ---
 **Videos recomendados:**
-1. [Cómo tener éxito en la educación en línea](https://www.youtube.com/results?search_query=C%C3%B3mo+tener+%C3%A9xito+en+la+educaci%C3%B3n+en+l%C3%ADnea+bachillerato) — 12 min
-2. [Tips para estudiar desde casa](https://www.youtube.com/results?search_query=Tips+para+estudiar+desde+casa+bachillerato) — 10 min
-3. [Ventajas de la educación virtual](https://www.youtube.com/results?search_query=Ventajas+de+la+educaci%C3%B3n+virtual+bachillerato) — 8 min
+1. [Cómo tener éxito en la educación en línea](https://www.youtube.com/results?search_query=C%C3%B3mo+tener+%C3%A9xito+en+la+educaci%C3%B3n+en+l%C3%ADnea+en+linea) — 12 min
+2. [Tips para estudiar desde casa](https://www.youtube.com/results?search_query=Tips+para+estudiar+desde+casa+en+linea) — 10 min
+3. [Ventajas de la educación virtual](https://www.youtube.com/results?search_query=Ventajas+de+la+educaci%C3%B3n+virtual+en+linea) — 8 min
 '),
-('cc000002-0000-4000-a000-000000000001','aa000000-0000-4000-a000-000000000001',2,'Estilos de aprendizaje — descubre cómo aprendes mejor','Estilos de aprendizaje — descubre cómo aprendes mejor','https://www.youtube.com/results?search_query=Estilos+de+aprendizaje+VARK+%E2%80%94+descubre+el+tuyo+bachillerato',66,'No todos aprendemos de la misma manera. Conocer tu estilo de aprendizaje te permite estudiar de forma más eficiente — aprender más en menos tiempo.
+('cc000002-0000-4000-a000-000000000001','aa000000-0000-4000-a000-000000000001',2,'Estilos de aprendizaje — descubre cómo aprendes mejor','Estilos de aprendizaje — descubre cómo aprendes mejor','https://www.youtube.com/results?search_query=Estilos+de+aprendizaje+VARK+%E2%80%94+descubre+el+tuyo+en+linea',66,'No todos aprendemos de la misma manera. Conocer tu estilo de aprendizaje te permite estudiar de forma más eficiente — aprender más en menos tiempo.
 
 **Modelo VARK — Los 4 estilos principales:**
 
@@ -94,11 +94,11 @@ No eres ''inteligente'' o ''no inteligente''. Eres inteligente de diferentes man
 
 ---
 **Videos recomendados:**
-1. [Estilos de aprendizaje VARK — descubre el tuyo](https://www.youtube.com/results?search_query=Estilos+de+aprendizaje+VARK+%E2%80%94+descubre+el+tuyo+bachillerato) — 14 min
-2. [Inteligencias múltiples de Gardner](https://www.youtube.com/results?search_query=Inteligencias+m%C3%BAltiples+de+Gardner+bachillerato) — 12 min
-3. [Cómo estudiar según tu estilo de aprendizaje](https://www.youtube.com/results?search_query=C%C3%B3mo+estudiar+seg%C3%BAn+tu+estilo+de+aprendizaje+bachillerato) — 10 min
+1. [Estilos de aprendizaje VARK — descubre el tuyo](https://www.youtube.com/results?search_query=Estilos+de+aprendizaje+VARK+%E2%80%94+descubre+el+tuyo+en+linea) — 14 min
+2. [Inteligencias múltiples de Gardner](https://www.youtube.com/results?search_query=Inteligencias+m%C3%BAltiples+de+Gardner+en+linea) — 12 min
+3. [Cómo estudiar según tu estilo de aprendizaje](https://www.youtube.com/results?search_query=C%C3%B3mo+estudiar+seg%C3%BAn+tu+estilo+de+aprendizaje+en+linea) — 10 min
 '),
-('cc000003-0000-4000-a000-000000000001','aa000000-0000-4000-a000-000000000001',3,'Técnicas de estudio efectivas','Técnicas de estudio efectivas','https://www.youtube.com/results?search_query=Active+Recall+%E2%80%94+la+mejor+t%C3%A9cnica+de+estudio+bachillerato',68,'Estudiar mucho NO es lo mismo que estudiar bien. Las técnicas correctas pueden hacer que aprendas en 1 hora lo que antes te tomaba 3.
+('cc000003-0000-4000-a000-000000000001','aa000000-0000-4000-a000-000000000001',3,'Técnicas de estudio efectivas','Técnicas de estudio efectivas','https://www.youtube.com/results?search_query=Active+Recall+%E2%80%94+la+mejor+t%C3%A9cnica+de+estudio+en+linea',68,'Estudiar mucho NO es lo mismo que estudiar bien. Las técnicas correctas pueden hacer que aprendas en 1 hora lo que antes te tomaba 3.
 
 **Técnicas que SÍ funcionan (respaldadas por ciencia):**
 
@@ -138,11 +138,11 @@ Explica el tema como si se lo enseñaras a un niño de 10 años. Si no puedes ex
 
 ---
 **Videos recomendados:**
-1. [Active Recall — la mejor técnica de estudio](https://www.youtube.com/results?search_query=Active+Recall+%E2%80%94+la+mejor+t%C3%A9cnica+de+estudio+bachillerato) — 14 min
-2. [Técnica Pomodoro explicada](https://www.youtube.com/results?search_query=T%C3%A9cnica+Pomodoro+explicada+bachillerato) — 8 min
-3. [Cómo estudiar de forma efectiva — basado en ciencia](https://www.youtube.com/results?search_query=C%C3%B3mo+estudiar+de+forma+efectiva+%E2%80%94+basado+en+ciencia+bachillerato) — 16 min
+1. [Active Recall — la mejor técnica de estudio](https://www.youtube.com/results?search_query=Active+Recall+%E2%80%94+la+mejor+t%C3%A9cnica+de+estudio+en+linea) — 14 min
+2. [Técnica Pomodoro explicada](https://www.youtube.com/results?search_query=T%C3%A9cnica+Pomodoro+explicada+en+linea) — 8 min
+3. [Cómo estudiar de forma efectiva — basado en ciencia](https://www.youtube.com/results?search_query=C%C3%B3mo+estudiar+de+forma+efectiva+%E2%80%94+basado+en+ciencia+en+linea) — 16 min
 '),
-('cc000004-0000-4000-a000-000000000001','aa000000-0000-4000-a000-000000000001',4,'Gestión del tiempo y organización personal','Gestión del tiempo y organización personal','https://www.youtube.com/results?search_query=Gesti%C3%B3n+del+tiempo+%E2%80%94+la+Matriz+de+Eisenhower+bachillerato',66,'En la educación virtual, nadie administra tu tiempo por ti. Si no te organizas, el tiempo se va y las materias se acumulan.
+('cc000004-0000-4000-a000-000000000001','aa000000-0000-4000-a000-000000000001',4,'Gestión del tiempo y organización personal','Gestión del tiempo y organización personal','https://www.youtube.com/results?search_query=Gesti%C3%B3n+del+tiempo+%E2%80%94+la+Matriz+de+Eisenhower+en+linea',66,'En la educación virtual, nadie administra tu tiempo por ti. Si no te organizas, el tiempo se va y las materias se acumulan.
 
 **La Matriz de Eisenhower:**
 Clasifica tus tareas en 4 cuadrantes:
@@ -178,24 +178,24 @@ Clasifica tus tareas en 4 cuadrantes:
 - Forest App: bloquea tu celular mientras estudias (gamificado)
 - Alarmas del celular: recordatorios para estudiar
 
-**Plantilla semanal sugerida para bachillerato virtual:**
+**Plantilla semanal sugerida para estudio en línea:**
 Lunes a viernes: 1-2 horas de estudio
 Sábado: repaso de la semana (1 hora)
 Domingo: planificación de la semana siguiente (15 min) + descanso
 
 ---
 **Videos recomendados:**
-1. [Gestión del tiempo — la Matriz de Eisenhower](https://www.youtube.com/results?search_query=Gesti%C3%B3n+del+tiempo+%E2%80%94+la+Matriz+de+Eisenhower+bachillerato) — 10 min
-2. [Cómo dejar de procrastinar — tips reales](https://www.youtube.com/results?search_query=C%C3%B3mo+dejar+de+procrastinar+%E2%80%94+tips+reales+bachillerato) — 14 min
-3. [Cómo organizar tu semana de estudio](https://www.youtube.com/results?search_query=C%C3%B3mo+organizar+tu+semana+de+estudio+bachillerato) — 12 min
+1. [Gestión del tiempo — la Matriz de Eisenhower](https://www.youtube.com/results?search_query=Gesti%C3%B3n+del+tiempo+%E2%80%94+la+Matriz+de+Eisenhower+en+linea) — 10 min
+2. [Cómo dejar de procrastinar — tips reales](https://www.youtube.com/results?search_query=C%C3%B3mo+dejar+de+procrastinar+%E2%80%94+tips+reales+en+linea) — 14 min
+3. [Cómo organizar tu semana de estudio](https://www.youtube.com/results?search_query=C%C3%B3mo+organizar+tu+semana+de+estudio+en+linea) — 12 min
 '),
-('cc000005-0000-4000-a000-000000000001','aa000000-0000-4000-a000-000000000001',5,'Motivación y disciplina en la educación a distancia','Motivación y disciplina en la educación a distancia','https://www.youtube.com/results?search_query=Motivaci%C3%B3n+vs+disciplina+%E2%80%94+qu%C3%A9+funciona+mejor+bachillerato',66,'La motivación te hace empezar. La disciplina te hace continuar. En la educación virtual necesitas ambas.
+('cc000005-0000-4000-a000-000000000001','aa000000-0000-4000-a000-000000000001',5,'Motivación y disciplina en la educación a distancia','Motivación y disciplina en la educación a distancia','https://www.youtube.com/results?search_query=Motivaci%C3%B3n+vs+disciplina+%E2%80%94+qu%C3%A9+funciona+mejor+en+linea',66,'La motivación te hace empezar. La disciplina te hace continuar. En la educación virtual necesitas ambas.
 
 **Motivación intrínseca vs extrínseca:**
 - Extrínseca: estudias por el título, por quedar bien, por presión familiar. Funciona a corto plazo.
 - Intrínseca: estudias porque te interesa, porque quieres crecer, porque te da satisfacción personal. Es más duradera.
 
-La meta es conectar con tu motivación intrínseca: ¿POR QUÉ decidiste estudiar el bachillerato? ¿Qué quieres lograr con esto?
+La meta es conectar con tu motivación intrínseca: ¿POR QUÉ decidiste concluir tus estudios? ¿Qué quieres lograr con esto?
 
 **Cuando la motivación baja (y va a bajar):**
 
@@ -227,11 +227,11 @@ La inteligencia no es fija. Tu cerebro es como un músculo: entre más lo ejerci
 
 ---
 **Videos recomendados:**
-1. [Motivación vs disciplina — qué funciona mejor](https://www.youtube.com/results?search_query=Motivaci%C3%B3n+vs+disciplina+%E2%80%94+qu%C3%A9+funciona+mejor+bachillerato) — 12 min
-2. [Cómo crear hábitos que duren](https://www.youtube.com/results?search_query=C%C3%B3mo+crear+h%C3%A1bitos+que+duren+bachillerato) — 14 min
-3. [Mentalidad de crecimiento — Carol Dweck](https://www.youtube.com/results?search_query=Mentalidad+de+crecimiento+%E2%80%94+Carol+Dweck+bachillerato) — 10 min
+1. [Motivación vs disciplina — qué funciona mejor](https://www.youtube.com/results?search_query=Motivaci%C3%B3n+vs+disciplina+%E2%80%94+qu%C3%A9+funciona+mejor+en+linea) — 12 min
+2. [Cómo crear hábitos que duren](https://www.youtube.com/results?search_query=C%C3%B3mo+crear+h%C3%A1bitos+que+duren+en+linea) — 14 min
+3. [Mentalidad de crecimiento — Carol Dweck](https://www.youtube.com/results?search_query=Mentalidad+de+crecimiento+%E2%80%94+Carol+Dweck+en+linea) — 10 min
 '),
-('cc000006-0000-4000-a000-000000000001','aa000000-0000-4000-a000-000000000001',6,'Herramientas digitales para el estudio','Herramientas digitales para el estudio','https://www.youtube.com/results?search_query=Mejores+apps+para+estudiar+%E2%80%94+todas+gratis+bachillerato',71,'La tecnología puede ser tu mejor aliada o tu peor distracción. Aquí te presento herramientas gratuitas que harán tu estudio más eficiente.
+('cc000006-0000-4000-a000-000000000001','aa000000-0000-4000-a000-000000000001',6,'Herramientas digitales para el estudio','Herramientas digitales para el estudio','https://www.youtube.com/results?search_query=Mejores+apps+para+estudiar+%E2%80%94+todas+gratis+en+linea',71,'La tecnología puede ser tu mejor aliada o tu peor distracción. Aquí te presento herramientas gratuitas que harán tu estudio más eficiente.
 
 **Para tomar notas:**
 - Google Docs: simple, colaborativo, en la nube
@@ -273,11 +273,11 @@ La inteligencia no es fija. Tu cerebro es como un músculo: entre más lo ejerci
 
 ---
 **Videos recomendados:**
-1. [Mejores apps para estudiar — todas gratis](https://www.youtube.com/results?search_query=Mejores+apps+para+estudiar+%E2%80%94+todas+gratis+bachillerato) — 14 min
-2. [Cómo usar Anki para estudiar mejor](https://www.youtube.com/results?search_query=C%C3%B3mo+usar+Anki+para+estudiar+mejor+bachillerato) — 12 min
-3. [Notion para estudiantes — tutorial](https://www.youtube.com/results?search_query=Notion+para+estudiantes+%E2%80%94+tutorial+bachillerato) — 15 min
+1. [Mejores apps para estudiar — todas gratis](https://www.youtube.com/results?search_query=Mejores+apps+para+estudiar+%E2%80%94+todas+gratis+en+linea) — 14 min
+2. [Cómo usar Anki para estudiar mejor](https://www.youtube.com/results?search_query=C%C3%B3mo+usar+Anki+para+estudiar+mejor+en+linea) — 12 min
+3. [Notion para estudiantes — tutorial](https://www.youtube.com/results?search_query=Notion+para+estudiantes+%E2%80%94+tutorial+en+linea) — 15 min
 '),
-('cc000007-0000-4000-a000-000000000001','aa000000-0000-4000-a000-000000000001',7,'Mi proyecto académico — metas y plan de acción','Mi proyecto académico — metas y plan de acción','https://www.youtube.com/results?search_query=C%C3%B3mo+establecer+metas+SMART+bachillerato',66,'Tener un plan claro multiplica tus posibilidades de éxito. Esta semana vas a construir tu proyecto académico personal.
+('cc000007-0000-4000-a000-000000000001','aa000000-0000-4000-a000-000000000001',7,'Mi proyecto académico — metas y plan de acción','Mi proyecto académico — metas y plan de acción','https://www.youtube.com/results?search_query=C%C3%B3mo+establecer+metas+SMART+en+linea',66,'Tener un plan claro multiplica tus posibilidades de éxito. Esta semana vas a construir tu proyecto académico personal.
 
 **Metas SMART:**
 Una buena meta debe ser:
@@ -288,13 +288,13 @@ Una buena meta debe ser:
 - Time-bound (Con plazo): ¿Para cuándo?
 
 MAL: ''Quiero terminar la prepa''
-BIEN: ''Voy a completar mi bachillerato virtual de 6 meses aprobando todas las materias con mínimo 7.0 de promedio para diciembre de 2025''
+BIEN: ''Voy a completar mi programa virtual de 6 meses aprobando todas las materias con mínimo 7.0 de promedio para diciembre de 2025''
 
 **Tu proyecto académico debe incluir:**
 
-1. **Mi motivación:** ¿Por qué estoy estudiando el bachillerato? ¿Qué quiero lograr después?
+1. **Mi motivación:** ¿Por qué estoy estudiando tu programa? ¿Qué quiero lograr después?
 
-2. **Mi meta principal:** El bachillerato completo con [promedio] para [fecha].
+2. **Mi meta principal:** Un programa completo con [promedio] para [fecha].
 
 3. **Metas mensuales:** Qué materias completaré cada mes.
 
@@ -306,24 +306,24 @@ BIEN: ''Voy a completar mi bachillerato virtual de 6 meses aprobando todas las m
 
 7. **Mi recompensa:** ¿Cómo me voy a premiar al completar cada mes?
 
-**Después del bachillerato — opciones:**
+**Al terminar tu programa — opciones:**
 - Universidad (presencial o en línea)
 - Carrera técnica
 - Emprendimiento
-- Empleo formal (muchos trabajos requieren bachillerato mínimo)
+- Empleo formal (muchos trabajos requieren estudios concluidos)
 - Combinaciones: trabajar + estudiar
 
-El bachillerato es la puerta. Lo que hay detrás de esa puerta lo decides tú.
+Concluir tus estudios es la puerta. Lo que hay detrás de esa puerta lo decides tú.
 
-**Dato motivador:** En México, una persona con bachillerato completo gana en promedio 35% más que alguien sin él. Con licenciatura, la diferencia sube a más del 80%.
+**Dato motivador:** En México, una persona con sus estudios concluidos gana en promedio 35% más que alguien sin él. Con licenciatura, la diferencia sube a más del 80%.
 
 ---
 **Videos recomendados:**
-1. [Cómo establecer metas SMART](https://www.youtube.com/results?search_query=C%C3%B3mo+establecer+metas+SMART+bachillerato) — 10 min
-2. [Cómo crear un plan de estudios personal](https://www.youtube.com/results?search_query=C%C3%B3mo+crear+un+plan+de+estudios+personal+bachillerato) — 12 min
-3. [¿Qué estudiar después del bachillerato?](https://www.youtube.com/results?search_query=%C2%BFQu%C3%A9+estudiar+despu%C3%A9s+del+bachillerato%3F+bachillerato) — 14 min
+1. [Cómo establecer metas SMART](https://www.youtube.com/results?search_query=C%C3%B3mo+establecer+metas+SMART+en+linea) — 10 min
+2. [Cómo crear un plan de estudios personal](https://www.youtube.com/results?search_query=C%C3%B3mo+crear+un+plan+de+estudios+personal+en+linea) — 12 min
+3. [¿Qué estudiar al terminar tu programa?](https://www.youtube.com/results?search_query=%C2%BFQu%C3%A9+estudiar+despu%C3%A9s+del+en+linea%3F+en+linea) — 14 min
 '),
-('cc000008-0000-4000-a000-000000000001','aa000000-0000-4000-a000-000000000001',8,'Repaso general y preparación para examen final','Repaso general y preparación para examen final','https://www.youtube.com/results?search_query=Repaso+de+habilidades+para+el+estudio+bachillerato',45,'Última semana. Repasa: las ventajas y retos del bachillerato virtual, los estilos de aprendizaje VARK, técnicas de estudio efectivas (Active Recall, Pomodoro, Feynman), gestión del tiempo con la Matriz de Eisenhower, la diferencia entre motivación y disciplina, las herramientas digitales para estudiar, y las metas SMART para tu proyecto académico.')
+('cc000008-0000-4000-a000-000000000001','aa000000-0000-4000-a000-000000000001',8,'Repaso general y preparación para examen final','Repaso general y preparación para examen final','https://www.youtube.com/results?search_query=Repaso+de+habilidades+para+el+estudio+en+linea',45,'Última semana. Repasa: las ventajas y retos del estudio en línea, los estilos de aprendizaje VARK, técnicas de estudio efectivas (Active Recall, Pomodoro, Feynman), gestión del tiempo con la Matriz de Eisenhower, la diferencia entre motivación y disciplina, las herramientas digitales para estudiar, y las metas SMART para tu proyecto académico.')
 ON CONFLICT (id) DO NOTHING;
 
 -- ── 4. EVALUACIÓN FINAL ──────────────────────────────────────────────────────
@@ -336,7 +336,7 @@ INSERT INTO public.evaluaciones (id, materia_id, mes_id, titulo, descripcion, ti
 
 -- ── 5. PREGUNTAS ─────────────────────────────────────────────────────────────
 INSERT INTO public.preguntas (id, evaluacion_id, pregunta, opcion_a, opcion_b, opcion_c, opcion_d, respuesta_correcta, orden) VALUES
-('dd000001-0000-4000-a000-000000000001','bb000000-0000-4000-a000-000000000001','¿Cuál es la principal ventaja del bachillerato virtual?','Es más fácil que el presencial','Tiene flexibilidad de horarios y acceso 24/7','No tiene exámenes','No requiere estudiar','b',1),
+('dd000001-0000-4000-a000-000000000001','bb000000-0000-4000-a000-000000000001','¿Cuál es la principal ventaja del estudio en línea?','Es más fácil que el presencial','Tiene flexibilidad de horarios y acceso 24/7','No tiene exámenes','No requiere estudiar','b',1),
 ('dd000002-0000-4000-a000-000000000001','bb000000-0000-4000-a000-000000000001','¿Verdadero o Falso? Una persona con estilo de aprendizaje auditivo aprende mejor con diagramas y mapas mentales.','Verdadero','Falso','—','—','b',2),
 ('dd000003-0000-4000-a000-000000000001','bb000000-0000-4000-a000-000000000001','La técnica Pomodoro consiste en estudiar bloques de:','10 minutos con 2 de descanso','25 minutos con 5 de descanso','45 minutos con 15 de descanso','60 minutos con 10 de descanso','b',3),
 ('dd000004-0000-4000-a000-000000000001','bb000000-0000-4000-a000-000000000001','¿Qué es el ''Active Recall'' (Recuerdo activo)?','Releer el material muchas veces','Cerrar el material e intentar recordar sin ver','Subrayar las ideas importantes','Copiar textualmente los apuntes','b',4),
@@ -372,8 +372,8 @@ WHERE semana_id IN (
 );
 
 INSERT INTO quiz_semana (semana_id, pregunta, opcion_a, opcion_b, opcion_c, respuesta_correcta, orden, explicacion) VALUES
-('cc000001-0000-4000-a000-000000000001','Cual es la principal ventaja del bachillerato virtual frente al presencial?','Tiene examenes mas faciles','Permite estudiar con flexibilidad de horario y lugar','Otorga mas materias por semestre','b',1,'La educacion virtual te permite organizar tu propio tiempo y estudiar desde cualquier lugar.'),
-('cc000001-0000-4000-a000-000000000001','En el bachillerato virtual, quien es el principal responsable del aprendizaje?','El tutor en linea','La plataforma educativa','El alumno mismo','c',2,'En la educacion a distancia, el alumno toma el rol activo: organiza su tiempo y avanza a su propio ritmo.'),
+('cc000001-0000-4000-a000-000000000001','Cual es la principal ventaja del estudio en línea frente al presencial?','Tiene examenes mas faciles','Permite estudiar con flexibilidad de horario y lugar','Otorga mas materias por semestre','b',1,'La educacion virtual te permite organizar tu propio tiempo y estudiar desde cualquier lugar.'),
+('cc000001-0000-4000-a000-000000000001','En un programa virtual, quien es el principal responsable del aprendizaje?','El tutor en linea','La plataforma educativa','El alumno mismo','c',2,'En la educacion a distancia, el alumno toma el rol activo: organiza su tiempo y avanza a su propio ritmo.'),
 ('cc000002-0000-4000-a000-000000000001','Segun la teoria VAK, cuantos estilos de aprendizaje principales existen?','2 (visual y auditivo)','3 (visual, auditivo y kinestesico)','4 (visual, auditivo, kinestesico y lector)','b',1,'La teoria VAK identifica tres estilos: Visual, Auditivo y Kinestesico.'),
 ('cc000002-0000-4000-a000-000000000001','Una persona con estilo kinestesico aprende mejor mediante:','Videos y presentaciones visuales','Clases magistrales y podcasts','Practicas, ejercicios y experiencias directas','c',2,'El estilo kinestesico se basa en aprender haciendo: experimentos, practicas y actividades manuales.'),
 ('cc000003-0000-4000-a000-000000000001','En que consiste la tecnica Pomodoro?','Estudiar en bloques de 25 minutos con descansos breves','Repasar el material 25 veces seguidas','Leer 25 paginas diarias sin interrupciones','a',1,'La tecnica Pomodoro divide el estudio en bloques de 25 minutos seguidos de descansos de 5 minutos.'),
