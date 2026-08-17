@@ -91,7 +91,15 @@ export function materiasPorMesDePlan(
   return meses > 0 ? Math.ceil(totalRegulares / meses) : totalRegulares
 }
 
-/** Tutoriales y materias demo: siempre visibles y sin lugar en la ventana. */
+/**
+ * Tutoriales y materias demo: siempre visibles y sin lugar en la ventana.
+ *
+ * ⚠️ Debe mantenerse en sincronía con es_materia_tutorial() (SQL: migración
+ * 20260817120000_corregir_plan_estudio.sql y schema.sql) — si cambia uno,
+ * cambia el otro. Los candados de corregir-plan excluyen este MISMO predicado:
+ * lo que este gate regala sin pago no puede contar como avance del plan.
+ * Un spec vigila la pareja (tests/unit/corregir-plan.spec.ts).
+ */
 export function esTutorial(mat: Pick<MateriaVentana, 'nivel' | 'nombre'>): boolean {
   return mat.nivel === 'demo' || mat.nombre.toLowerCase().includes('tutor')
 }

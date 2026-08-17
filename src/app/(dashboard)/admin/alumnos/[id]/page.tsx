@@ -2,19 +2,29 @@
 
 import { useState, useEffect, useCallback } from 'react'
 import { useRouter, useParams } from 'next/navigation'
-import { ArrowLeft, X, Loader2, Key, Eye, EyeOff, Download, FileText, FileDown, StickyNote, Save, LockOpen, Lock, CheckCircle2, CreditCard, DollarSign, Plus, Trash2, ChevronDown, ChevronRight } from 'lucide-react'
+import { ArrowLeft, X, Loader2, Key, Eye, EyeOff, Download, FileText, FileDown, StickyNote, Save, LockOpen, Lock, CheckCircle2, CreditCard, DollarSign, Plus, Trash2, ChevronDown, ChevronRight, Pencil } from 'lucide-react'
 import { useToast, ToastContainer } from '@/components/ui/toast'
 import { config } from '@/lib/config'
+// Mismos catálogos que el select de alta: el modal de corrección ofrece
+// exactamente lo que el alta ofrece, ni más ni menos.
+import { getModalidadesActivas, getModalidadesLicenciatura } from '@/lib/modalidades'
+import { getCarreras, licenciaturasActivas } from '@/lib/licenciatura-utils'
 
 interface AlumnoDetalle {
   id: string
   matricula: string
+  nivel: string | null
+  carrera: string | null
+  modalidad: string
   meses_desbloqueados: number
   inscripcion_pagada: boolean
   created_at: string
   notas_admin: string | null
   // Rol del usuario que consulta (lo calcula el servidor): 'ADMIN' | 'SECRETARIO'
   viewer_rol?: string
+  // Candados de corrección de plan, evaluados por el servidor (solo admin).
+  // null = el servidor no lo calculó (secretario, diplomado o migración ausente).
+  plan_correccion?: { permitida: boolean; candado: string | null } | null
   usuario: { id: string; nombre_completo: string; email: string; activo: boolean; telefono: string | null }
   plan: { id: string; nombre: string; duracion_meses: number; precio_mensual: number }
   calificaciones: { id: string; calificacion_final: number | null; aprobada: boolean; materias: { nombre: string; codigo: string } }[]
@@ -167,6 +177,11 @@ export default function AlumnoDetallePage() {
   const [resetPass, setResetPass] = useState({ password: '', confirm: '' })
   const [showResetPass, setShowResetPass] = useState(false)
   const [showResetConfirm, setShowResetConfirm] = useState(false)
+  // Corregir plan de estudio
+  const [modalCorregirPlan, setModalCorregirPlan] = useState(false)
+  const [corrigiendo, setCorrigiendo] = useState(false)
+  const [corregirError, setCorregirError] = useState<string | null>(null)
+  const [corregirForm, setCorregirForm] = useState({ nivel: '', carrera: '', modalidad: '' })
   // Documentos
   const [documentos, setDocumentos] = useState<DocumentoAdmin[]>([])
   const [docEdits, setDocEdits] = useState<Record<string, { estado: DocEstado; comentario: string }>>({})
@@ -345,6 +360,56 @@ export default function AlumnoDetallePage() {
       setResetError('Error inesperado. Intenta de nuevo.')
     } finally {
       setResettingPass(false)
+    }
+  }
+
+  function abrirModalCorregirPlan() {
+    if (!alumno) return
+    setCorregirError(null)
+    // Preseleccionar el plan actual: la corrección típica cambia UN campo.
+    setCorregirForm({
+      nivel:     alumno.nivel ?? '',
+      carrera:   alumno.carrera ?? '',
+      modalidad: alumno.modalidad ?? '',
+    })
+    setModalCorregirPlan(true)
+  }
+
+  async function handleCorregirPlan(e: React.FormEvent) {
+    e.preventDefault()
+    setCorregirError(null)
+    if (!corregirForm.nivel) { setCorregirError('Selecciona el nivel.'); return }
+    if (corregirForm.nivel === 'licenciatura' && !corregirForm.carrera) {
+      setCorregirError('Selecciona la carrera.')
+      return
+    }
+    if (!corregirForm.modalidad) { setCorregirError('Selecciona la modalidad.'); return }
+    setCorrigiendo(true)
+    try {
+      const res = await fetch(`/api/admin/alumnos/${id}/corregir-plan`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          nivel:     corregirForm.nivel,
+          carrera:   corregirForm.nivel === 'licenciatura' ? corregirForm.carrera : null,
+          modalidad: corregirForm.modalidad,
+        }),
+      })
+      const data = await res.json()
+      if (!res.ok) { setCorregirError(data.error ?? 'No se pudo corregir el plan.'); return }
+      setModalCorregirPlan(false)
+      showToast(
+        (data.notas_borradas ?? 0) > 0
+          ? `Plan de estudio corregido. Se eliminaron ${data.notas_borradas} nota(s) del plan anterior.`
+          : 'Plan de estudio corregido',
+        'success',
+      )
+      // Recargar la ficha completa: plan nuevo, candados re-evaluados
+      cargar()
+    } catch {
+      setCorregirError('Ocurrió un error inesperado.')
+    } finally {
+      setCorrigiendo(false)
     }
   }
 
@@ -618,7 +683,29 @@ export default function AlumnoDetallePage() {
           )}
         </div>
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 text-sm">
-          <div><p style={{ color: '#94A3B8' }}>Plan de estudio</p><p className="mt-0.5 font-medium" style={{ color: '#F1F5F9' }}>{alumno.plan.nombre}</p></div>
+          <div>
+            <p style={{ color: '#94A3B8' }}>Plan de estudio</p>
+            <p className="mt-0.5 font-medium" style={{ color: '#F1F5F9' }}>{alumno.plan.nombre}</p>
+            {/* plan_correccion lo calcula el servidor con los seis candados.
+                null = secretario, diplomado o migración ausente: ni botón ni texto. */}
+            {alumno.plan_correccion?.permitida && (
+              <button
+                onClick={abrirModalCorregirPlan}
+                className="mt-2 flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all"
+                style={{ background: 'rgba(21,101,192,0.12)', color: 'var(--color-acento)', border: '1px solid rgba(21,101,192,0.25)' }}
+                onMouseEnter={e => { e.currentTarget.style.background = 'rgba(21,101,192,0.22)' }}
+                onMouseLeave={e => { e.currentTarget.style.background = 'rgba(21,101,192,0.12)' }}
+              >
+                <Pencil className="w-3.5 h-3.5" />
+                Corregir plan de estudio
+              </button>
+            )}
+            {alumno.plan_correccion && !alumno.plan_correccion.permitida && (
+              <p className="mt-1.5 text-xs leading-relaxed" style={{ color: '#64748B' }}>
+                Este alumno ya inició su plan de estudio. Para cambiarlo, regístralo como alumno nuevo.
+              </p>
+            )}
+          </div>
           <div><p style={{ color: '#94A3B8' }}>Duración total</p><p className="mt-0.5 font-medium" style={{ color: '#F1F5F9' }}>{alumno.plan.duracion_meses} meses</p></div>
           <div><p style={{ color: '#94A3B8' }}>Fecha de registro</p><p className="mt-0.5 font-medium" style={{ color: '#F1F5F9' }}>{new Date(alumno.created_at).toLocaleDateString('es-MX')}</p></div>
         </div>
@@ -1222,6 +1309,120 @@ export default function AlumnoDetallePage() {
                 }
               </button>
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* Modal Corregir Plan de Estudio */}
+      {modalCorregirPlan && alumno && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4" style={{ background: 'rgba(0,0,0,0.7)' }}>
+          <div className="w-full max-w-md rounded-2xl p-6 shadow-2xl" style={CARD_STYLE}>
+            <div className="flex items-center justify-between mb-5">
+              <div>
+                <h3 className="text-lg font-bold text-gray-100">Corregir plan de estudio</h3>
+                <p className="text-xs mt-0.5" style={{ color: '#94A3B8' }}>
+                  Alumno: {alumno.usuario.nombre_completo} · {alumno.matricula}
+                </p>
+              </div>
+              <button
+                onClick={() => { setModalCorregirPlan(false); setCorregirError(null) }}
+                className="p-1.5 rounded-lg"
+                style={{ color: '#94A3B8' }}
+                onMouseEnter={e => { e.currentTarget.style.background = 'rgba(255,255,255,0.06)' }}
+                onMouseLeave={e => { e.currentTarget.style.background = 'transparent' }}
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            <form onSubmit={handleCorregirPlan} className="space-y-4">
+              <div
+                className="rounded-lg px-3 py-2.5 text-xs leading-relaxed"
+                style={{ background: 'rgba(245,158,11,0.08)', border: '1px solid rgba(245,158,11,0.25)', color: '#FBBF24' }}
+              >
+                Esto reemplaza el plan de estudio del alumno. Solo es posible porque aún no ha iniciado.
+                La matrícula se conserva.
+              </div>
+
+              <div className="space-y-1.5">
+                <label className="block text-sm font-medium" style={{ color: '#94A3B8' }}>Nivel</label>
+                <select
+                  required
+                  value={corregirForm.nivel}
+                  onChange={e => setCorregirForm(prev => ({ ...prev, nivel: e.target.value, modalidad: '', carrera: '' }))}
+                  className="w-full px-3 py-2.5 rounded-lg text-sm outline-none"
+                  style={INPUT_STYLE}
+                >
+                  <option value="">Selecciona nivel...</option>
+                  <option value="secundaria">Secundaria</option>
+                  <option value="preparatoria">Preparatoria</option>
+                  {licenciaturasActivas() && <option value="licenciatura">Licenciatura</option>}
+                </select>
+              </div>
+
+              {corregirForm.nivel === 'licenciatura' && (
+                <div className="space-y-1.5">
+                  <label className="block text-sm font-medium" style={{ color: '#94A3B8' }}>Carrera</label>
+                  <select
+                    required
+                    value={corregirForm.carrera}
+                    onChange={e => setCorregirForm(prev => ({ ...prev, carrera: e.target.value }))}
+                    className="w-full px-3 py-2.5 rounded-lg text-sm outline-none"
+                    style={INPUT_STYLE}
+                  >
+                    <option value="">Selecciona carrera...</option>
+                    {getCarreras().map(c => (
+                      <option key={c.slug} value={c.slug}>{c.nombre}</option>
+                    ))}
+                  </select>
+                </div>
+              )}
+
+              <div className="space-y-1.5">
+                <label className="block text-sm font-medium" style={{ color: '#94A3B8' }}>Modalidad</label>
+                <select
+                  required
+                  value={corregirForm.modalidad}
+                  onChange={e => setCorregirForm(prev => ({ ...prev, modalidad: e.target.value }))}
+                  disabled={!corregirForm.nivel}
+                  className="w-full px-3 py-2.5 rounded-lg text-sm outline-none"
+                  style={{ ...INPUT_STYLE, opacity: corregirForm.nivel ? 1 : 0.5 }}
+                >
+                  <option value="">{corregirForm.nivel ? 'Selecciona modalidad...' : 'Primero elige nivel'}</option>
+                  {(corregirForm.nivel === 'licenciatura' ? getModalidadesLicenciatura() : getModalidadesActivas()).map(m => (
+                    <option key={m.id} value={m.id}>{m.label}</option>
+                  ))}
+                </select>
+              </div>
+
+              {corregirError && (
+                <div
+                  className="rounded-lg px-3 py-2.5 text-sm"
+                  style={{ background: 'rgba(239,68,68,0.1)', border: '1px solid rgba(239,68,68,0.25)', color: '#FCA5A5' }}
+                >
+                  {corregirError}
+                </div>
+              )}
+
+              <div className="flex gap-3 pt-1">
+                <button
+                  type="button"
+                  onClick={() => { setModalCorregirPlan(false); setCorregirError(null) }}
+                  className="flex-1 py-2.5 rounded-lg text-sm font-medium transition-all"
+                  style={{ background: 'rgba(255,255,255,0.05)', color: '#94A3B8', border: '1px solid #2A2F3E' }}
+                >
+                  Cancelar
+                </button>
+                <button
+                  type="submit"
+                  disabled={corrigiendo}
+                  className="flex-1 py-2.5 rounded-lg text-sm font-semibold transition-all disabled:opacity-60 disabled:cursor-not-allowed"
+                  style={{ background: 'var(--color-acento)', color: 'var(--color-texto-sobre-acento)' }}
+                >
+                  {corrigiendo ? <Loader2 className="w-4 h-4 animate-spin inline" /> : 'Guardar corrección'}
+                </button>
+              </div>
+            </form>
           </div>
         </div>
       )}
