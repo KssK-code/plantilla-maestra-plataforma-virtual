@@ -23,7 +23,17 @@ export async function updateSession(request: NextRequest) {
     }
   )
 
-  const { data: { user } } = await supabase.auth.getUser()
+  // Un fallo de RED contra Supabase (ECONNRESET, timeout) dejaba `user` en null
+  // y se leia como "no hay sesion", expulsando al alumno a /login desde donde
+  // estuviera. Se distingue "no hay sesion" de "no se pudo comprobar".
+  let user = null
+  let sesionIndeterminada = false
+  try {
+    const { data } = await supabase.auth.getUser()
+    user = data.user
+  } catch {
+    sesionIndeterminada = true
+  }
 
   // ⚠️ '/diplomados' es catálogo PÚBLICO (B5): un prospecto sin cuenta abre el
   // link que le mandaron por WhatsApp. Sin esto el middleware lo mandaría a
@@ -69,6 +79,17 @@ export async function updateSession(request: NextRequest) {
 
   // Usuario no autenticado intentando acceder a ruta protegida → redirigir a login
   if (!user && !isPublicRoute) {
+    // No se pudo comprobar la sesion por un fallo de red: no se expulsa. Se deja
+    // continuar y que la propia ruta responda (401 si toca).
+    if (sesionIndeterminada) return supabaseResponse
+
+    // A una ruta de API se le responde 401, NO un 307 hacia una pagina HTML.
+    // Las pantallas hacen fetch + r.json() sobre estos endpoints: al seguir el
+    // redirect recibian HTML, json() lanzaba y se caia la vista entera.
+    if (request.nextUrl.pathname.startsWith('/api/')) {
+      return NextResponse.json({ error: 'No autorizado' }, { status: 401 })
+    }
+
     const url = request.nextUrl.clone()
     url.pathname = '/login'
     return NextResponse.redirect(url)
