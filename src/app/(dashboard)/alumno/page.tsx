@@ -124,11 +124,19 @@ export default function AlumnoDashboard() {
 
   // Fetch data
   useEffect(() => {
+    // Un solo endpoint que falle NO debe borrar el dashboard entero. Con
+    // Promise.all, si cualquiera de los cuatro rechazaba —por ejemplo porque
+    // r.json() recibia HTML en vez de JSON— se perdia tambien el perfil y la
+    // pantalla quedaba en "Error al cargar el perfil", SIN NINGUN MES, aunque
+    // los meses estuvieran disponibles.
+    const pedir = (url: string) =>
+      fetch(url).then(r => (r.ok ? r.json() : null)).catch(() => null)
+
     Promise.all([
-      fetch('/api/alumno/perfil').then(r => r.json()),
-      fetch('/api/alumno/meses').then(r => r.json()),
-      fetch('/api/alumno/calificaciones').then(r => r.json()),
-      fetch('/api/alumno/materias').then(r => r.json()),
+      pedir('/api/alumno/perfil'),
+      pedir('/api/alumno/meses'),
+      pedir('/api/alumno/calificaciones'),
+      pedir('/api/alumno/materias'),
     ]).then(([p, m, c, mat]) => {
       setPerfil(p)
       if (m?.demo === true) {
