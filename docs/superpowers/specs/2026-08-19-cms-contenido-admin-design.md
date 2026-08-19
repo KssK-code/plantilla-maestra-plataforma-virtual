@@ -73,8 +73,16 @@ Contenido de sobra para probar en serio, historial casi nulo: piloto de bajo rie
    limpieza de huérfanos. Es reutilizable tal cual.
 4. **Existe un test guardián** (`tests/unit/guardian-schema-onboarding.spec.ts`,
    PR #71): todo `CREATE` en `supabase/migrations/` debe existir también en
-   `scripts/schema.sql`. Toda migración de este trabajo debe reflejarse ahí o
-   el build rompe.
+   `scripts/schema.sql`.
+
+   ⚠️ Y son **dos** archivos de esquema, no uno —
+   `tests/unit/corregir-plan.spec.ts` lo verifica explícitamente contra los dos:
+   - `supabase/schema.sql` — espejo documental
+   - `scripts/schema.sql` — **el que `mev-onboarding.py` instala en los combos
+     nuevos**
+
+   Toda migración de este trabajo va reflejada en **los dos**. Faltar en el
+   segundo es lo grave: el objeto nace ausente en todo cliente nuevo.
 5. **`opcion_d` es nullable pero el CHECK admite `respuesta_correcta='d'`.**
    Hoy nadie puede crear preguntas desde la UI, así que el hueco es teórico. En
    cuanto F3 abra el CRUD deja de serlo.
@@ -131,7 +139,8 @@ y registro de pagos. Editar el programa no es tarea de secretaría.
 ## 4. Cambios de esquema
 
 Una sola migración: `supabase/migrations/20260819120000_cms_contenido.sql`,
-idempotente, reflejada en `scripts/schema.sql`.
+idempotente, reflejada en **`supabase/schema.sql` Y `scripts/schema.sql`**
+(§2.3.4 — son dos archivos y el guardián exige los dos).
 
 ```sql
 ALTER TABLE public.semanas          ADD COLUMN IF NOT EXISTS activa boolean NOT NULL DEFAULT true;
@@ -279,11 +288,12 @@ siguen ese patrón, no vitest.
     deshaga con el tiempo.
 - **Guardián**: `guardian-schema-onboarding.spec.ts` debe seguir en verde. La
   migración **no** entra en su lista de `EXCEPCIONES`: eso está reservado a
-  módulos opcionales como Cursos, y este CMS es contenido base. El guardián
-  documenta que `mev-onboarding.py` instala a los clientes nuevos desde
-  `scripts/schema.sql`, así que no reflejarlo ahí haría que `semanas.activa`,
-  `meses_contenido.activa` y `semana_materiales` **nacieran ausentes en todo
-  cliente futuro** — exactamente la deriva del 17-ago-2026 que originó el test.
+  módulos opcionales como Cursos, y este CMS es contenido base. `mev-onboarding.py`
+  instala a los clientes nuevos desde `scripts/schema.sql`, así que no
+  reflejarlo ahí haría que `semanas.activa`, `meses_contenido.activa` y
+  `semana_materiales` **nacieran ausentes en todo cliente futuro** —
+  exactamente la deriva del 17-ago-2026 que originó el test. Se refleja en los
+  **dos** archivos de esquema (§2.3.4).
 - **E2E** (`e2e/`, patrón de `cursos-diplomados.spec.ts`): admin edita apuntes →
   el alumno los ve renderizados.
 - **Validación en el piloto**: aplicar migración en GLOBALMIND
