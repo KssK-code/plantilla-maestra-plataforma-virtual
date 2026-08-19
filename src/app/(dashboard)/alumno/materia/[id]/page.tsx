@@ -17,8 +17,7 @@ import gsap from 'gsap'
 import { useGSAP } from '@gsap/react'
 import { CONFIG } from '@/lib/config'
 import { withAlpha } from '@/lib/utils'
-import ReactMarkdown from 'react-markdown'
-import remarkGfm from 'remark-gfm'
+import ContenidoMarkdown, { normalizarContenido } from '@/components/ContenidoMarkdown'
 
 gsap.registerPlugin(useGSAP)
 
@@ -297,9 +296,7 @@ export default function MateriaPage() {
                       </p>
                     </div>
                   )
-                  const contenidoSemana = (semana.contenido ?? '')
-                    .replace(/\\r\\n/g, '\n')
-                    .replace(/\\n/g, '\n')
+                  const contenidoSemana = normalizarContenido(semana.contenido)
 
                   return (
                     <div className="rounded-xl p-5 space-y-4" style={CARD}>
@@ -329,21 +326,8 @@ export default function MateriaPage() {
                         })()}
                       </div>
 
-                      {/* Contenido — Markdown renderizado */}
-                      {contenidoSemana && (
-                        <div className="prose prose-invert max-w-none prose-headings:text-white prose-headings:font-bold prose-h1:text-2xl prose-h2:text-xl prose-h3:text-lg prose-strong:text-white prose-strong:font-semibold prose-p:text-slate-200 prose-li:text-slate-200 prose-ul:my-4 prose-ol:my-4 prose-a:text-cyan-400 prose-blockquote:border-cyan-500">
-                          <ReactMarkdown
-                            remarkPlugins={[remarkGfm]}
-                            components={{
-                              h1: ({ children }) => <h1 className="text-2xl font-bold mt-4 mb-2" style={{ color: '#F1F5F9' }}>{children}</h1>,
-                              h2: ({ children }) => <h2 className="text-xl font-bold mt-3 mb-2" style={{ color: '#F1F5F9' }}>{children}</h2>,
-                              h3: ({ children }) => <h3 className="text-lg font-bold mt-3 mb-1" style={{ color: '#F1F5F9' }}>{children}</h3>,
-                            }}
-                          >
-                            {contenidoSemana}
-                          </ReactMarkdown>
-                        </div>
-                      )}
+                      {/* Contenido — Markdown renderizado (compartido con el editor del admin) */}
+                      <ContenidoMarkdown texto={contenidoSemana} />
 
                       {/* Videos — embebidos (YouTube iframe) */}
                       {semana.videos?.length > 0 && (

@@ -2,23 +2,17 @@
 
 import { useState, useEffect, useCallback } from 'react'
 import { useRouter, useParams } from 'next/navigation'
-import { ArrowLeft, Loader2, Save, Check, AlertCircle, Video, ChevronDown, ChevronRight } from 'lucide-react'
-
-interface VideoState {
-  video_url:   string
-  video_url_2: string
-  video_url_3: string
-  saving:  boolean
-  saved:   boolean
-  error:   string | null
-  dirty:   boolean
-}
+import { ArrowLeft, Loader2, ChevronDown, ChevronRight } from 'lucide-react'
+import SemanaEditor, { type SemanaState, type CampoTexto } from './SemanaEditor'
+import { TIEMPO_MIN, TIEMPO_MAX, camposCambiados, type ValoresSemana } from '@/lib/contenido-semana'
 
 interface Semana {
   id: string
   numero_semana: number
   titulo: string
   descripcion: string | null
+  contenido: string | null
+  tiempo_estimado_minutos: number
   video_url:   string | null
   video_url_2: string | null
   video_url_3: string | null
@@ -41,28 +35,6 @@ interface Materia {
 }
 
 const CARD  = { background: '#181C26', border: '1px solid #2A2F3E' }
-const INNER = { background: '#0D1017', border: '1px solid #2A2F3E' }
-
-function inputStyle(dirty: boolean) {
-  return {
-    background: '#0D1017',
-    border: `1px solid ${dirty ? 'var(--color-acento)' : '#2A2F3E'}`,
-    color: '#F1F5F9',
-    borderRadius: '0.5rem',
-    padding: '0.375rem 0.625rem',
-    fontSize: '0.75rem',
-    width: '100%',
-    outline: 'none',
-    fontFamily: 'monospace',
-  }
-}
-
-/** Extrae el video ID de una URL youtube.com/watch?v=ID */
-function getYoutubeId(url: string): string | null {
-  if (!url) return null
-  const match = url.match(/[?&]v=([^&]+)/)
-  return match ? match[1] : null
-}
 
 
 export default function ContenidoDetallePage() {
@@ -75,16 +47,24 @@ export default function ContenidoDetallePage() {
   const [loading, setLoading] = useState(true)
   const [error,   setError]   = useState<string | null>(null)
 
-  // Estado de edición: semanaId → VideoState
-  const [videos, setVideos] = useState<Record<string, VideoState>>({})
+  // Estado de edición: semanaId → SemanaState
+  const [semanas, setSemanas] = useState<Record<string, SemanaState>>({})
   // Meses expandidos
   const [abiertos, setAbiertos] = useState<Set<string>>(new Set())
 
   useEffect(() => {
+    // Guarda contra respuestas OBSOLETAS. El efecto se re-dispara al cambiar de
+    // materia (y en desarrollo dos veces, por el StrictMode). Si una respuesta
+    // vieja aterriza despues de que el admin ya empezo a escribir, `setSemanas`
+    // le pisa lo tecleado con los valores del servidor y sin ningun aviso.
+    // Antes de F1 el dano era perder tres URLs a medio pegar; ahora son los
+    // apuntes de la clase. Pasó de verdad durante la verificacion de F1.
+    let vivo = true
     async function cargar() {
       try {
         const res = await fetch(`/api/admin/contenido/${id}`)
         const data = await res.json()
+        if (!vivo) return
         if (!res.ok || data.error) { setError(data.error ?? 'Materia no encontrada'); return }
 
         const mat = data.materia
@@ -114,26 +94,31 @@ export default function ContenidoDetallePage() {
           setAbiertos(new Set([mesesOrdenados[0].id]))
         }
 
-        // Inicializar estado de videos
-        const initVideos: Record<string, VideoState> = {}
+        // Inicializar estado de edición
+        const init: Record<string, SemanaState> = {}
         for (const mes of mesesOrdenados) {
           for (const sem of mes.semanas) {
-            initVideos[sem.id] = {
+            const valores: ValoresSemana = {
+              titulo:      sem.titulo ?? '',
+              descripcion: sem.descripcion ?? '',
+              contenido:   sem.contenido ?? '',
+              tiempo_estimado_minutos: sem.tiempo_estimado_minutos ?? 60,
               video_url:   sem.video_url   ?? '',
               video_url_2: sem.video_url_2 ?? '',
               video_url_3: sem.video_url_3 ?? '',
-              saving: false, saved: false, error: null, dirty: false,
             }
+            init[sem.id] = { ...valores, inicial: valores, saving: false, saved: false, error: null }
           }
         }
-        setVideos(initVideos)
+        setSemanas(init)
       } catch {
-        setError('Error inesperado al cargar la materia')
+        if (vivo) setError('Error inesperado al cargar la materia')
       } finally {
-        setLoading(false)
+        if (vivo) setLoading(false)
       }
     }
     cargar()
+    return () => { vivo = false }
   }, [id])
 
   function toggleMes(mesId: string) {
@@ -144,47 +129,117 @@ export default function ContenidoDetallePage() {
     })
   }
 
-  function handleChange(semanaId: string, field: 'video_url' | 'video_url_2' | 'video_url_3', value: string) {
-    setVideos(prev => ({
+  function handleCampo(semanaId: string, campo: CampoTexto, valor: string) {
+    setSemanas(prev => ({
       ...prev,
-      [semanaId]: { ...prev[semanaId], [field]: value, dirty: true, saved: false, error: null },
+      [semanaId]: { ...prev[semanaId], [campo]: valor, saved: false, error: null },
+    }))
+  }
+
+  function handleTiempo(semanaId: string, minutos: number) {
+    setSemanas(prev => ({
+      ...prev,
+      [semanaId]: { ...prev[semanaId], tiempo_estimado_minutos: minutos, saved: false, error: null },
     }))
   }
 
   const guardar = useCallback(async (semanaId: string) => {
-    const v = videos[semanaId]
+    const v = semanas[semanaId]
     if (!v || v.saving) return
 
-    setVideos(prev => ({ ...prev, [semanaId]: { ...prev[semanaId], saving: true, error: null } }))
+    const cambiados = camposCambiados(v, v.inicial)
+    if (cambiados.length === 0) return
+
+    // El titulo es NOT NULL: si se vacio, el servidor rechaza el PATCH ENTERO y
+    // los apuntes tampoco se guardan. Se ataja aqui para que el admin vea por
+    // que, en vez de perder el guardado por un campo que ni estaba mirando.
+    if (cambiados.includes('titulo') && v.titulo.trim() === '') {
+      setSemanas(prev => ({
+        ...prev,
+        [semanaId]: { ...prev[semanaId], error: 'El título de la semana no puede quedar vacío' },
+      }))
+      return
+    }
+
+    // El <input type="number"> devuelve '' cuando el admin borra el campo para
+    // reescribirlo, y Number('') es 0 — que el servidor rechaza con 400. Se
+    // acota aquí, al guardar, y no en el onChange: recortar mientras escribe le
+    // pelearía el cursor al usuario en cada tecla.
+    const minutos = Math.min(
+      TIEMPO_MAX,
+      Math.max(TIEMPO_MIN, Math.round(Number(v.tiempo_estimado_minutos) || 60)),
+    )
+
+    // SOLO lo que cambió. Mandar la fila entera hace que un admin que corrige
+    // una URL pise los apuntes que otro escribió mientras esta pestaña estaba
+    // abierta — y sin dejar rastro.
+    const body: Record<string, string | number | null> = {}
+    for (const campo of cambiados) {
+      body[campo] = campo === 'tiempo_estimado_minutos' ? minutos : (v[campo] as string) || null
+    }
+
+    setSemanas(prev => ({ ...prev, [semanaId]: { ...prev[semanaId], saving: true, error: null } }))
 
     try {
       const res = await fetch(`/api/admin/semanas/${semanaId}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          video_url:   v.video_url   || null,
-          video_url_2: v.video_url_2 || null,
-          video_url_3: v.video_url_3 || null,
-        }),
+        body: JSON.stringify(body),
       })
       const data = await res.json()
       if (!res.ok) throw new Error(data.error ?? 'Error al guardar')
 
-      setVideos(prev => ({
-        ...prev,
-        [semanaId]: { ...prev[semanaId], saving: false, saved: true, dirty: false },
-      }))
-      // Quitar checkmark después de 3s
+      setSemanas(prev => {
+        const actual = prev[semanaId]
+        // `inicial` pasa a ser lo que quedó guardado, no lo que se cargó: si el
+        // admin siguió escribiendo mientras el PATCH iba en vuelo, esos cambios
+        // deben seguir marcados como pendientes.
+        const guardado: ValoresSemana = {
+          titulo:      actual.titulo,
+          descripcion: actual.descripcion,
+          contenido:   actual.contenido,
+          tiempo_estimado_minutos: actual.tiempo_estimado_minutos,
+          video_url:   actual.video_url,
+          video_url_2: actual.video_url_2,
+          video_url_3: actual.video_url_3,
+          ...Object.fromEntries(cambiados.map(c =>
+            [c, c === 'tiempo_estimado_minutos' ? minutos : v[c]],
+          )),
+        } as ValoresSemana
+        return {
+          ...prev,
+          [semanaId]: {
+            ...actual,
+            tiempo_estimado_minutos: cambiados.includes('tiempo_estimado_minutos')
+              ? minutos
+              : actual.tiempo_estimado_minutos,
+            inicial: guardado,
+            saving: false,
+            saved: true,
+          },
+        }
+      })
       setTimeout(() => {
-        setVideos(prev => ({ ...prev, [semanaId]: { ...prev[semanaId], saved: false } }))
+        setSemanas(prev => (prev[semanaId] ? { ...prev, [semanaId]: { ...prev[semanaId], saved: false } } : prev))
       }, 3000)
     } catch (err) {
-      setVideos(prev => ({
+      setSemanas(prev => ({
         ...prev,
         [semanaId]: { ...prev[semanaId], saving: false, error: (err as Error).message },
       }))
     }
-  }, [videos])
+  }, [semanas])
+
+  // Antes de F1 salirse sin guardar costaba tres URLs pegadas; ahora puede
+  // costar 50 000 caracteres tecleados a mano.
+  const haySinGuardar = Object.values(semanas).some(s => camposCambiados(s, s.inicial).length > 0)
+
+  useEffect(() => {
+    if (!haySinGuardar) return
+    const avisar = (e: BeforeUnloadEvent) => { e.preventDefault(); e.returnValue = '' }
+    window.addEventListener('beforeunload', avisar)
+    return () => window.removeEventListener('beforeunload', avisar)
+  }, [haySinGuardar])
 
   if (loading) return (
     <div className="flex items-center justify-center min-h-[400px]">
@@ -207,7 +262,10 @@ export default function ContenidoDetallePage() {
       {/* Header */}
       <div className="flex items-start gap-4">
         <button
-          onClick={() => router.push('/admin/contenido')}
+          onClick={() => {
+            if (haySinGuardar && !window.confirm('Tienes cambios sin guardar en esta materia. ¿Salir de todas formas?')) return
+            router.push('/admin/contenido')
+          }}
           className="mt-1 p-2 rounded-lg transition-all flex-shrink-0"
           style={{ background: 'rgba(255,255,255,0.04)', color: '#94A3B8', border: '1px solid #2A2F3E' }}
           onMouseEnter={e => { e.currentTarget.style.background = 'rgba(255,255,255,0.08)' }}
@@ -223,7 +281,7 @@ export default function ContenidoDetallePage() {
             </span>
           </div>
           <h1 className="text-xl font-bold text-gray-900 mt-1">{materia.nombre}</h1>
-          <p className="text-xs mt-0.5 text-gray-600">{totalSemanas} semanas · Edita las URLs de video por semana</p>
+          <p className="text-xs mt-0.5 text-gray-600">{totalSemanas} semanas · Edita los apuntes, los videos y los datos de cada semana</p>
         </div>
       </div>
 
@@ -277,110 +335,17 @@ export default function ContenidoDetallePage() {
                   <div className="px-5 pb-5 space-y-3" style={{ borderTop: '1px solid #2A2F3E' }}>
                     <div className="pt-4 space-y-3">
                       {mes.semanas.map(sem => {
-                        const v = videos[sem.id]
+                        const v = semanas[sem.id]
                         if (!v) return null
                         return (
-                          <div key={sem.id} className="rounded-xl p-4 space-y-3" style={INNER}>
-                            {/* Semana header */}
-                            <div className="flex items-center gap-3">
-                              <span
-                                className="flex items-center justify-center w-6 h-6 rounded-full text-xs font-bold flex-shrink-0"
-                                style={{ background: 'rgba(21,101,192,0.2)', color: 'var(--color-acento)' }}
-                              >
-                                {sem.numero_semana}
-                              </span>
-                              <p className="text-sm font-semibold flex-1 min-w-0" style={{ color: '#F1F5F9' }}>
-                                {sem.titulo}
-                              </p>
-                            </div>
-
-                            {/* 3 thumbnails en fila */}
-                            <div className="flex gap-2 mb-1">
-                              {([v.video_url, v.video_url_2, v.video_url_3] as string[]).map((url, i) => {
-                                const vid = getYoutubeId(url)
-                                return (
-                                  <div key={i} className="flex-1">
-                                    <p className="text-xs mb-1" style={{ color: '#64748B' }}>Video {i + 1}</p>
-                                    {vid ? (
-                                      // eslint-disable-next-line @next/next/no-img-element
-                                      <img
-                                        src={`https://img.youtube.com/vi/${vid}/mqdefault.jpg`}
-                                        alt={`Preview video ${i + 1}`}
-                                        className="w-full h-20 object-cover rounded cursor-pointer"
-                                        style={{ border: '1px solid #2A2F3E' }}
-                                        onClick={() => window.open(url, '_blank')}
-                                        title="Abrir en YouTube"
-                                      />
-                                    ) : (
-                                      <div
-                                        className="w-full h-20 rounded flex items-center justify-center text-xs"
-                                        style={{ background: '#1A1F2E', border: '1px solid #2A2F3E', color: '#94A3B8' }}
-                                      >
-                                        Sin video
-                                      </div>
-                                    )}
-                                  </div>
-                                )
-                              })}
-                            </div>
-
-                            {/* Inputs + botón */}
-                            <div className="space-y-2">
-                              {(
-                                [
-                                  { field: 'video_url'   as const, label: 'Video 1 (principal)' },
-                                  { field: 'video_url_2' as const, label: 'Video 2'             },
-                                  { field: 'video_url_3' as const, label: 'Video 3'             },
-                                ]
-                              ).map(({ field, label }) => (
-                                <div key={field}>
-                                  <label className="block text-xs mb-1" style={{ color: '#64748B' }}>
-                                    <Video className="inline w-3 h-3 mr-1" style={{ verticalAlign: 'middle' }} />
-                                    {label}
-                                  </label>
-                                  <input
-                                    type="url"
-                                    placeholder="https://www.youtube.com/watch?v=..."
-                                    value={v[field]}
-                                    onChange={e => handleChange(sem.id, field, e.target.value)}
-                                    style={inputStyle(v.dirty && v[field] !== (sem[field] ?? ''))}
-                                  />
-                                </div>
-                              ))}
-
-                                {/* Footer con feedback y botón */}
-                                <div className="flex items-center justify-between pt-1">
-                                  <div className="text-xs">
-                                    {v.error && (
-                                      <span className="flex items-center gap-1" style={{ color: '#EF4444' }}>
-                                        <AlertCircle className="w-3 h-3" /> {v.error}
-                                      </span>
-                                    )}
-                                    {v.saved && (
-                                      <span className="flex items-center gap-1" style={{ color: '#10B981' }}>
-                                        <Check className="w-3 h-3" /> Guardado
-                                      </span>
-                                    )}
-                                  </div>
-                                  <button
-                                    onClick={() => guardar(sem.id)}
-                                    disabled={v.saving || (!v.dirty && !v.saved)}
-                                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all disabled:opacity-40"
-                                    style={v.saved
-                                      ? { background: 'rgba(16,185,129,0.15)', color: '#10B981', border: '1px solid rgba(16,185,129,0.3)' }
-                                      : { background: v.dirty ? 'rgba(21,101,192,0.2)' : 'rgba(255,255,255,0.04)', color: v.dirty ? 'var(--color-acento)' : '#64748B', border: `1px solid ${v.dirty ? 'rgba(21,101,192,0.4)' : '#2A2F3E'}` }
-                                    }
-                                  >
-                                    {v.saving
-                                      ? <><Loader2 className="w-3 h-3 animate-spin" /> Guardando…</>
-                                      : v.saved
-                                        ? <><Check className="w-3 h-3" /> Guardado</>
-                                        : <><Save className="w-3 h-3" /> Guardar</>
-                                    }
-                                  </button>
-                                </div>
-                            </div>
-                          </div>
+                          <SemanaEditor
+                            key={sem.id}
+                            numero={sem.numero_semana}
+                            estado={v}
+                            onCampo={(campo, valor) => handleCampo(sem.id, campo, valor)}
+                            onTiempo={minutos => handleTiempo(sem.id, minutos)}
+                            onGuardar={() => guardar(sem.id)}
+                          />
                         )
                       })}
                     </div>

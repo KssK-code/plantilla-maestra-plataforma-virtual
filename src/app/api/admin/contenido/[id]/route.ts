@@ -25,7 +25,8 @@ export async function GET(
         meses_contenido (
           id, numero_mes, titulo,
           semanas (
-            id, numero_semana, titulo,
+            id, numero_semana, titulo, descripcion, contenido,
+            tiempo_estimado_minutos,
             video_url, video_url_2, video_url_3
           )
         )
