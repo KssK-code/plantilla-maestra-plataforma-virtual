@@ -299,3 +299,13 @@ test('la pantalla avisa antes de perder cambios sin guardar', () => {
   expect(page).toContain('camposCambiados')
   expect(page).not.toContain('video_url_3: v.video_url_3 || null')
 })
+
+test('la carga descarta respuestas obsoletas en vez de pisar lo tecleado', () => {
+  const page = leer('src/app/(dashboard)/admin/contenido/[id]/page.tsx')
+  // El efecto de carga tiene que poder cancelarse: sin esto, cambiar de materia
+  // (o el doble montaje del StrictMode) deja un fetch en vuelo que aterriza
+  // despues de que el admin empezo a escribir y le sobrescribe los apuntes.
+  expect(page).toContain('let vivo = true')
+  expect(page).toContain('if (!vivo) return')
+  expect(page).toContain('return () => { vivo = false }')
+})

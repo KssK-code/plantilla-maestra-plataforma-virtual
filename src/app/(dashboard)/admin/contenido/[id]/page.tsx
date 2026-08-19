@@ -53,10 +53,18 @@ export default function ContenidoDetallePage() {
   const [abiertos, setAbiertos] = useState<Set<string>>(new Set())
 
   useEffect(() => {
+    // Guarda contra respuestas OBSOLETAS. El efecto se re-dispara al cambiar de
+    // materia (y en desarrollo dos veces, por el StrictMode). Si una respuesta
+    // vieja aterriza despues de que el admin ya empezo a escribir, `setSemanas`
+    // le pisa lo tecleado con los valores del servidor y sin ningun aviso.
+    // Antes de F1 el dano era perder tres URLs a medio pegar; ahora son los
+    // apuntes de la clase. Pasó de verdad durante la verificacion de F1.
+    let vivo = true
     async function cargar() {
       try {
         const res = await fetch(`/api/admin/contenido/${id}`)
         const data = await res.json()
+        if (!vivo) return
         if (!res.ok || data.error) { setError(data.error ?? 'Materia no encontrada'); return }
 
         const mat = data.materia
@@ -104,12 +112,13 @@ export default function ContenidoDetallePage() {
         }
         setSemanas(init)
       } catch {
-        setError('Error inesperado al cargar la materia')
+        if (vivo) setError('Error inesperado al cargar la materia')
       } finally {
-        setLoading(false)
+        if (vivo) setLoading(false)
       }
     }
     cargar()
+    return () => { vivo = false }
   }, [id])
 
   function toggleMes(mesId: string) {
