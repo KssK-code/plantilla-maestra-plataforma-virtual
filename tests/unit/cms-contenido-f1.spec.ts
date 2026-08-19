@@ -136,6 +136,101 @@ test('solo se actualizan los campos enviados — el resto ni aparece en el updat
   if (r.ok) expect(Object.keys(r.update)).toEqual(['contenido'])
 })
 
+// ──────────── Topes en valor ABSOLUTO (no relativos a la constante) ──────────
+// Las aserciones de arriba se escriben como CONTENIDO_MAX + 1, así que pasan
+// aunque la constante valga cualquier cosa. Sin estas, capar los apuntes a 2 000
+// caracteres — o validar `contenido` contra DESCRIPCION_MAX — deja la suite
+// entera en verde y la feature rota.
+
+test('los topes valen lo que deben valer, no lo que diga la constante', () => {
+  expect(CONTENIDO_MAX).toBe(50_000)
+  expect(DESCRIPCION_MAX).toBe(2_000)
+  expect(TITULO_MAX).toBe(300)
+  expect(TIEMPO_MIN).toBe(1)
+  expect(TIEMPO_MAX).toBe(600)
+})
+
+test('unos apuntes largos de verdad caben — no se validan contra el tope de descripcion', () => {
+  expect(validarSemanaPatch({ contenido: 'a'.repeat(10_000) }).ok).toBe(true)
+  expect(validarSemanaPatch({ contenido: 'a'.repeat(50_000) }).ok).toBe(true)
+  expect(validarSemanaPatch({ contenido: 'a'.repeat(50_001) }).ok).toBe(false)
+})
+
+test('el tope es estricto: el máximo exacto pasa, uno más no', () => {
+  expect(validarSemanaPatch({ descripcion: 'a'.repeat(DESCRIPCION_MAX) }).ok).toBe(true)
+  expect(validarSemanaPatch({ descripcion: 'a'.repeat(DESCRIPCION_MAX + 1) }).ok).toBe(false)
+})
+
+// ─────────────────── Cada campo escribe en SU columna ────────────────────────
+// Sin esto, cruzar `update.descripcion` por `update.contenido` deja la suite en
+// verde: el admin editaría la descripción y borraría los apuntes, con service
+// role y sin RLS, en todos los clientes a la vez.
+
+test('descripcion se guarda en descripcion, recortada', () => {
+  expect(validarSemanaPatch({ descripcion: '  Repaso de derivadas  ' }))
+    .toEqual({ ok: true, update: { descripcion: 'Repaso de derivadas' } })
+})
+
+test('un parche completo escribe cada campo en su columna', () => {
+  const r = validarSemanaPatch({
+    titulo: 'Semana 1',
+    descripcion: 'Intro',
+    contenido: '## Apuntes',
+    tiempo_estimado_minutos: 45,
+    video_url:   'https://www.youtube.com/watch?v=a',
+    video_url_2: 'https://www.youtube.com/watch?v=b',
+    video_url_3: 'https://www.youtube.com/watch?v=c',
+  })
+  expect(r).toEqual({
+    ok: true,
+    update: {
+      titulo: 'Semana 1',
+      descripcion: 'Intro',
+      contenido: '## Apuntes',
+      tiempo_estimado_minutos: 45,
+      video_url:   'https://www.youtube.com/watch?v=a',
+      video_url_2: 'https://www.youtube.com/watch?v=b',
+      video_url_3: 'https://www.youtube.com/watch?v=c',
+    },
+  })
+})
+
+// ────────────────────── Tipos que no son texto ───────────────────────────────
+// Sin la guarda `typeof v !== 'string'`, un número llega a v.trim() y lanza
+// TypeError: la ruta respondería 500 "Error interno" en vez de un 400 con causa.
+
+test('un campo de texto que no es texto da 400 con causa, no un 500', () => {
+  for (const campo of ['contenido', 'descripcion', 'video_url', 'video_url_2', 'video_url_3']) {
+    for (const malo of [42, true, {}, ['x']]) {
+      const r = validarSemanaPatch({ [campo]: malo })
+      expect(r.ok, `${campo} = ${JSON.stringify(malo)}`).toBe(false)
+      if (!r.ok) expect(r.error).toContain('debe ser texto')
+    }
+  }
+})
+
+// ─────────────── Solo las propiedades PROPIAS llegan al update ───────────────
+// Object.keys mira propiedades propias; el operador `in` mira toda la cadena de
+// prototipos. Mezclar los dos criterios dejaba llegar al UPDATE un campo
+// heredado que la whitelist nunca llegó a ver.
+
+test('un campo heredado del prototipo no llega al update', () => {
+  const conHerencia = Object.create({ contenido: 'INYECTADO', descripcion: 'INYECTADA' })
+  conHerencia.titulo = 'Titulo real'
+  const r = validarSemanaPatch(conHerencia)
+  expect(r.ok).toBe(true)
+  if (r.ok) expect(r.update).toEqual({ titulo: 'Titulo real' })
+})
+
+test('un array se rechaza POR SER array, no de rebote por la whitelist', () => {
+  // ['x'] no prueba el guard: Object.keys(['x']) es ['0'] y la whitelist lo
+  // rechaza igual, con guard o sin él. Un array VACÍO sí distingue — sin
+  // Array.isArray caería en "ningún campo" — así que se afirma el MENSAJE.
+  const r = validarSemanaPatch([])
+  expect(r.ok).toBe(false)
+  if (!r.ok) expect(r.error).toContain('debe ser un objeto')
+})
+
 // ───────────────────── Análisis estático de las rutas ────────────────────────
 
 test('la ruta PATCH delega en validarSemanaPatch y no arma el update a mano', () => {

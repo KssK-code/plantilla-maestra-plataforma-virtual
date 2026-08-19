@@ -18,9 +18,16 @@ export const CAMPOS_SEMANA = [
 export type CampoSemana = (typeof CAMPOS_SEMANA)[number]
 
 // Topes. `contenido` es TEXT sin límite en Postgres: sin tope, un pegado
-// accidental mete megabytes en una fila que el alumno carga en cada visita.
-// 200k caracteres ≈ 400 páginas — generoso para una clase, pero acotado.
-export const CONTENIDO_MAX   = 200_000
+// accidental mete megabytes en una sola fila.
+//
+// El techo real NO es este número. /api/alumno/materia/[id] devuelve TODAS las
+// semanas de la materia con su contenido en UNA respuesta, así que lo que viaja
+// es N x CONTENIDO_MAX: una materia de 48 semanas (un año) con 200k por semana
+// serían ~9.6 MB, por encima del límite de respuesta de Vercel. 50k ≈ 25
+// páginas por semana — de sobra para unos apuntes — y deja el peor caso en
+// ~2.4 MB. Si algún día hace falta más, lo que hay que cambiar primero es que
+// el alumno se traiga la materia entera de golpe, no este número.
+export const CONTENIDO_MAX   = 50_000
 export const TITULO_MAX      = 300
 export const DESCRIPCION_MAX = 2_000
 export const URL_MAX         = 2_000
@@ -76,11 +83,15 @@ export function validarSemanaPatch(body: unknown): ResultadoSemana {
     return { ok: false, error: 'No se envió ningún campo para actualizar.' }
   }
 
+  // De aquí en adelante se consulta SIEMPRE `claves` (propiedades propias, las
+  // mismas que pasaron la whitelist) y nunca el operador `in`, que además mira
+  // la cadena de prototipos: con los dos criterios mezclados, un campo heredado
+  // llegaba al UPDATE sin que la whitelist lo hubiera visto jamás.
   const b = body as Record<string, unknown>
   const update: ParcheSemana = {}
 
   // titulo — el único NOT NULL entre los editables: se cambia, no se vacía.
-  if ('titulo' in b) {
+  if (claves.includes('titulo')) {
     if (typeof b.titulo !== 'string' || b.titulo.trim() === '') {
       return { ok: false, error: 'titulo es requerido y no puede quedar vacío' }
     }
@@ -90,19 +101,19 @@ export function validarSemanaPatch(body: unknown): ResultadoSemana {
     update.titulo = b.titulo.trim()
   }
 
-  if ('descripcion' in b) {
+  if (claves.includes('descripcion')) {
     const r = textoOpcional(b.descripcion, DESCRIPCION_MAX, 'descripcion')
     if (!r.ok) return r
     update.descripcion = r.valor
   }
 
-  if ('contenido' in b) {
+  if (claves.includes('contenido')) {
     const r = textoOpcional(b.contenido, CONTENIDO_MAX, 'contenido')
     if (!r.ok) return r
     update.contenido = r.valor
   }
 
-  if ('tiempo_estimado_minutos' in b) {
+  if (claves.includes('tiempo_estimado_minutos')) {
     const n = b.tiempo_estimado_minutos
     if (typeof n !== 'number' || !Number.isInteger(n) || n < TIEMPO_MIN || n > TIEMPO_MAX) {
       return {
@@ -115,17 +126,17 @@ export function validarSemanaPatch(body: unknown): ResultadoSemana {
 
   // Los tres videos, explícitos y no en bucle: el bucle obliga a un índice
   // dinámico sobre ParcheSemana que TypeScript no puede estrechar.
-  if ('video_url' in b) {
+  if (claves.includes('video_url')) {
     const r = textoOpcional(b.video_url, URL_MAX, 'video_url')
     if (!r.ok) return r
     update.video_url = r.valor
   }
-  if ('video_url_2' in b) {
+  if (claves.includes('video_url_2')) {
     const r = textoOpcional(b.video_url_2, URL_MAX, 'video_url_2')
     if (!r.ok) return r
     update.video_url_2 = r.valor
   }
-  if ('video_url_3' in b) {
+  if (claves.includes('video_url_3')) {
     const r = textoOpcional(b.video_url_3, URL_MAX, 'video_url_3')
     if (!r.ok) return r
     update.video_url_3 = r.valor
