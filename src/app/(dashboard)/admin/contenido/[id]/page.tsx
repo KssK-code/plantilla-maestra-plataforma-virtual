@@ -4,7 +4,7 @@ import { useState, useEffect, useCallback } from 'react'
 import { useRouter, useParams } from 'next/navigation'
 import { ArrowLeft, Loader2, ChevronDown, ChevronRight } from 'lucide-react'
 import SemanaEditor, { type SemanaState, type CampoTexto } from './SemanaEditor'
-import { TIEMPO_MIN, TIEMPO_MAX } from '@/lib/contenido-semana'
+import { TIEMPO_MIN, TIEMPO_MAX, camposCambiados, type ValoresSemana } from '@/lib/contenido-semana'
 
 interface Semana {
   id: string
@@ -90,7 +90,7 @@ export default function ContenidoDetallePage() {
         const init: Record<string, SemanaState> = {}
         for (const mes of mesesOrdenados) {
           for (const sem of mes.semanas) {
-            init[sem.id] = {
+            const valores: ValoresSemana = {
               titulo:      sem.titulo ?? '',
               descripcion: sem.descripcion ?? '',
               contenido:   sem.contenido ?? '',
@@ -98,8 +98,8 @@ export default function ContenidoDetallePage() {
               video_url:   sem.video_url   ?? '',
               video_url_2: sem.video_url_2 ?? '',
               video_url_3: sem.video_url_3 ?? '',
-              saving: false, saved: false, error: null, dirty: false,
             }
+            init[sem.id] = { ...valores, inicial: valores, saving: false, saved: false, error: null }
           }
         }
         setSemanas(init)
@@ -123,14 +123,14 @@ export default function ContenidoDetallePage() {
   function handleCampo(semanaId: string, campo: CampoTexto, valor: string) {
     setSemanas(prev => ({
       ...prev,
-      [semanaId]: { ...prev[semanaId], [campo]: valor, dirty: true, saved: false, error: null },
+      [semanaId]: { ...prev[semanaId], [campo]: valor, saved: false, error: null },
     }))
   }
 
   function handleTiempo(semanaId: string, minutos: number) {
     setSemanas(prev => ({
       ...prev,
-      [semanaId]: { ...prev[semanaId], tiempo_estimado_minutos: minutos, dirty: true, saved: false, error: null },
+      [semanaId]: { ...prev[semanaId], tiempo_estimado_minutos: minutos, saved: false, error: null },
     }))
   }
 
@@ -138,7 +138,19 @@ export default function ContenidoDetallePage() {
     const v = semanas[semanaId]
     if (!v || v.saving) return
 
-    setSemanas(prev => ({ ...prev, [semanaId]: { ...prev[semanaId], saving: true, error: null } }))
+    const cambiados = camposCambiados(v, v.inicial)
+    if (cambiados.length === 0) return
+
+    // El titulo es NOT NULL: si se vacio, el servidor rechaza el PATCH ENTERO y
+    // los apuntes tampoco se guardan. Se ataja aqui para que el admin vea por
+    // que, en vez de perder el guardado por un campo que ni estaba mirando.
+    if (cambiados.includes('titulo') && v.titulo.trim() === '') {
+      setSemanas(prev => ({
+        ...prev,
+        [semanaId]: { ...prev[semanaId], error: 'El título de la semana no puede quedar vacío' },
+      }))
+      return
+    }
 
     // El <input type="number"> devuelve '' cuando el admin borra el campo para
     // reescribirlo, y Number('') es 0 — que el servidor rechaza con 400. Se
@@ -149,35 +161,57 @@ export default function ContenidoDetallePage() {
       Math.max(TIEMPO_MIN, Math.round(Number(v.tiempo_estimado_minutos) || 60)),
     )
 
+    // SOLO lo que cambió. Mandar la fila entera hace que un admin que corrige
+    // una URL pise los apuntes que otro escribió mientras esta pestaña estaba
+    // abierta — y sin dejar rastro.
+    const body: Record<string, string | number | null> = {}
+    for (const campo of cambiados) {
+      body[campo] = campo === 'tiempo_estimado_minutos' ? minutos : (v[campo] as string) || null
+    }
+
+    setSemanas(prev => ({ ...prev, [semanaId]: { ...prev[semanaId], saving: true, error: null } }))
+
     try {
       const res = await fetch(`/api/admin/semanas/${semanaId}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          titulo:      v.titulo,
-          descripcion: v.descripcion || null,
-          contenido:   v.contenido   || null,
-          tiempo_estimado_minutos: minutos,
-          video_url:   v.video_url   || null,
-          video_url_2: v.video_url_2 || null,
-          video_url_3: v.video_url_3 || null,
-        }),
+        body: JSON.stringify(body),
       })
       const data = await res.json()
       if (!res.ok) throw new Error(data.error ?? 'Error al guardar')
 
-      setSemanas(prev => ({
-        ...prev,
-        // `minutos` va de vuelta al estado: si se acotó, el input debe mostrar
-        // lo que quedó guardado y no el 0 que el admin dejó a medio escribir.
-        [semanaId]: {
-          ...prev[semanaId],
-          tiempo_estimado_minutos: minutos,
-          saving: false, saved: true, dirty: false,
-        },
-      }))
+      setSemanas(prev => {
+        const actual = prev[semanaId]
+        // `inicial` pasa a ser lo que quedó guardado, no lo que se cargó: si el
+        // admin siguió escribiendo mientras el PATCH iba en vuelo, esos cambios
+        // deben seguir marcados como pendientes.
+        const guardado: ValoresSemana = {
+          titulo:      actual.titulo,
+          descripcion: actual.descripcion,
+          contenido:   actual.contenido,
+          tiempo_estimado_minutos: actual.tiempo_estimado_minutos,
+          video_url:   actual.video_url,
+          video_url_2: actual.video_url_2,
+          video_url_3: actual.video_url_3,
+          ...Object.fromEntries(cambiados.map(c =>
+            [c, c === 'tiempo_estimado_minutos' ? minutos : v[c]],
+          )),
+        } as ValoresSemana
+        return {
+          ...prev,
+          [semanaId]: {
+            ...actual,
+            tiempo_estimado_minutos: cambiados.includes('tiempo_estimado_minutos')
+              ? minutos
+              : actual.tiempo_estimado_minutos,
+            inicial: guardado,
+            saving: false,
+            saved: true,
+          },
+        }
+      })
       setTimeout(() => {
-        setSemanas(prev => ({ ...prev, [semanaId]: { ...prev[semanaId], saved: false } }))
+        setSemanas(prev => (prev[semanaId] ? { ...prev, [semanaId]: { ...prev[semanaId], saved: false } } : prev))
       }, 3000)
     } catch (err) {
       setSemanas(prev => ({
@@ -186,6 +220,17 @@ export default function ContenidoDetallePage() {
       }))
     }
   }, [semanas])
+
+  // Antes de F1 salirse sin guardar costaba tres URLs pegadas; ahora puede
+  // costar 50 000 caracteres tecleados a mano.
+  const haySinGuardar = Object.values(semanas).some(s => camposCambiados(s, s.inicial).length > 0)
+
+  useEffect(() => {
+    if (!haySinGuardar) return
+    const avisar = (e: BeforeUnloadEvent) => { e.preventDefault(); e.returnValue = '' }
+    window.addEventListener('beforeunload', avisar)
+    return () => window.removeEventListener('beforeunload', avisar)
+  }, [haySinGuardar])
 
   if (loading) return (
     <div className="flex items-center justify-center min-h-[400px]">
@@ -208,7 +253,10 @@ export default function ContenidoDetallePage() {
       {/* Header */}
       <div className="flex items-start gap-4">
         <button
-          onClick={() => router.push('/admin/contenido')}
+          onClick={() => {
+            if (haySinGuardar && !window.confirm('Tienes cambios sin guardar en esta materia. ¿Salir de todas formas?')) return
+            router.push('/admin/contenido')
+          }}
           className="mt-1 p-2 rounded-lg transition-all flex-shrink-0"
           style={{ background: 'rgba(255,255,255,0.04)', color: '#94A3B8', border: '1px solid #2A2F3E' }}
           onMouseEnter={e => { e.currentTarget.style.background = 'rgba(255,255,255,0.08)' }}

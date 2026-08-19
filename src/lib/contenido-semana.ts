@@ -144,3 +144,39 @@ export function validarSemanaPatch(body: unknown): ResultadoSemana {
 
   return { ok: true, update }
 }
+
+// ─── Qué cambió respecto a lo que trajo el servidor ──────────────────────────
+// Vive aquí, y no en el componente, para poder probarlo como función pura.
+//
+// Es la fuente ÚNICA de "sin guardar": de aquí salen el estado del botón, el
+// borde de cada input y el cuerpo del PATCH. Con tres cálculos separados
+// acabarían discrepando, y el que importa es el del PATCH: mandar la fila
+// entera hace que un admin que corrige una URL pise los apuntes que otro
+// escribió mientras su pestaña llevaba una hora abierta.
+
+export const CAMPOS_VALOR = [
+  'titulo', 'descripcion', 'contenido', 'tiempo_estimado_minutos',
+  'video_url', 'video_url_2', 'video_url_3',
+] as const
+
+export type CampoValor = (typeof CAMPOS_VALOR)[number]
+
+/** Los 7 campos editables de una semana, tal como los maneja el formulario:
+ *  todo string salvo los minutos. El '' del formulario se traduce a NULL al
+ *  construir el PATCH, no aquí. */
+export interface ValoresSemana {
+  titulo: string
+  descripcion: string
+  contenido: string
+  tiempo_estimado_minutos: number
+  video_url: string
+  video_url_2: string
+  video_url_3: string
+}
+
+export function camposCambiados(
+  actual: ValoresSemana,
+  inicial: ValoresSemana,
+): CampoValor[] {
+  return CAMPOS_VALOR.filter(c => actual[c] !== inicial[c])
+}

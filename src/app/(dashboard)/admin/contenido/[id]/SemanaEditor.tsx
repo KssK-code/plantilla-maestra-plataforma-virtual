@@ -2,26 +2,24 @@
 
 import { Loader2, Save, Check, AlertCircle, Video } from 'lucide-react'
 import ApuntesEditor from './ApuntesEditor'
-import { TIEMPO_MIN, TIEMPO_MAX, TITULO_MAX } from '@/lib/contenido-semana'
+import {
+  TIEMPO_MIN, TIEMPO_MAX, TITULO_MAX, DESCRIPCION_MAX, URL_MAX,
+  camposCambiados, type ValoresSemana, type CampoValor,
+} from '@/lib/contenido-semana'
 
-/** Estado editable de una semana. Lo dueña `page.tsx`; aquí solo se pinta. */
-export interface SemanaState {
-  titulo: string
-  descripcion: string
-  contenido: string
-  tiempo_estimado_minutos: number
-  video_url: string
-  video_url_2: string
-  video_url_3: string
+/** Estado editable de una semana. Lo dueña `page.tsx`; aquí solo se pinta.
+ *  `inicial` son los valores tal como llegaron del servidor: contra ellos se
+ *  decide qué está sin guardar y qué viaja en el PATCH. */
+export interface SemanaState extends ValoresSemana {
+  inicial: ValoresSemana
   saving: boolean
   saved: boolean
   error: string | null
-  dirty: boolean
 }
 
-export type CampoTexto =
-  | 'titulo' | 'descripcion' | 'contenido'
-  | 'video_url' | 'video_url_2' | 'video_url_3'
+/** Los campos de texto: todos los editables menos los minutos, que tienen su
+ *  propio handler por ser number. */
+export type CampoTexto = Exclude<CampoValor, 'tiempo_estimado_minutos'>
 
 interface Props {
   numero: number
@@ -33,15 +31,21 @@ interface Props {
 
 const INNER = { background: '#0D1017', border: '1px solid #2A2F3E' }
 
-const INPUT: React.CSSProperties = {
-  background: '#0D1017',
-  border: '1px solid #2A2F3E',
-  color: '#F1F5F9',
-  borderRadius: '0.5rem',
-  padding: '0.375rem 0.625rem',
-  fontSize: '0.75rem',
-  width: '100%',
-  outline: 'none',
+/** El borde de acento marca EXACTAMENTE el campo con cambios sin guardar.
+ *  Existía antes de F1 con 3 campos; con 7 por semana y un acordeón que puede
+ *  tener decenas abiertas, quitarlo dejaba al admin sin saber qué tiene
+ *  pendiente. */
+function inputStyle(cambiado: boolean): React.CSSProperties {
+  return {
+    background: '#0D1017',
+    border: `1px solid ${cambiado ? 'var(--color-acento)' : '#2A2F3E'}`,
+    color: '#F1F5F9',
+    borderRadius: '0.5rem',
+    padding: '0.375rem 0.625rem',
+    fontSize: '0.75rem',
+    width: '100%',
+    outline: 'none',
+  }
 }
 
 /** Extrae el video ID de una URL youtube.com/watch?v=ID */
@@ -58,6 +62,10 @@ const VIDEOS = [
 ]
 
 export default function SemanaEditor({ numero, estado: v, onCampo, onTiempo, onGuardar }: Props) {
+  const cambiados = camposCambiados(v, v.inicial)
+  const cambio = (c: CampoValor) => cambiados.includes(c)
+  const dirty = cambiados.length > 0
+
   return (
     <div className="rounded-xl p-4 space-y-4" style={INNER}>
 
@@ -76,7 +84,7 @@ export default function SemanaEditor({ numero, estado: v, onCampo, onTiempo, onG
           onChange={e => onCampo('titulo', e.target.value)}
           placeholder="Título de la semana"
           className="flex-1 min-w-0"
-          style={{ ...INPUT, fontSize: '0.875rem', fontWeight: 600 }}
+          style={{ ...inputStyle(cambio('titulo')), fontSize: '0.875rem', fontWeight: 600 }}
         />
       </div>
 
@@ -87,9 +95,10 @@ export default function SemanaEditor({ numero, estado: v, onCampo, onTiempo, onG
           <input
             type="text"
             value={v.descripcion}
+            maxLength={DESCRIPCION_MAX}
             onChange={e => onCampo('descripcion', e.target.value)}
             placeholder="Una línea sobre de qué va la semana"
-            style={INPUT}
+            style={inputStyle(cambio('descripcion'))}
           />
         </div>
         <div>
@@ -100,7 +109,7 @@ export default function SemanaEditor({ numero, estado: v, onCampo, onTiempo, onG
             max={TIEMPO_MAX}
             value={v.tiempo_estimado_minutos}
             onChange={e => onTiempo(Number(e.target.value))}
-            style={INPUT}
+            style={inputStyle(cambio('tiempo_estimado_minutos'))}
           />
         </div>
       </div>
@@ -151,8 +160,9 @@ export default function SemanaEditor({ numero, estado: v, onCampo, onTiempo, onG
               type="url"
               placeholder="https://www.youtube.com/watch?v=..."
               value={v[field]}
+              maxLength={URL_MAX}
               onChange={e => onCampo(field, e.target.value)}
-              style={{ ...INPUT, fontFamily: 'monospace' }}
+              style={{ ...inputStyle(cambio(field)), fontFamily: 'monospace' }}
             />
           </div>
         ))}
@@ -174,11 +184,11 @@ export default function SemanaEditor({ numero, estado: v, onCampo, onTiempo, onG
         </div>
         <button
           onClick={onGuardar}
-          disabled={v.saving || (!v.dirty && !v.saved)}
+          disabled={v.saving || (!dirty && !v.saved)}
           className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all disabled:opacity-40"
           style={v.saved
             ? { background: 'rgba(16,185,129,0.15)', color: '#10B981', border: '1px solid rgba(16,185,129,0.3)' }
-            : { background: v.dirty ? 'rgba(21,101,192,0.2)' : 'rgba(255,255,255,0.04)', color: v.dirty ? 'var(--color-acento)' : '#64748B', border: `1px solid ${v.dirty ? 'rgba(21,101,192,0.4)' : '#2A2F3E'}` }
+            : { background: dirty ? 'rgba(21,101,192,0.2)' : 'rgba(255,255,255,0.04)', color: dirty ? 'var(--color-acento)' : '#64748B', border: `1px solid ${dirty ? 'rgba(21,101,192,0.4)' : '#2A2F3E'}` }
           }
         >
           {v.saving
@@ -192,3 +202,6 @@ export default function SemanaEditor({ numero, estado: v, onCampo, onTiempo, onG
     </div>
   )
 }
+
+/** Reexport para que page.tsx use LA MISMA definición de "sin guardar". */
+export { camposCambiados } from '@/lib/contenido-semana'

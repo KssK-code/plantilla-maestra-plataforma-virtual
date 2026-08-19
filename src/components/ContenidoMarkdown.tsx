@@ -1,5 +1,6 @@
 'use client'
 
+import { memo } from 'react'
 import ReactMarkdown from 'react-markdown'
 import remarkGfm from 'remark-gfm'
 
@@ -22,7 +23,7 @@ export function normalizarContenido(texto: string | null | undefined): string {
   return (texto ?? '').replace(/\\r\\n/g, '\n').replace(/\\n/g, '\n')
 }
 
-export default function ContenidoMarkdown({ texto }: { texto: string }) {
+function ContenidoMarkdown({ texto }: { texto: string }) {
   if (!texto) return null
 
   return (
@@ -40,3 +41,8 @@ export default function ContenidoMarkdown({ texto }: { texto: string }) {
     </div>
   )
 }
+
+// react-markdown no memoiza: sin esto, cada tecla en el editor re-parsea el
+// Markdown de todas las vistas previas abiertas. La prop es un string plano,
+// así que memo corta de forma fiable. El alumno también se beneficia.
+export default memo(ContenidoMarkdown)

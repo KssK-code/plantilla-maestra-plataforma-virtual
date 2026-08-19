@@ -2,7 +2,7 @@ import { test, expect } from '@playwright/test'
 import { readFileSync } from 'node:fs'
 import { join } from 'node:path'
 import {
-  validarSemanaPatch, CAMPOS_SEMANA,
+  validarSemanaPatch, CAMPOS_SEMANA, camposCambiados, CAMPOS_VALOR,
   CONTENIDO_MAX, TITULO_MAX, DESCRIPCION_MAX, TIEMPO_MIN, TIEMPO_MAX,
 } from '@/lib/contenido-semana'
 
@@ -257,4 +257,45 @@ test('alumno y editor comparten UN solo render de Markdown', () => {
   // componente compartido, el preview del admin puede divergir del alumno.
   expect(alumno).not.toContain('react-markdown')
   expect(editor).not.toContain('react-markdown')
+})
+
+// ───────────── Solo viaja lo que cambió (no la fila entera) ──────────────────
+// Mandar los 7 campos siempre hace que un admin que corrige una URL pise los
+// apuntes que otro escribió mientras su pestaña estaba abierta.
+
+const VALORES_BASE = {
+  titulo: 'Semana 1', descripcion: 'Intro', contenido: '## Apuntes',
+  tiempo_estimado_minutos: 60,
+  video_url: 'https://x/1', video_url_2: '', video_url_3: '',
+}
+
+test('sin cambios, no hay nada que mandar', () => {
+  expect(camposCambiados({ ...VALORES_BASE }, { ...VALORES_BASE })).toEqual([])
+})
+
+test('solo se reportan los campos que difieren del valor cargado', () => {
+  expect(camposCambiados({ ...VALORES_BASE, contenido: '## Otros' }, { ...VALORES_BASE }))
+    .toEqual(['contenido'])
+  expect(camposCambiados(
+    { ...VALORES_BASE, titulo: 'Otro', tiempo_estimado_minutos: 90 },
+    { ...VALORES_BASE },
+  )).toEqual(['titulo', 'tiempo_estimado_minutos'])
+})
+
+test('los 7 campos editables se vigilan, ninguno se queda fuera', () => {
+  expect([...CAMPOS_VALOR]).toEqual([...CAMPOS_SEMANA])
+  for (const campo of CAMPOS_VALOR) {
+    const distinto = campo === 'tiempo_estimado_minutos' ? 999 : 'CAMBIADO'
+    expect(camposCambiados({ ...VALORES_BASE, [campo]: distinto }, { ...VALORES_BASE }))
+      .toEqual([campo])
+  }
+})
+
+test('la pantalla avisa antes de perder cambios sin guardar', () => {
+  const page = leer('src/app/(dashboard)/admin/contenido/[id]/page.tsx')
+  expect(page).toContain('beforeunload')
+  expect(page).toContain('haySinGuardar')
+  // Y el PATCH manda el diff, no la fila entera
+  expect(page).toContain('camposCambiados')
+  expect(page).not.toContain('video_url_3: v.video_url_3 || null')
 })
