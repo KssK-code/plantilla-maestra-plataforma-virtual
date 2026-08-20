@@ -162,6 +162,7 @@ CREATE TABLE IF NOT EXISTS public.preguntas (
   opcion_d            TEXT  NOT NULL,
   respuesta_correcta  TEXT  NOT NULL CHECK (respuesta_correcta IN ('a','b','c','d')),
   orden               INTEGER,
+  activa              BOOLEAN     NOT NULL DEFAULT true,
   created_at          TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
@@ -201,7 +202,8 @@ CREATE TABLE IF NOT EXISTS public.quiz_semana (
   opcion_d            TEXT,
   respuesta_correcta  TEXT  NOT NULL CHECK (respuesta_correcta IN ('a','b','c','d')),
   orden               INTEGER,
-  explicacion         TEXT
+  explicacion         TEXT,
+  activa              BOOLEAN     NOT NULL DEFAULT true
 );
 
 -- ── QUIZ_RESPUESTAS ─────────────────────────────────────────
@@ -745,6 +747,8 @@ CREATE INDEX IF NOT EXISTS idx_notas_alumno             ON public.notas_alumno (
 CREATE INDEX IF NOT EXISTS idx_semanas_mes              ON public.semanas (mes_id);
 CREATE INDEX IF NOT EXISTS idx_meses_materia            ON public.meses_contenido (materia_id);
 CREATE INDEX IF NOT EXISTS idx_quiz_semana              ON public.quiz_semana (semana_id);
+CREATE INDEX IF NOT EXISTS idx_quiz_semana_activa       ON public.quiz_semana (semana_id) WHERE activa;
+CREATE INDEX IF NOT EXISTS idx_preguntas_activa         ON public.preguntas (evaluacion_id) WHERE activa;
 CREATE INDEX IF NOT EXISTS idx_semana_materiales_semana ON public.semana_materiales (semana_id);
 CREATE INDEX IF NOT EXISTS idx_pagos_alumno             ON public.pagos (alumno_id);
 CREATE INDEX IF NOT EXISTS idx_pagos_created_at         ON public.pagos (created_at DESC);

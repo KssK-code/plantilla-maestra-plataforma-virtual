@@ -437,6 +437,7 @@ CREATE TABLE public.preguntas (
     opcion_d text NOT NULL,
     respuesta_correcta text NOT NULL,
     orden integer,
+    activa boolean DEFAULT true NOT NULL,
     created_at timestamp with time zone DEFAULT now() NOT NULL,
     CONSTRAINT preguntas_respuesta_correcta_check CHECK ((respuesta_correcta = ANY (ARRAY['a'::text, 'b'::text, 'c'::text, 'd'::text])))
 );
@@ -482,6 +483,7 @@ CREATE TABLE public.quiz_semana (
     respuesta_correcta text NOT NULL,
     orden integer,
     explicacion text,
+    activa boolean DEFAULT true NOT NULL,
     CONSTRAINT quiz_semana_respuesta_correcta_check CHECK ((respuesta_correcta = ANY (ARRAY['a'::text, 'b'::text, 'c'::text, 'd'::text])))
 );
 
@@ -798,6 +800,12 @@ CREATE INDEX idx_meses_materia ON public.meses_contenido USING btree (materia_id
 CREATE INDEX idx_notas_alumno ON public.notas_alumno USING btree (alumno_id);
 
 --
+-- Name: idx_preguntas_activa; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX IF NOT EXISTS idx_preguntas_activa ON public.preguntas USING btree (evaluacion_id) WHERE activa;
+
+--
 -- Name: idx_progreso_alumno; Type: INDEX; Schema: public; Owner: -
 --
 
@@ -814,6 +822,12 @@ CREATE INDEX idx_progreso_semana ON public.progreso_semanas USING btree (semana_
 --
 
 CREATE INDEX idx_quiz_semana ON public.quiz_semana USING btree (semana_id);
+
+--
+-- Name: idx_quiz_semana_activa; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX IF NOT EXISTS idx_quiz_semana_activa ON public.quiz_semana USING btree (semana_id) WHERE activa;
 
 --
 -- Name: idx_semana_materiales_semana; Type: INDEX; Schema: public; Owner: -
