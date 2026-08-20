@@ -18,7 +18,10 @@ import { BUCKET_MATERIAS } from '@/lib/materiales-semana'
  * SQL del bucket, y esa duplicación produjo el bug de las portadas en blanco
  * SOLO para el alumno. Aquí no hay dos reglas que puedan divergir.
  *
- * Responde 302 a la URL firmada para que un <a href> normal funcione.
+ * Responde 302 a la URL firmada para que un <a href> normal funcione. El
+ * estado va EXPLÍCITO: NextResponse.redirect() usa 307 por defecto, y para un
+ * redirect con implicaciones de acceso es peor depender de un default del
+ * framework que escribirlo.
  */
 export async function GET(_request: NextRequest, { params }: { params: { id: string } }) {
   try {
@@ -50,7 +53,7 @@ export async function GET(_request: NextRequest, { params }: { params: { id: str
     const url = await signedUrl(admin, BUCKET_MATERIAS, mat.path)
     if (!url) return NextResponse.json({ error: 'No se pudo generar el enlace' }, { status: 500 })
 
-    return NextResponse.redirect(url)
+    return NextResponse.redirect(url, 302)
   } catch (err) {
     console.error('[GET /api/material/[id]]', err)
     return NextResponse.json({ error: 'Error interno del servidor' }, { status: 500 })

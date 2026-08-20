@@ -239,3 +239,10 @@ test('el alumno ve el material y lo pide por la ruta gateada', () => {
   // Nunca una URL de storage directa
   expect(src).not.toContain('supabase.co/storage')
 })
+
+test('el redirect de descarga declara su estado, no hereda el default de Next', () => {
+  const src = leer('src/app/api/material/[id]/route.ts')
+  // NextResponse.redirect() responde 307 si no se le dice otra cosa. Para un
+  // redirect que entrega una URL firmada, el estado se escribe.
+  expect(src).toContain('NextResponse.redirect(url, 302)')
+})
