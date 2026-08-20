@@ -4,6 +4,7 @@ import { useState, useEffect, useCallback } from 'react'
 import { useRouter, useParams } from 'next/navigation'
 import { ArrowLeft, Loader2, ChevronDown, ChevronRight } from 'lucide-react'
 import SemanaEditor, { type SemanaState, type CampoTexto } from './SemanaEditor'
+import EvaluacionEditor from './EvaluacionEditor'
 import { TIEMPO_MIN, TIEMPO_MAX, camposCambiados, type ValoresSemana } from '@/lib/contenido-semana'
 
 interface Semana {
@@ -352,6 +353,10 @@ export default function ContenidoDetallePage() {
                         )
                       })}
                     </div>
+
+                    {/* El examen cuelga del MES, no de una semana: evaluaciones
+                        tiene mes_id, y cerrar-mes busca los examenes del mes. */}
+                    <EvaluacionEditor mesId={mes.id} />
                   </div>
                 )}
               </div>

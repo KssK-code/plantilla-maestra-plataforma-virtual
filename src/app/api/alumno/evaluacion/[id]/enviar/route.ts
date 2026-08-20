@@ -64,6 +64,9 @@ export async function POST(
     const respuestasAlumno: Record<string, number> = body.respuestas ?? {}
 
     // FIX #4: preguntas con schema IVS — opcion_a/b/c/d + respuesta_correcta ('a'/'b'/'c'/'d')
+    // SIN filtro de `activa` a propósito: esto CALIFICA lo que el alumno ya
+    // respondió. Si el admin archiva una pregunta con el examen abierto,
+    // filtrar aquí le cambiaría la nota.
     const { data: rawPreguntas, error: pregError } = await supabase
       .from('preguntas')
       .select('id, orden, pregunta, opcion_a, opcion_b, opcion_c, opcion_d, respuesta_correcta')

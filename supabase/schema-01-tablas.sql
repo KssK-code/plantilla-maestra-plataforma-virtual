@@ -166,8 +166,13 @@ CREATE TABLE IF NOT EXISTS public.preguntas (
   opcion_d            TEXT  NOT NULL,
   respuesta_correcta  TEXT  NOT NULL CHECK (respuesta_correcta IN ('a','b','c','d')),
   orden               INTEGER,
+  activa              BOOLEAN     NOT NULL DEFAULT true,
   created_at          TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
+
+CREATE INDEX IF NOT EXISTS idx_preguntas_activa
+  ON public.preguntas (evaluacion_id)
+  WHERE activa;
 
 -- ── INTENTOS_EVALUACION ─────────────────────────────────────
 CREATE TABLE IF NOT EXISTS public.intentos_evaluacion (
@@ -205,8 +210,13 @@ CREATE TABLE IF NOT EXISTS public.quiz_semana (
   opcion_d            TEXT,
   respuesta_correcta  TEXT  NOT NULL CHECK (respuesta_correcta IN ('a','b','c','d')),
   orden               INTEGER,
-  explicacion         TEXT
+  explicacion         TEXT,
+  activa              BOOLEAN     NOT NULL DEFAULT true
 );
+
+CREATE INDEX IF NOT EXISTS idx_quiz_semana_activa
+  ON public.quiz_semana (semana_id)
+  WHERE activa;
 
 -- ── QUIZ_RESPUESTAS ─────────────────────────────────────────
 CREATE TABLE IF NOT EXISTS public.quiz_respuestas (
