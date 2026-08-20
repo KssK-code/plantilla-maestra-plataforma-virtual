@@ -231,3 +231,11 @@ test('el panel valida el PDF antes de pedir la URL de subida', () => {
   expect(src).not.toContain('uploadToSignedUrl')
   expect(src).toContain('/api/material/')          // el enlace de descarga
 })
+
+test('el alumno ve el material y lo pide por la ruta gateada', () => {
+  const src = leer('src/app/(dashboard)/alumno/materia/[id]/page.tsx')
+  expect(src).toContain('Material de la clase')
+  expect(src).toContain('/api/material/')
+  // Nunca una URL de storage directa
+  expect(src).not.toContain('supabase.co/storage')
+})
