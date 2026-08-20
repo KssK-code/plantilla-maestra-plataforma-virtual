@@ -42,6 +42,7 @@ export async function removeFolder(
     const files: string[] = []
     const subfolders: string[] = []
     for (const entry of entries) {
+      // Los archivos reales traen id; las carpetas virtuales traen id null
       if (entry.id) files.push(`${cleanPrefix}/${entry.name}`)
       else subfolders.push(`${cleanPrefix}/${entry.name}`)
     }

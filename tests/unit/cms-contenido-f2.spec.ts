@@ -27,12 +27,12 @@ test('la migración crea la tabla, su índice y el bucket privado', () => {
   expect(sql).toContain('idx_semana_materiales_semana')
   // Bucket privado y con tope, igual que 'cursos'
   expect(sql).toContain("INSERT INTO storage.buckets")
-  expect(sql).toMatch(/'materias'.*false.*10485760/s)
+  expect(sql).toMatch(/'materias'[\s\S]*false[\s\S]*10485760/)
 })
 
 test('el bucket NO abre lectura a authenticated — solo admin', () => {
   const sql = leer(MIGRACION)
-  const politicas = sql.match(/CREATE POLICY[^;]+;/gs) ?? []
+  const politicas = sql.match(/CREATE POLICY[^;]+;/g) ?? []
   const deStorage = politicas.filter(p => p.includes('storage.objects'))
   expect(deStorage.length).toBeGreaterThan(0)
   for (const p of deStorage) {
