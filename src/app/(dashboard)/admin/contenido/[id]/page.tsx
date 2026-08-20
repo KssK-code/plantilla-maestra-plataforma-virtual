@@ -5,12 +5,14 @@ import { useRouter, useParams } from 'next/navigation'
 import { ArrowLeft, Loader2, ChevronDown, ChevronRight } from 'lucide-react'
 import SemanaEditor, { type SemanaState, type CampoTexto } from './SemanaEditor'
 import EvaluacionEditor from './EvaluacionEditor'
+import EstructuraBar, { type ItemEstructura } from './EstructuraBar'
 import { TIEMPO_MIN, TIEMPO_MAX, camposCambiados, type ValoresSemana } from '@/lib/contenido-semana'
 
 interface Semana {
   id: string
   numero_semana: number
   titulo: string
+  activa: boolean
   descripcion: string | null
   contenido: string | null
   tiempo_estimado_minutos: number
@@ -24,6 +26,7 @@ interface Mes {
   id: string
   numero_mes: number
   titulo: string
+  activa: boolean
   semanas: Semana[]
 }
 
@@ -79,15 +82,20 @@ export default function ContenidoDetallePage() {
           descripcion: mat.descripcion ?? null,
         })
 
+        // `activa` viene del GET a propósito SIN filtrar: este es el editor y el
+        // admin tiene que ver lo archivado para poder restaurarlo.
         type MesRow = {
-          id: string; numero_mes: number; titulo: string
+          id: string; numero_mes: number; titulo: string; activa?: boolean
           semanas: Semana[]
         }
         const mesesOrdenados = ((mat.meses_contenido ?? []) as MesRow[])
           .sort((a, b) => a.numero_mes - b.numero_mes)
           .map(mes => ({
             ...mes,
-            semanas: (mes.semanas ?? []).sort((a, b) => a.numero_semana - b.numero_semana),
+            activa: mes.activa !== false,
+            semanas: (mes.semanas ?? [])
+              .map(sem => ({ ...sem, activa: sem.activa !== false }))
+              .sort((a, b) => a.numero_semana - b.numero_semana),
           }))
         setMeses(mesesOrdenados)
 
@@ -127,6 +135,70 @@ export default function ContenidoDetallePage() {
     setAbiertos(prev => {
       const next = new Set(prev)
       if (next.has(mesId)) next.delete(mesId); else next.add(mesId)
+      return next
+    })
+  }
+
+  // ── Estructura ─────────────────────────────────────────────────────────────
+  // `EstructuraBar` ya habló con el servidor: aquí solo se refleja el
+  // resultado. La lista llega en el orden en que hay que pintarla.
+
+  function aplicarMeses(items: ItemEstructura[]) {
+    const previos = new Map(meses.map(m => [m.id, m]))
+    const nuevos: Mes[] = items.map(it => {
+      const antes = previos.get(it.id)
+      return antes
+        ? { ...antes, numero_mes: it.numero, titulo: it.titulo, activa: it.activa }
+        : { id: it.id, numero_mes: it.numero, titulo: it.titulo, activa: it.activa, semanas: [] }
+    })
+    setMeses(nuevos)
+
+    // Un mes borrado se lleva sus semanas por CASCADE. Si su estado de edición
+    // se quedara aquí, `haySinGuardar` seguiría avisando de cambios en semanas
+    // que ya no existen y el guardado devolvería 404.
+    const vivos = new Set(items.map(it => it.id))
+    const huerfanas = meses.filter(m => !vivos.has(m.id)).flatMap(m => m.semanas.map(s => s.id))
+    if (huerfanas.length > 0) {
+      setSemanas(prev => {
+        const next = { ...prev }
+        for (const id of huerfanas) delete next[id]
+        return next
+      })
+    }
+  }
+
+  function aplicarSemanas(mesId: string, items: ItemEstructura[]) {
+    const mes = meses.find(m => m.id === mesId)
+    const previas = new Map((mes?.semanas ?? []).map(s => [s.id, s]))
+
+    const nuevas: Semana[] = items.map(it => {
+      const antes = previas.get(it.id)
+      if (antes) return { ...antes, numero_semana: it.numero, titulo: it.titulo, activa: it.activa }
+      return {
+        id: it.id, numero_semana: it.numero, titulo: it.titulo, activa: it.activa,
+        descripcion: null, contenido: null, tiempo_estimado_minutos: 60,
+        video_url: null, video_url_2: null, video_url_3: null,
+        semana_materiales: [],
+      }
+    })
+    setMeses(prev => prev.map(m => (m.id === mesId ? { ...m, semanas: nuevas } : m)))
+
+    // El editor de una semana se pinta solo si tiene entrada en `semanas`: la
+    // recién creada no la tiene, y la retirada la deja colgando —y con ella el
+    // aviso de "cambios sin guardar" de una fila que ya no está.
+    const vivas = new Set(items.map(it => it.id))
+    setSemanas(prev => {
+      const next = { ...prev }
+      for (const id of previas.keys()) if (!vivas.has(id)) delete next[id]
+      for (const sem of nuevas) {
+        if (next[sem.id]) continue
+        const valores: ValoresSemana = {
+          titulo: sem.titulo ?? '', descripcion: '', contenido: '',
+          tiempo_estimado_minutos: sem.tiempo_estimado_minutos ?? 60,
+          video_url: '', video_url_2: '', video_url_3: '',
+        }
+        next[sem.id] = { ...valores, inicial: valores, saving: false, saved: false, error: null }
+      }
       return next
     })
   }
@@ -295,6 +367,16 @@ export default function ContenidoDetallePage() {
         </div>
       )}
 
+      {/* Estructura de la materia: crear, reordenar y retirar meses. Va FUERA
+          del `meses.length === 0` para que una materia recién creada tenga por
+          dónde empezar. */}
+      <EstructuraBar
+        tipo="mes"
+        padreId={materia.id}
+        items={meses.map(m => ({ id: m.id, numero: m.numero_mes, titulo: m.titulo, activa: m.activa }))}
+        onItems={aplicarMeses}
+      />
+
       {/* Lista de meses → semanas con edición */}
       {meses.length === 0 ? (
         <div className="rounded-xl p-8 text-center" style={CARD}>
@@ -305,7 +387,7 @@ export default function ContenidoDetallePage() {
           {meses.map(mes => {
             const abierto = abiertos.has(mes.id)
             return (
-              <div key={mes.id} className="rounded-xl overflow-hidden" style={CARD}>
+              <div key={mes.id} className="rounded-xl overflow-hidden" style={{ ...CARD, opacity: mes.activa ? 1 : 0.65 }}>
                 {/* Header mes */}
                 <button
                   onClick={() => toggleMes(mes.id)}
@@ -324,7 +406,10 @@ export default function ContenidoDetallePage() {
                       <p className="text-sm font-semibold text-left" style={{ color: '#F1F5F9' }}>
                         {mes.titulo || `Mes ${mes.numero_mes}`}
                       </p>
-                      <p className="text-xs" style={{ color: '#64748B' }}>{mes.semanas.length} semanas</p>
+                      <p className="text-xs" style={{ color: '#64748B' }}>
+                        {mes.semanas.length} semanas
+                        {!mes.activa && ' · archivado, el alumno no lo ve'}
+                      </p>
                     </div>
                   </div>
                   {abierto
@@ -353,6 +438,15 @@ export default function ContenidoDetallePage() {
                         )
                       })}
                     </div>
+
+                    <EstructuraBar
+                      tipo="semana"
+                      padreId={mes.id}
+                      items={mes.semanas.map(s => ({
+                        id: s.id, numero: s.numero_semana, titulo: s.titulo, activa: s.activa,
+                      }))}
+                      onItems={items => aplicarSemanas(mes.id, items)}
+                    />
 
                     {/* El examen cuelga del MES, no de una semana: evaluaciones
                         tiene mes_id, y cerrar-mes busca los examenes del mes. */}

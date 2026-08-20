@@ -51,6 +51,8 @@ export async function GET() {
     // meses_contenido.materia_id → materias.id (many-to-one → materias es objeto único)
     // Port Bug 46: sin .lte — las acreditadas de meses posteriores al desbloqueo
     // deben aparecer; el gating de Pendientes se hace en el loop
+    // SIN filtro de `activa`, igual que en calificaciones: la constancia acredita
+    // lo cursado. Un mes retirado no puede desaparecer de un documento emitido.
     const { data: meses } = await supabase
       .from('meses_contenido')
       .select('numero_mes, materias(id, nombre, nivel)')

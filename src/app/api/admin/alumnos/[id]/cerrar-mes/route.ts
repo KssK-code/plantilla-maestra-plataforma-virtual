@@ -93,6 +93,10 @@ export async function POST(
     const evaluacionIds = (evaluaciones ?? []).map((e: { id: string }) => e.id)
 
     // meses_contenido → semanas → quiz_semana
+    // SIN filtro de `activa` en NINGUNO de los tres niveles: estos ids son para
+    // BORRAR los datos del alumno. Filtrar dejaría vivo el progreso y las
+    // respuestas de meses y semanas archivados, huérfanos y sin forma de
+    // volver a alcanzarlos.
     const { data: mesesContenido } = await admin
       .from('meses_contenido')
       .select('id')

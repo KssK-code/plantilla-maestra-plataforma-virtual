@@ -2,7 +2,9 @@
 
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
-import { BookOpen, Award, ChevronDown, ChevronRight, Loader2, Eye } from 'lucide-react'
+import { BookOpen, Award, ChevronDown, ChevronRight, Loader2, Eye, Plus, X, AlertCircle } from 'lucide-react'
+import { NIVELES } from '@/lib/estructura-contenido'
+import { getCarreras } from '@/lib/licenciatura-utils'
 
 interface MateriaItem {
   id: string
@@ -31,6 +33,17 @@ interface Stats {
 
 const CARD = { background: '#181C26', border: '1px solid #2A2F3E' }
 
+const INPUT: React.CSSProperties = {
+  background: '#12161F', border: '1px solid #2A2F3E', color: '#F1F5F9',
+  borderRadius: '0.375rem', padding: '0.4rem 0.6rem', fontSize: '0.8rem',
+  width: '100%', outline: 'none',
+}
+
+const ETIQUETA_NIVEL: Record<string, string> = {
+  secundaria: 'Secundaria', preparatoria: 'Preparatoria',
+  demo: 'Demo', licenciatura: 'Licenciatura',
+}
+
 export default function ContenidoPage() {
   const router = useRouter()
   const [meses, setMeses] = useState<MesItem[]>([])
@@ -38,6 +51,48 @@ export default function ContenidoPage() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [abiertos, setAbiertos] = useState<Set<string>>(new Set())
+
+  // Alta de materia. `getCarreras()` sale del CONFIG del cliente, así que en la
+  // plantilla base viene VACÍO: sin carreras no hay licenciatura que crear, y
+  // el nivel se deshabilita diciendo por qué en vez de ofrecer un select mudo.
+  const carreras = getCarreras()
+  const sinCarreras = carreras.length === 0
+  const [nueva, setNueva] = useState(false)
+  const [nombre, setNombre] = useState('')
+  const [nivel, setNivel] = useState<string>('secundaria')
+  const [carrera, setCarrera] = useState<string>('')
+  const [creando, setCreando] = useState(false)
+  const [errorCrear, setErrorCrear] = useState<string | null>(null)
+
+  async function crearMateria() {
+    const limpio = nombre.trim()
+    if (!limpio || creando) return
+    if (nivel === 'licenciatura' && !carrera) {
+      setErrorCrear('Elige la carrera a la que pertenece la materia.')
+      return
+    }
+    setCreando(true); setErrorCrear(null)
+    try {
+      const cuerpo: Record<string, string> = { nombre: limpio, nivel }
+      // `carrera` SOLO en licenciatura: fuera de ese nivel el servidor la fuerza
+      // a NULL, porque una materia de secundaria con carrera se filtraría por
+      // carrera y desaparecería del catálogo de todos.
+      if (nivel === 'licenciatura') cuerpo.carrera = carrera
+      const res = await fetch('/api/admin/materias', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(cuerpo),
+      })
+      const data = await res.json().catch(() => ({}))
+      if (!res.ok) throw new Error((data as { error?: string }).error ?? 'No se pudo crear la materia')
+      // Directo al detalle: una materia recién creada nace sin meses ni
+      // semanas, y el detalle es la única pantalla desde la que añadírselos.
+      router.push(`/admin/contenido/${(data as { materia?: { id?: string } }).materia?.id ?? ''}`)
+    } catch (err) {
+      setErrorCrear((err as Error).message)
+      setCreando(false)
+    }
+  }
 
   useEffect(() => {
     fetch('/api/admin/contenido')
@@ -71,12 +126,110 @@ export default function ContenidoPage() {
 
   return (
     <div className="space-y-6">
-      <div>
-        <h2 className="text-xl font-bold text-gray-900">Contenido Académico</h2>
-        <p className="text-sm mt-0.5" style={{ color: '#94A3B8' }}>
-          Materias y contenido cargado en la plataforma
-        </p>
+      <div className="flex items-start justify-between gap-3 flex-wrap">
+        <div>
+          <h2 className="text-xl font-bold text-gray-900">Contenido Académico</h2>
+          <p className="text-sm mt-0.5" style={{ color: '#94A3B8' }}>
+            Materias y contenido cargado en la plataforma
+          </p>
+        </div>
+        <button
+          type="button"
+          onClick={() => { setNueva(v => !v); setErrorCrear(null) }}
+          className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all flex-shrink-0"
+          style={{ background: 'rgba(21,101,192,0.15)', color: 'var(--color-acento)', border: '1px solid rgba(21,101,192,0.3)' }}
+        >
+          {nueva ? <><X className="w-3.5 h-3.5" /> Cancelar</> : <><Plus className="w-3.5 h-3.5" /> Nueva materia</>}
+        </button>
       </div>
+
+      {nueva && (
+        <div className="rounded-xl p-5 space-y-3" style={CARD}>
+          <p className="text-sm font-semibold" style={{ color: '#F1F5F9' }}>Nueva materia</p>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <div className="space-y-1">
+              <label className="text-xs" style={{ color: '#64748B' }}>Nombre</label>
+              <input
+                type="text"
+                value={nombre}
+                maxLength={300}
+                onChange={e => { setNombre(e.target.value); setErrorCrear(null) }}
+                placeholder="Ej. Matemáticas I"
+                style={INPUT}
+              />
+            </div>
+
+            <div className="space-y-1">
+              <label className="text-xs" style={{ color: '#64748B' }}>Nivel</label>
+              <select
+                value={nivel}
+                onChange={e => { setNivel(e.target.value); setCarrera(''); setErrorCrear(null) }}
+                style={INPUT}
+              >
+                {/* Sin carreras en el CONFIG, licenciatura no se puede elegir: el
+                    servidor rechazaría el alta por falta de carrera y el admin
+                    no sabría por qué. */}
+                {NIVELES.map(n => (
+                  <option
+                    key={n}
+                    value={n}
+                    disabled={n === 'licenciatura' && sinCarreras}
+                  >
+                    {ETIQUETA_NIVEL[n] ?? n}
+                    {n === 'licenciatura' && sinCarreras ? ' — sin carreras configuradas' : ''}
+                  </option>
+                ))}
+              </select>
+            </div>
+          </div>
+
+          {/* La carrera SOLO existe en licenciatura, y decide qué catálogo ve el
+              alumno: nunca texto libre, siempre el catálogo del CONFIG. */}
+          {nivel === 'licenciatura' && (
+            <div className="space-y-1">
+              <label className="text-xs" style={{ color: '#64748B' }}>Carrera</label>
+              {sinCarreras ? (
+                <p className="text-xs flex items-start gap-1" style={{ color: '#F59E0B' }}>
+                  <AlertCircle className="w-3 h-3 flex-shrink-0 mt-0.5" />
+                  Este cliente no tiene carreras configuradas. Añádelas en
+                  <span className="font-mono"> CONFIG.licenciaturas.carreras </span>
+                  antes de crear materias de licenciatura.
+                </p>
+              ) : (
+                <select
+                  value={carrera}
+                  onChange={e => { setCarrera(e.target.value); setErrorCrear(null) }}
+                  style={INPUT}
+                >
+                  <option value="">Elige una carrera…</option>
+                  {carreras.map(c => (
+                    <option key={c.slug} value={c.slug}>{c.nombre}</option>
+                  ))}
+                </select>
+              )}
+            </div>
+          )}
+
+          {errorCrear && (
+            <p className="text-xs flex items-start gap-1" style={{ color: '#EF4444' }}>
+              <AlertCircle className="w-3 h-3 flex-shrink-0 mt-0.5" /> {errorCrear}
+            </p>
+          )}
+
+          <button
+            type="button"
+            onClick={crearMateria}
+            disabled={creando || !nombre.trim() || (nivel === 'licenciatura' && (sinCarreras || !carrera))}
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold disabled:opacity-40"
+            style={{ background: 'rgba(21,101,192,0.2)', color: 'var(--color-acento)', border: '1px solid rgba(21,101,192,0.4)' }}
+          >
+            {creando
+              ? <><Loader2 className="w-3.5 h-3.5 animate-spin" /> Creando…</>
+              : <><Plus className="w-3.5 h-3.5" /> Crear materia</>}
+          </button>
+        </div>
+      )}
 
       {error ? (
         <div className="rounded-xl p-6 text-center" style={CARD}>

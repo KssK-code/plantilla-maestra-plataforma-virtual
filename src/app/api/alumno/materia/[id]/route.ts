@@ -54,13 +54,19 @@ export async function GET(
     }
 
     // ── 4. Meses del contenido → Semanas ──────────────────────────────────────
+    // Solo lo ACTIVO: un mes o una semana archivados dejan de servirse al
+    // alumno, aunque su progreso, sus notas y sus respuestas sigan intactos.
+    // El nivel de meses se filtra en la propia query (es el select raíz); el de
+    // semanas, en el .map() de abajo — filtrar un embed anidado con .eq()
+    // haría desaparecer el mes ENTERO en cuanto una de sus semanas se archive.
     const { data: mesesData } = await admin
       .from('meses_contenido')
       .select(`
         id, numero_mes, titulo, descripcion,
-        semanas ( id, numero_semana, titulo, descripcion, contenido, video_url, video_url_2, video_url_3, tiempo_estimado_minutos, semana_materiales ( id, nombre, tamano_bytes, orden, created_at ) )
+        semanas ( id, numero_semana, titulo, descripcion, contenido, video_url, video_url_2, video_url_3, tiempo_estimado_minutos, activa, semana_materiales ( id, nombre, tamano_bytes, orden, created_at ) )
       `)
       .eq('materia_id', params.id)
+      .eq('activa', true)
       .order('numero_mes')
 
     type SemanaRow = {
@@ -68,6 +74,7 @@ export async function GET(
       descripcion: string | null; contenido: string | null
       video_url: string | null; video_url_2: string | null; video_url_3: string | null
       tiempo_estimado_minutos: number
+      activa: boolean
       semana_materiales: { id: string; nombre: string; tamano_bytes: number | null; orden: number | null; created_at: string }[]
     }
     type MesRow = {
@@ -77,7 +84,9 @@ export async function GET(
 
     const meses = ((mesesData ?? []) as unknown as MesRow[]).map(mes => ({
       ...mes,
-      semanas: (mes.semanas ?? []).sort((a, b) => a.numero_semana - b.numero_semana),
+      semanas: (mes.semanas ?? [])
+        .filter(s => s.activa !== false)
+        .sort((a, b) => a.numero_semana - b.numero_semana),
     }))
 
     // Aplanar: todas las semanas de todos los meses en orden

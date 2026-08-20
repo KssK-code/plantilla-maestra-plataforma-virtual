@@ -49,7 +49,8 @@ export async function GET() {
           id,
           numero_mes,
           titulo,
-          semanas ( id )
+          activa,
+          semanas ( id, activa )
         )
       `)
       .eq('activa', true)
@@ -73,7 +74,10 @@ export async function GET() {
       return NextResponse.json({ error: error.message }, { status: 500 })
     }
 
-    type MesRow    = { id: string; numero_mes: number; titulo: string; semanas: { id: string }[] }
+    type MesRow    = {
+      id: string; numero_mes: number; titulo: string; activa: boolean
+      semanas: { id: string; activa: boolean }[]
+    }
     type MateriaRow = {
       id: string; nombre: string; descripcion: string | null
       nivel: string; orden: number | null; icono: string | null; color: string | null
@@ -95,8 +99,15 @@ export async function GET() {
       const mat = porId.get(v.id)
       if (!mat) return []
 
-      const meses        = mat.meses_contenido ?? []
-      const totalSemanas = meses.reduce((acc, mes) => acc + (mes.semanas?.length ?? 0), 0)
+      // Archivados fuera, en los DOS niveles: los contadores tienen que decir lo
+      // que el alumno va a poder abrir. Se filtra en JS y no con .eq() porque
+      // meses y semanas vienen como embeds anidados del select de materias:
+      // un filtro anidado en PostgREST se llevaría por delante la materia entera.
+      // El mismo criterio lo aplica toMateriaVentana() sobre estas mismas filas,
+      // así que lista y ventana siguen viendo el MISMO universo (Bug 59).
+      const meses        = (mat.meses_contenido ?? []).filter(mes => mes.activa !== false)
+      const totalSemanas = meses.reduce(
+        (acc, mes) => acc + (mes.semanas ?? []).filter(s => s.activa !== false).length, 0)
 
       return [{
         id:             mat.id,

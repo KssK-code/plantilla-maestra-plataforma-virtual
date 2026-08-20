@@ -88,9 +88,14 @@ CREATE TABLE IF NOT EXISTS public.meses_contenido (
   numero_mes    INTEGER     NOT NULL,
   titulo        TEXT        NOT NULL,
   descripcion   TEXT,
+  activa        BOOLEAN     NOT NULL DEFAULT true,
   created_at    TIMESTAMPTZ NOT NULL DEFAULT NOW(),
   UNIQUE (materia_id, numero_mes)
 );
+
+CREATE INDEX IF NOT EXISTS idx_meses_contenido_activa
+  ON public.meses_contenido (materia_id)
+  WHERE activa;
 
 -- ── SEMANAS ─────────────────────────────────────────────────
 CREATE TABLE IF NOT EXISTS public.semanas (
@@ -106,9 +111,14 @@ CREATE TABLE IF NOT EXISTS public.semanas (
   video_url_2              TEXT,
   video_url_3              TEXT,
   tiempo_estimado_minutos  INTEGER     NOT NULL DEFAULT 60,
+  activa                   BOOLEAN     NOT NULL DEFAULT true,
   created_at               TIMESTAMPTZ NOT NULL DEFAULT NOW(),
   UNIQUE (mes_id, numero_semana)
 );
+
+CREATE INDEX IF NOT EXISTS idx_semanas_activa
+  ON public.semanas (mes_id)
+  WHERE activa;
 
 -- ── SEMANA_MATERIALES ───────────────────────────────────────
 -- Los PDF que el admin sube a cada semana (F2 del CMS de contenido). TABLA y

@@ -208,22 +208,30 @@ export function tieneAccesoMateria(
 
 // ── Carga de contexto (IO) ────────────────────────────────────────────────────
 
+type MesEmbebido = { numero_mes: number; activa?: boolean }
+
 type FilaMateriaDb = {
   id: string
   nombre: string
   nivel: string | null
   orden: number | null
-  meses_contenido?: { numero_mes: number }[] | { numero_mes: number } | null
+  meses_contenido?: MesEmbebido[] | MesEmbebido | null
 }
 
-/** Normaliza una fila de materias con embed meses_contenido(numero_mes). */
+/**
+ * Normaliza una fila de materias con embed meses_contenido(numero_mes).
+ *
+ * Los meses ARCHIVADOS no cuentan: `numero_mes` desempata el orden canónico de
+ * la ventana, así que un mes retirado seguiría corriendo la posición de su
+ * materia. Se filtra aquí —en el mapper que comparten /api/alumno/materias y
+ * cargarContextoAcceso()— para que lista y gate no puedan divergir (Bug 59).
+ * `activa` ausente (fila anterior a la migración F4) cuenta como activa.
+ */
 export function toMateriaVentana(row: FilaMateriaDb): MateriaVentana {
   const rel = row.meses_contenido
-  const numeros = Array.isArray(rel)
-    ? rel.map(r => r.numero_mes)
-    : rel
-      ? [rel.numero_mes]
-      : []
+  const numeros = (Array.isArray(rel) ? rel : rel ? [rel] : [])
+    .filter(r => r.activa !== false)
+    .map(r => r.numero_mes)
   return {
     id: row.id,
     nombre: row.nombre,
@@ -342,6 +350,13 @@ export async function tieneAccesoSemana(
   alumno: AlumnoAcceso & { id: string },
   semanaId: string
 ): Promise<{ acceso: boolean; materiaId: string | null; encontrada: boolean }> {
+  // SIN filtro de `activa`, a propósito: este gate lo comparten el LISTADO del
+  // quiz y su ENVÍO (POST de /api/alumno/quiz/[semanaId], que guarda lo que el
+  // alumno respondió). Filtrar aquí haría que archivar una semana con el quiz
+  // abierto tirase el envío con un 404 y el alumno perdiera su trabajo — justo
+  // lo que la migración descarta al decir que retirar afecta a lo que se sirve
+  // "DE AHORA EN ADELANTE". Lo archivado deja de LISTARSE (materia, catálogo y
+  // meses del alumno), no de guardarse.
   const { data: semanaRow } = await db
     .from('semanas')
     .select('id, mes_id')
@@ -388,7 +403,7 @@ export async function cargarContextoAcceso(
 ): Promise<{ materias: MateriaVentana[]; acreditadas: Set<string> }> {
   let materiasQuery = db
     .from('materias')
-    .select('id, nombre, nivel, orden, meses_contenido(numero_mes)')
+    .select('id, nombre, nivel, orden, meses_contenido(numero_mes, activa)')
     .eq('activa', true)
 
   materiasQuery = alumno.nivel
