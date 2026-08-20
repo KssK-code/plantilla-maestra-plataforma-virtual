@@ -102,8 +102,35 @@ CREATE TABLE IF NOT EXISTS public.semanas (
   video_url                TEXT,
   tiempo_estimado_minutos  INTEGER     NOT NULL DEFAULT 60,
   created_at               TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  -- F1 del CMS de contenido: apuntes en Markdown y hasta tres videos. Este
+  -- espejo nacía sin ellas (scripts/schema.sql sí las tenía), así que el
+  -- cliente instalado desde aquí no podía guardar los apuntes.
+  contenido                TEXT,
+  video_url_2              TEXT,
+  video_url_3              TEXT,
   UNIQUE (mes_id, numero_semana)
 );
+
+-- ── SEMANA_MATERIALES ───────────────────────────────────────
+-- Los PDF que el admin sube a cada semana (F2 del CMS de contenido). TABLA y
+-- no una columna en `semanas`: una clase reparte varios archivos y con una
+-- columna el segundo borraría al primero sin avisar.
+-- `path` apunta al bucket privado 'materias'; el alumno NUNCA lo lee directo,
+-- pasa por /api/material/[id]. Su RLS y el bucket viven en supabase/schema.sql
+-- y en supabase/migrations/20260819130000_cms_contenido_materiales.sql — esta
+-- PARTE 1 solo crea tablas.
+CREATE TABLE IF NOT EXISTS public.semana_materiales (
+  id            UUID        PRIMARY KEY DEFAULT gen_random_uuid(),
+  semana_id     UUID        NOT NULL REFERENCES public.semanas(id) ON DELETE CASCADE,
+  nombre        TEXT        NOT NULL,
+  path          TEXT        NOT NULL,
+  tamano_bytes  BIGINT,
+  orden         INTEGER,
+  created_at    TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+CREATE INDEX IF NOT EXISTS idx_semana_materiales_semana
+  ON public.semana_materiales (semana_id);
 
 -- ── PROGRESO_SEMANAS ────────────────────────────────────────
 CREATE TABLE IF NOT EXISTS public.progreso_semanas (

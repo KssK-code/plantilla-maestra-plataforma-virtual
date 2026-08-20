@@ -102,7 +102,30 @@ CREATE TABLE IF NOT EXISTS public.semanas (
   video_url                TEXT,
   tiempo_estimado_minutos  INTEGER     NOT NULL DEFAULT 60,
   created_at               TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  -- F1 del CMS de contenido: apuntes en Markdown y hasta tres videos. Este
+  -- espejo nacía sin ellas (scripts/schema.sql sí las tenía), así que el
+  -- cliente instalado desde aquí no podía guardar los apuntes.
+  contenido                TEXT,
+  video_url_2              TEXT,
+  video_url_3              TEXT,
   UNIQUE (mes_id, numero_semana)
+);
+
+-- ── SEMANA_MATERIALES ───────────────────────────────────────
+-- Los PDF que el admin sube a cada semana (F2 del CMS de contenido). TABLA y
+-- no una columna en `semanas`: una clase reparte varios archivos y con una
+-- columna el segundo borraría al primero sin avisar.
+-- `path` apunta al bucket privado 'materias'; el alumno NUNCA lo lee directo,
+-- pasa por /api/material/[id]. Ver
+-- supabase/migrations/20260819130000_cms_contenido_materiales.sql.
+CREATE TABLE IF NOT EXISTS public.semana_materiales (
+  id            UUID        PRIMARY KEY DEFAULT gen_random_uuid(),
+  semana_id     UUID        NOT NULL REFERENCES public.semanas(id) ON DELETE CASCADE,
+  nombre        TEXT        NOT NULL,
+  path          TEXT        NOT NULL,
+  tamano_bytes  BIGINT,
+  orden         INTEGER,
+  created_at    TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
 -- ── PROGRESO_SEMANAS ────────────────────────────────────────
@@ -431,6 +454,7 @@ ALTER TABLE public.alumnos               ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.materias              ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.meses_contenido       ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.semanas               ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.semana_materiales     ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.progreso_semanas      ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.evaluaciones          ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.preguntas             ENABLE ROW LEVEL SECURITY;
@@ -533,6 +557,18 @@ CREATE POLICY "semanas: lectura autenticados"
 
 CREATE POLICY "semanas: admin gestiona"
   ON public.semanas FOR ALL
+  USING (public.es_admin());
+
+-- ── POLÍTICAS: SEMANA_MATERIALES ─────────────────────────────
+-- Metadatos (nombre, tamaño) legibles por cualquier autenticado, igual que
+-- `semanas`. El ARCHIVO no se abre con esto: el bucket 'materias' es privado
+-- y admin-only, y el alumno lo pide por /api/material/[id].
+CREATE POLICY "semana_materiales: lectura autenticados"
+  ON public.semana_materiales FOR SELECT
+  USING (auth.role() = 'authenticated');
+
+CREATE POLICY "semana_materiales: admin gestiona"
+  ON public.semana_materiales FOR ALL
   USING (public.es_admin());
 
 -- ── POLÍTICAS: PROGRESO_SEMANAS ──────────────────────────────
@@ -710,6 +746,7 @@ CREATE INDEX IF NOT EXISTS idx_notas_alumno             ON public.notas_alumno (
 CREATE INDEX IF NOT EXISTS idx_semanas_mes              ON public.semanas (mes_id);
 CREATE INDEX IF NOT EXISTS idx_meses_materia            ON public.meses_contenido (materia_id);
 CREATE INDEX IF NOT EXISTS idx_quiz_semana              ON public.quiz_semana (semana_id);
+CREATE INDEX IF NOT EXISTS idx_semana_materiales_semana ON public.semana_materiales (semana_id);
 CREATE INDEX IF NOT EXISTS idx_pagos_alumno             ON public.pagos (alumno_id);
 CREATE INDEX IF NOT EXISTS idx_pagos_created_at         ON public.pagos (created_at DESC);
 
