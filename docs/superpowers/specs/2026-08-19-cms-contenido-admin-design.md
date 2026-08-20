@@ -72,12 +72,14 @@ Contenido de sobra para probar en serio, historial casi nulo: piloto de bajo rie
    signed upload URL → confirm → verificación de MIME y tamaño en servidor →
    limpieza de huérfanos. Es reutilizable tal cual.
 4. **Existe un test guardián** (`tests/unit/guardian-schema-onboarding.spec.ts`,
-   PR #71): todo `CREATE` en `supabase/migrations/` debe existir también en
-   `scripts/schema.sql`.
+   PR #71 y #74): vigila los dos esquemas **en ambas direcciones** — todo
+   `CREATE` de `supabase/migrations/` debe llegar a `scripts/schema.sql`, y toda
+   columna de `scripts/schema.sql` debe existir también en `supabase/schema.sql`.
 
    ⚠️ Y son **dos** archivos de esquema, no uno —
    `tests/unit/corregir-plan.spec.ts` lo verifica explícitamente contra los dos:
-   - `supabase/schema.sql` — espejo documental
+   - `supabase/schema.sql` — superconjunto estricto (mismas tablas y columnas,
+     + las 9 políticas de storage). Lo usan Solo-Cursos y el desarrollo local.
    - `scripts/schema.sql` — **el que `mev-onboarding.py` instala en los combos
      nuevos**
 

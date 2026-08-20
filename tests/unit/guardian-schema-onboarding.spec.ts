@@ -130,6 +130,81 @@ test('las excepciones apuntan a migraciones que existen (sin excepciones zombis)
   }
 })
 
+// ─────────────────────────────────────────────────────────────────────────────
+// GUARDIÁN INVERSO: scripts/schema.sql → supabase/schema.sql
+//
+// El guardián de arriba vigila que las migraciones lleguen a scripts/schema.sql
+// (lo que instala el onboarding). Faltaba la dirección contraria, y por ahí se
+// coló el hallazgo lateral del Bug 99: `semanas.contenido`, `video_url_2`,
+// `video_url_3` y `keep_alive_log.source` vivían SOLO en scripts/schema.sql.
+// `supabase/schema.sql` es la ruta de INSTRUCCIONES-SOLO-CURSOS.md y del
+// desarrollo local, así que una columna que solo esté en uno rompe esa mitad.
+//
+// La comparación es por TABLA + COLUMNA: un nombre de columna suelto (p. ej.
+// `titulo`) existe en media docena de tablas y compararlo global daría un falso
+// PASS. Se acepta que la columna llegue a supabase/ por su schema o por una
+// migración ADD COLUMN.
+// ─────────────────────────────────────────────────────────────────────────────
+
+/** Columnas declaradas dentro de cada CREATE TABLE. -> Map<tabla, Set<columna>> */
+function columnasPorTabla(sql: string): Map<string, Set<string>> {
+  const limpio = sinComentarios(sql)
+  const mapa = new Map<string, Set<string>>()
+  for (const m of limpio.matchAll(/CREATE TABLE (?:IF NOT EXISTS )?(?:public\.)?(\w+)\s*\(([\s\S]*?)\n\s*\);/g)) {
+    const tabla = m[1]
+    const set = mapa.get(tabla) ?? new Set<string>()
+    for (const linea of m[2].split('\n')) {
+      // Columna = primer token de la línea, descartando constraints de tabla.
+      const c = linea.match(/^\s{2,}"?(\w+)"?\s+[A-Za-z]/)
+      if (c && !/^(PRIMARY|UNIQUE|CHECK|CONSTRAINT|FOREIGN|EXCLUDE)$/i.test(c[1])) set.add(c[1])
+    }
+    mapa.set(tabla, set)
+  }
+  return mapa
+}
+
+/** Añade a `mapa` las columnas que las migraciones agregan por ALTER. */
+function aplicarAlters(mapa: Map<string, Set<string>>, sql: string): void {
+  for (const m of sinComentarios(sql).matchAll(
+    /ALTER TABLE (?:IF EXISTS )?(?:ONLY )?(?:public\.)?(\w+)\s+ADD COLUMN (?:IF NOT EXISTS )?(\w+)/g)) {
+    const set = mapa.get(m[1]) ?? new Set<string>()
+    set.add(m[2])
+    mapa.set(m[1], set)
+  }
+}
+
+test('toda columna de scripts/schema.sql existe también en supabase/schema.sql (+ migraciones)', () => {
+  const deOnboarding = columnasPorTabla(readFileSync(join(raiz, 'scripts', 'schema.sql'), 'utf8'))
+
+  const sqlBootstrap = readFileSync(join(raiz, 'supabase', 'schema.sql'), 'utf8')
+  const deBootstrap = columnasPorTabla(sqlBootstrap)
+  // OJO: el propio bootstrap trae ALTERs además de los CREATE TABLE
+  // (p. ej. `keep_alive_log.source` se agrega por ALTER dos líneas después de
+  // su CREATE). Sin esta línea el guardián da un falso positivo por columna
+  // que sí existe. Mismo tropiezo que motivó este guardián — no lo quites.
+  aplicarAlters(deBootstrap, sqlBootstrap)
+  for (const mig of readdirSync(DIR_MIGRACIONES).filter(f => f.endsWith('.sql'))) {
+    aplicarAlters(deBootstrap, readFileSync(join(DIR_MIGRACIONES, mig), 'utf8'))
+  }
+
+  const faltantes: string[] = []
+  for (const [tabla, columnas] of deOnboarding) {
+    const enBootstrap = deBootstrap.get(tabla)
+    if (!enBootstrap) continue          // tabla exclusiva del instalador: otro problema, no este
+    for (const col of columnas) {
+      if (!enBootstrap.has(col)) faltantes.push(`${tabla}.${col}`)
+    }
+  }
+
+  expect(
+    faltantes,
+    `Columnas que solo existen en scripts/schema.sql — la ruta de Solo-Cursos y el ` +
+    `desarrollo local nacen sin ellas (Bug 99).\nRefléjalas en supabase/schema.sql y ` +
+    `añade una migración ADD COLUMN IF NOT EXISTS para las bases ya instaladas:\n  ` +
+    `${faltantes.join('\n  ')}`,
+  ).toEqual([])
+})
+
 test('los cuerpos-trampa conocidos no regresan a scripts/schema.sql (S1/S2)', () => {
   // Complemento CONDUCTUAL-estático del límite documentado arriba: el check
   // por nombre no ve cuerpos, así que estos dos se vigilan por contenido.
