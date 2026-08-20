@@ -241,9 +241,9 @@ test('el conteo cubre TODA la cascada declarada en el esquema', () => {
     // No puede existir sin su evaluación (FK NOT NULL), y las evaluaciones SÍ
     // se cuentan como `examenes`: el total nunca cae a 0 por culpa de éstas.
     preguntas: 'implica una evaluación, que ya se cuenta',
-    // Contenido del admin, no del alumno; tiene su propio `activa` desde F3, y
-    // lo que el alumno contestó se cuenta en `respuestas`.
-    quiz_semana: 'contenido archivable aparte; sus respuestas sí se cuentan',
+    // `quiz_semana` YA NO está exenta: se cuenta como `preguntas_quiz`. Una
+    // exención obsoleta es peor que ninguna, porque enmascara la regresión que
+    // esta prueba existe para cazar.
   }
   const faltantes = [...hijas].filter(t => !src.includes(t) && !(t in exentas))
   expect(faltantes, `tablas de la cascada que el conteo NO mira: ${faltantes.join(', ')}`).toEqual([])
@@ -256,4 +256,16 @@ test('describirDependencias nombra lo que se conserva y calla los ceros', () => 
   expect(frase, 'menciona un tipo con cero filas').not.toContain('respuestas de quiz')
   expect(frase, 'coló un 0 en la frase').not.toMatch(/(^|\s)0(\s|$)/)
   expect(describirDependencias({ total: 0, detalle: { progreso: 0 } })).toBe('')
+})
+
+test('un quiz redactado sin responder impide el borrado duro de la semana', () => {
+  const src = leer('src/lib/estructura-contenido.ts')
+  const fn = src.slice(src.indexOf('async function deSemanas'), src.indexOf('export async function dependenciasSemana'))
+  // quiz_semana cuelga de semanas con CASCADE. Sin contarlo, una semana con
+  // diez preguntas escritas a mano y cero respuestas daba total 0 y se borraba
+  // entera de un clic.
+  expect(fn).toContain('preguntas_quiz')
+  expect(fn).toContain('quizIds.length')
+  // Y el mensaje al admin tiene que saber nombrarlas
+  expect(src).toContain("preguntas_quiz: 'preguntas de quiz redactadas'")
 })

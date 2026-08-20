@@ -240,6 +240,13 @@ async function deSemanas(db: Db, semanaIds: string[]): Promise<Record<string, nu
     notas:      await contar(db, 'notas_alumno',      'semana_id', semanaIds),
     respuestas: await contar(db, 'quiz_respuestas',   'quiz_id',   quizIds),
     materiales: await contar(db, 'semana_materiales', 'semana_id', semanaIds),
+    // El quiz cuenta AUNQUE nadie lo haya respondido. No es historial de
+    // alumno, pero son preguntas que alguien redactó a mano y que `quiz_semana`
+    // pierde por CASCADE al borrar la semana. Sin esta línea, una semana con
+    // diez preguntas escritas y cero respuestas daba total 0 y se borraba
+    // entera de un clic. Si el admin quiere el borrado duro, retira antes las
+    // preguntas —que tienen su propio archivado desde F3— y entonces sí.
+    preguntas_quiz: quizIds.length,
   }
 }
 
@@ -283,6 +290,7 @@ export function describirDependencias(d: Dependencias): string {
   const nombres: Record<string, string> = {
     progreso: 'registros de progreso', notas: 'notas personales de alumnos',
     respuestas: 'respuestas de quiz', materiales: 'archivos subidos',
+    preguntas_quiz: 'preguntas de quiz redactadas',
     examenes: 'exámenes', intentos: 'intentos de examen',
     calificaciones: 'calificaciones', constancias: 'constancias emitidas',
     glosario: 'términos de glosario',
