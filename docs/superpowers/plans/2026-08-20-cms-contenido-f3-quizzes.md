@@ -928,8 +928,18 @@ que en cuanto F4 añada un `DELETE` de semanas, borrar una semana se llevará la
 respuestas de los alumnos sin pasar por `decidirRetirada` ni contar nada.
 
 El `DELETE` de semanas de F4 **tiene que contar también `quiz_respuestas`**, no
-solo `progreso_semanas`. Lo mismo con meses y materias, que están un nivel más
-arriba de la misma cadena.
+solo `progreso_semanas`. Y hay más, encontrado al hacer las rutas del examen:
+
+| Cadena | Comportamiento | Qué implica para F4 |
+|---|---|---|
+| `semanas → quiz_semana → quiz_respuestas` | CASCADE entera | Borrar una semana destruye respuestas sin pasar por `decidirRetirada` |
+| `materias → meses_contenido → evaluaciones → intentos_evaluacion` | CASCADE entera | Borrar una materia destruye historial de exámenes |
+| `evaluaciones.mes_id` | **SET NULL**, no CASCADE | Borrar un mes deja exámenes huérfanos con `mes_id=NULL`: conservan preguntas e intentos pero quedan **inalcanzables por la API**, que lista por mes |
+| `meses_contenido.materia_id` | nullable | Un mes sin materia produce exámenes invisibles: no los ve la vista de la materia ni `cerrar-mes`, que busca por materia |
+
+Y si algún día se añade "mover un mes a otra materia", los exámenes existentes
+quedarían colgados de la materia ANTIGUA: habría que arrastrarlos en la misma
+operación.
 
 ## Qué NO entra en F3
 
