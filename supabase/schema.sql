@@ -100,6 +100,11 @@ CREATE TABLE IF NOT EXISTS public.semanas (
   titulo                   TEXT        NOT NULL,
   descripcion              TEXT,
   video_url                TEXT,
+  -- Cuerpo de la leccion. El lector cae a `descripcion` si viene NULL.
+  contenido                TEXT,
+  -- Videos de apoyo opcionales; los edita el panel de contenido del admin.
+  video_url_2              TEXT,
+  video_url_3              TEXT,
   tiempo_estimado_minutos  INTEGER     NOT NULL DEFAULT 60,
   created_at               TIMESTAMPTZ NOT NULL DEFAULT NOW(),
   UNIQUE (mes_id, numero_semana)
