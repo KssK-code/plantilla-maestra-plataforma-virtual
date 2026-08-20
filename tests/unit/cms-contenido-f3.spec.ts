@@ -1,7 +1,7 @@
 import { test, expect } from '@playwright/test'
 import { readFileSync } from 'node:fs'
 import { join } from 'node:path'
-import { validarPregunta, CAMPOS_PREGUNTA, CAMPOS_QUIZ, PREGUNTA_MAX, OPCION_MAX } from '@/lib/preguntas'
+import { validarPregunta, CAMPOS_PREGUNTA, CAMPOS_QUIZ, PREGUNTA_MAX, OPCION_MAX, ORDEN_MAX } from '@/lib/preguntas'
 import { decidirRetirada } from '@/lib/retirar-contenido'
 
 /**
@@ -139,4 +139,34 @@ test('con dependencias se archiva y se dice cuántas', () => {
   const r = decidirRetirada(7)
   expect(r.accion).toBe('archivar')
   if (r.accion === 'archivar') expect(r.dependencias).toBe(7)
+})
+
+// ─── La asimetría de opcion_d va en LOS DOS sentidos ────────────────────────
+// quiz_semana.opcion_d es nullable; preguntas.opcion_d es NOT NULL. Cubrir solo
+// un lado deja el mismo 500 opaco que el parametro `tipo` existe para evitar.
+
+test('en un EXAMEN opcion_d es obligatoria — la columna es NOT NULL', () => {
+  const base = { pregunta: '¿?', opcion_a: '1', opcion_b: '2', opcion_c: '3', respuesta_correcta: 'a' }
+  // Sin opcion_d: el INSERT reventaria con "violates not-null constraint"
+  expect(validarPregunta(base, { crear: true, tipo: 'examen' }).ok).toBe(false)
+  // Vacia: se normalizaria a null y reventaria igual
+  expect(validarPregunta({ ...base, opcion_d: '   ' }, { crear: true, tipo: 'examen' }).ok).toBe(false)
+  expect(validarPregunta({ opcion_d: null }, { crear: false, tipo: 'examen' }).ok).toBe(false)
+  // Con valor, pasa
+  expect(validarPregunta({ ...base, opcion_d: '4' }, { crear: true, tipo: 'examen' }).ok).toBe(true)
+})
+
+test('en un QUIZ opcion_d sigue siendo opcional — su columna sí es nullable', () => {
+  const base = { pregunta: '¿?', opcion_a: '1', opcion_b: '2', opcion_c: '3', respuesta_correcta: 'a' }
+  expect(validarPregunta(base, { crear: true, tipo: 'quiz' }).ok).toBe(true)
+  const r = validarPregunta({ opcion_d: '  ' }, { crear: false, tipo: 'quiz' })
+  expect(r.ok).toBe(true)
+  if (r.ok) expect(r.datos.opcion_d).toBeNull()
+})
+
+test('orden tiene techo: la columna es INTEGER, no bigint', () => {
+  expect(ORDEN_MAX).toBe(2_147_483_647)
+  expect(validarPregunta({ orden: ORDEN_MAX }, { crear: false, tipo: 'quiz' }).ok).toBe(true)
+  // Sin techo, Postgres respondia "integer out of range" con un 500 opaco
+  expect(validarPregunta({ orden: ORDEN_MAX + 1 }, { crear: false, tipo: 'quiz' }).ok).toBe(false)
 })

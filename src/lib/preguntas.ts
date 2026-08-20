@@ -19,6 +19,11 @@ export const CAMPOS_QUIZ = [...CAMPOS_PREGUNTA, 'explicacion'] as const
 export type CampoPregunta = (typeof CAMPOS_QUIZ)[number]
 export type TipoPregunta = 'quiz' | 'examen'
 
+/** Techo de `orden`: la columna es INTEGER (int4). Sin esto, un valor mayor
+ *  pasa la validación y Postgres responde "integer out of range" — un 500
+ *  opaco por un campo que el formulario controla. */
+export const ORDEN_MAX = 2_147_483_647
+
 export const PREGUNTA_MAX    = 2_000
 export const OPCION_MAX      = 500
 export const EXPLICACION_MAX = 2_000
@@ -97,18 +102,31 @@ export function validarPregunta(
     }
   }
 
-  // opcion_d es OPCIONAL: la columna es nullable en quiz_semana. '' → null.
+  // opcion_d NO se comporta igual en las dos tablas, y esta es la otra mitad de
+  // la asimetría que motiva el parámetro `tipo`:
+  //   · quiz_semana.opcion_d es NULLABLE  → opcional, '' se guarda como null.
+  //   · preguntas.opcion_d  es NOT NULL   → obligatoria; un null revienta el
+  //     INSERT con "violates not-null constraint", o sea un 500 opaco por algo
+  //     que aquí se puede rechazar con un 400 legible.
+  const dObligatoria = opciones.tipo === 'examen'
   if (claves.includes('opcion_d')) {
     const v = b.opcion_d
     if (v === null || v === undefined) {
+      if (dObligatoria) return { ok: false, error: 'opcion_d es requerida en un examen' }
       datos.opcion_d = null
     } else if (typeof v !== 'string') {
       return { ok: false, error: 'opcion_d debe ser texto' }
     } else if (v.length > OPCION_MAX) {
       return { ok: false, error: `opcion_d no puede pasar de ${OPCION_MAX} caracteres` }
     } else {
-      datos.opcion_d = v.trim() || null
+      const limpio = v.trim()
+      if (!limpio && dObligatoria) {
+        return { ok: false, error: 'opcion_d no puede quedar vacía en un examen' }
+      }
+      datos.opcion_d = limpio || null
     }
+  } else if (opciones.crear && dObligatoria) {
+    return { ok: false, error: 'opcion_d es requerida' }
   }
 
   if (claves.includes('respuesta_correcta')) {
@@ -123,8 +141,8 @@ export function validarPregunta(
 
   if (claves.includes('orden')) {
     const n = b.orden
-    if (typeof n !== 'number' || !Number.isInteger(n) || n < 0) {
-      return { ok: false, error: 'orden debe ser un entero mayor o igual que 0' }
+    if (typeof n !== 'number' || !Number.isInteger(n) || n < 0 || n > ORDEN_MAX) {
+      return { ok: false, error: `orden debe ser un entero entre 0 y ${ORDEN_MAX}` }
     }
     datos.orden = n
   }
