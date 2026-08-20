@@ -146,3 +146,35 @@ test('hay un tope de materiales por semana', () => {
   expect(MATERIALES_MAX_POR_SEMANA).toBeGreaterThan(0)
   expect(BUCKET_MATERIAS).toBe('materias')
 })
+
+// ─────────────────────── Rutas admin de material ────────────────────────────
+
+test('las rutas admin de material exigen rol ADMIN', () => {
+  for (const r of [
+    'src/app/api/admin/semanas/[id]/materiales/route.ts',
+    'src/app/api/admin/semanas/[id]/materiales/[materialId]/route.ts',
+  ]) {
+    const src = leer(r)
+    expect(src, `${r} sin verifyAdmin`).toContain('verifyAdmin')
+    expect(src, `${r} usa verifyStaff`).not.toContain('verifyStaff')
+  }
+})
+
+test('el confirm valida el objeto REALMENTE subido, no lo que dice el cliente', () => {
+  const src = leer('src/app/api/admin/semanas/[id]/materiales/route.ts')
+  expect(src).toContain('validarRutaMaterial')
+  expect(src).toContain('.list(carpeta')          // se consulta el storage
+  expect(src).toContain('MATERIAL_MIMES')          // y se valida el mime real
+  expect(src).toContain('MATERIAL_MAX_BYTES')
+})
+
+test('el tope por semana se comprueba antes de dar la URL de subida', () => {
+  const src = leer('src/app/api/admin/semanas/[id]/materiales/route.ts')
+  const upload = src.slice(src.indexOf("action === 'upload-url'"), src.indexOf("action === 'confirm'"))
+  expect(upload).toContain('MATERIALES_MAX_POR_SEMANA')
+})
+
+test('borrar un material exige que sea de esa semana', () => {
+  const src = leer('src/app/api/admin/semanas/[id]/materiales/[materialId]/route.ts')
+  expect(src).toContain(".eq('semana_id', params.id)")
+})
