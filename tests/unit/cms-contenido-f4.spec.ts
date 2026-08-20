@@ -539,3 +539,17 @@ test('reordenar comprueba que todos los ids son del MISMO padre', () => {
   expect(iVerif, 'no encontre la verificacion de padre').toBeGreaterThan(-1)
   expect(iVerif).toBeLessThan(src.indexOf('.update('))
 })
+
+test('la UI de estructura muestra el mensaje del servidor al archivar', () => {
+  const src = leer('src/app/(dashboard)/admin/contenido/[id]/EstructuraBar.tsx')
+  expect(src).toContain("accion === 'archivada'")
+  expect(src).toContain('mensaje')
+  expect(src).toContain('/api/admin/contenido/orden')
+})
+
+test('crear materia de licenciatura pide carrera, y avisa si no hay ninguna', () => {
+  const src = leer('src/app/(dashboard)/admin/contenido/page.tsx')
+  expect(src).toContain('getCarreras')
+  expect(src).toContain('licenciatura')
+  expect(src).toMatch(/no tiene carreras|sin carreras/i)
+})

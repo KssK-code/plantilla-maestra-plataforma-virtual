@@ -26,9 +26,9 @@ export async function GET(
       .select(`
         id, nombre, descripcion, nivel, color, activa,
         meses_contenido (
-          id, numero_mes, titulo,
+          id, numero_mes, titulo, activa,
           semanas (
-            id, numero_semana, titulo, descripcion, contenido,
+            id, numero_semana, titulo, descripcion, contenido, activa,
             tiempo_estimado_minutos,
             video_url, video_url_2, video_url_3,
             semana_materiales ( id, nombre, tamano_bytes, orden, created_at )
