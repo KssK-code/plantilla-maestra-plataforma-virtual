@@ -58,7 +58,7 @@ export async function GET(
       .from('meses_contenido')
       .select(`
         id, numero_mes, titulo, descripcion,
-        semanas ( id, numero_semana, titulo, descripcion, contenido, video_url, video_url_2, video_url_3, tiempo_estimado_minutos )
+        semanas ( id, numero_semana, titulo, descripcion, contenido, video_url, video_url_2, video_url_3, tiempo_estimado_minutos, semana_materiales ( id, nombre, tamano_bytes, orden, created_at ) )
       `)
       .eq('materia_id', params.id)
       .order('numero_mes')
@@ -68,6 +68,7 @@ export async function GET(
       descripcion: string | null; contenido: string | null
       video_url: string | null; video_url_2: string | null; video_url_3: string | null
       tiempo_estimado_minutos: number
+      semana_materiales: { id: string; nombre: string; tamano_bytes: number | null; orden: number | null; created_at: string }[]
     }
     type MesRow = {
       id: string; numero_mes: number; titulo: string; descripcion: string | null
@@ -104,6 +105,10 @@ export async function GET(
             url_en:    url as string,
             duracion:  '',
           })),
+        materiales: (s.semana_materiales ?? [])
+          .slice()
+          .sort((a, b) => (a.orden ?? 0) - (b.orden ?? 0) || String(a.created_at).localeCompare(String(b.created_at)))
+          .map(m => ({ id: m.id, nombre: m.nombre, tamano_bytes: m.tamano_bytes })),
       }))
     )
 

@@ -194,3 +194,22 @@ test('orden se llena al insertar, no se queda NULL', () => {
   expect(src).toContain('siguienteOrden')
   expect(src).toContain('orden: siguienteOrden')
 })
+
+// ───────── Una sola regla de acceso para el archivo, no dos ─────────────────
+
+test('la descarga reusa tieneAccesoSemana y no reimplementa el gate', () => {
+  const src = leer('src/app/api/material/[id]/route.ts')
+  expect(src).toContain('tieneAccesoSemana')
+  expect(src).toContain('BUCKET_MATERIAS')
+  // La regla NO se reescribe a mano aquí
+  expect(src).not.toContain('meses_desbloqueados')
+  expect(src).not.toContain('modalidad')
+})
+
+test('las APIs devuelven metadatos, no URLs firmadas por adelantado', () => {
+  for (const r of ['src/app/api/alumno/materia/[id]/route.ts', 'src/app/api/admin/contenido/[id]/route.ts']) {
+    const src = leer(r)
+    expect(src, `${r} no devuelve materiales`).toContain('semana_materiales')
+    expect(src, `${r} firma URLs por adelantado (N+1 de red)`).not.toContain('createSignedUrl')
+  }
+})
