@@ -75,3 +75,34 @@ test('los espejos dejan de nacer sin las columnas que F1 hizo editables', () => 
     }
   }
 })
+
+// ─────────── Los helpers se comparten con Cursos, no se copian ──────────────
+
+test('los helpers de archivo viven en un solo sitio', () => {
+  const comunes = leer('src/lib/archivos-comunes.ts')
+  for (const fn of ['sanitizeFilename', 'extensionDe', 'validarMaterial', 'MATERIAL_MAX_BYTES', 'MATERIAL_MIMES']) {
+    expect(comunes, `archivos-comunes sin ${fn}`).toContain(fn)
+  }
+  // Cursos los reexporta en vez de tener su propia copia
+  const cursos = leer('src/lib/cursos/archivos.ts')
+  expect(cursos).toContain("from '@/lib/archivos-comunes'")
+  expect(cursos).not.toMatch(/export function sanitizeFilename/)
+})
+
+test('signedUrl y removeFolder reciben el bucket, no lo llevan cableado', () => {
+  const comun = leer('src/lib/storage-comun.ts')
+  expect(comun).toContain('bucket: string')
+  expect(comun).not.toContain('BUCKET_CURSOS')
+  // El envoltorio de Cursos sigue existiendo para no tocar a sus consumidores
+  const cursos = leer('src/lib/cursos/storage.ts')
+  expect(cursos).toContain('BUCKET_CURSOS')
+  expect(cursos).toContain("from '@/lib/storage-comun'")
+})
+
+test('el uploader de cliente tambien recibe el bucket como parametro', () => {
+  const comun = leer('src/lib/upload-comun.ts')
+  expect(comun).toContain('bucket: string')
+  expect(comun).not.toContain('BUCKET_CURSOS')
+  const cursos = leer('src/lib/cursos/upload.ts')
+  expect(cursos).toContain("from '@/lib/upload-comun'")
+})
