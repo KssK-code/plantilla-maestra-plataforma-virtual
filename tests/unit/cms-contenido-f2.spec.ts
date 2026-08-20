@@ -178,3 +178,19 @@ test('borrar un material exige que sea de esa semana', () => {
   const src = leer('src/app/api/admin/semanas/[id]/materiales/[materialId]/route.ts')
   expect(src).toContain(".eq('semana_id', params.id)")
 })
+
+test('los objetos que nunca se confirmaron se barren, con ventana de gracia', () => {
+  const src = leer('src/app/api/admin/semanas/[id]/materiales/route.ts')
+  expect(src).toContain('limpiarHuerfanos')
+  // El barrido va en upload-url, no en confirm: es cuando ya hay que listar.
+  const upload = src.slice(src.indexOf("action === 'upload-url'"), src.indexOf("action === 'confirm'"))
+  expect(upload).toContain('limpiarHuerfanos')
+  // Y NO puede borrar una subida en vuelo: el objeto existe antes que su fila.
+  expect(src).toContain('GRACIA_HUERFANO_MS')
+})
+
+test('orden se llena al insertar, no se queda NULL', () => {
+  const src = leer('src/app/api/admin/semanas/[id]/materiales/route.ts')
+  expect(src).toContain('siguienteOrden')
+  expect(src).toContain('orden: siguienteOrden')
+})
