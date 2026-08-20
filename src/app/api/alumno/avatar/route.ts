@@ -30,9 +30,11 @@ export async function POST(req: NextRequest) {
     // Añadir cache-busting para forzar recarga del navegador
     const urlConTimestamp = `${publicUrl}?t=${Date.now()}`
 
+    // La columna canónica de usuarios es foto_url (schema-01-tablas.sql:34);
+    // avatar_url no existe en la tabla y el sidebar lee foto_url.
     const { error: updateError } = await admin
       .from('usuarios')
-      .update({ avatar_url: urlConTimestamp })
+      .update({ foto_url: urlConTimestamp })
       .eq('id', user.id)
 
     if (updateError) return NextResponse.json({ error: updateError.message }, { status: 500 })
