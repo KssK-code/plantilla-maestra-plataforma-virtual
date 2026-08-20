@@ -24,8 +24,15 @@ export async function PATCH(request: NextRequest, { params }: { params: { id: st
     // es su propia acción, no una edición de contenido.
     if (body && typeof body === 'object' && Object.keys(body).length === 1 && typeof body.activa === 'boolean') {
       const admin = createAdminClient()
-      const { error } = await admin.from('quiz_semana').update({ activa: body.activa }).eq('id', params.id)
+      // `.select()` para saber si de verdad tocó una fila. Sin esto, un id
+      // inexistente devolvía 200 {ok:true} sin haber cambiado nada — y la rama
+      // de edición de más abajo sí devuelve 404 en ese mismo caso.
+      const { data, error } = await admin
+        .from('quiz_semana').update({ activa: body.activa }).eq('id', params.id).select('id')
       if (error) return NextResponse.json({ error: error.message }, { status: 500 })
+      if (!data || data.length === 0) {
+        return NextResponse.json({ error: 'Pregunta no encontrada' }, { status: 404 })
+      }
       return NextResponse.json({ ok: true, activa: body.activa })
     }
 
@@ -70,16 +77,37 @@ export async function DELETE(_r: NextRequest, { params }: { params: { id: string
     const { count } = await admin
       .from('quiz_respuestas').select('*', { count: 'exact', head: true }).eq('quiz_id', params.id)
 
-    const decision = decidirRetirada(count ?? 0)
-    if (decision.accion === 'archivar') {
-      const { error } = await admin.from('quiz_semana').update({ activa: false }).eq('id', params.id)
-      if (error) return NextResponse.json({ error: error.message }, { status: 500 })
-      return NextResponse.json({
+    const archivar = (dependencias: number) =>
+      NextResponse.json({
         accion: 'archivada',
-        dependencias: decision.dependencias,
-        mensaje: `${decision.dependencias} alumno(s) ya respondieron esta pregunta, así que se archivó en vez de borrarse: deja de aparecer, pero sus respuestas y calificaciones quedan intactas.`,
+        dependencias,
+        mensaje: `${dependencias} alumno(s) ya respondieron esta pregunta, así que se archivó en vez de borrarse: deja de aparecer, pero sus respuestas y calificaciones quedan intactas.`,
       })
+
+    const decision = decidirRetirada(count ?? 0)
+
+    // Se ARCHIVA siempre primero, incluso cuando el conteo dice cero.
+    //
+    // El conteo y el borrado son dos viajes sin transacción: si un alumno
+    // responde entre medias, su respuesta se iría con el ON DELETE CASCADE.
+    // Archivar antes no cierra la carrera del todo —quien ya tenga el quiz en
+    // pantalla puede enviar— pero la pregunta deja de servirse, así que la
+    // ventana pasa de "mientras la pregunta exista" a "lo que tarde en enviar
+    // quien ya la tenía cargada". Y si algo falla después, el estado en el que
+    // se queda es el seguro.
+    const { data: tocada, error: errArchivar } = await admin
+      .from('quiz_semana').update({ activa: false }).eq('id', params.id).select('id')
+    if (errArchivar) return NextResponse.json({ error: errArchivar.message }, { status: 500 })
+    if (!tocada || tocada.length === 0) {
+      return NextResponse.json({ error: 'Pregunta no encontrada' }, { status: 404 })
     }
+
+    if (decision.accion === 'archivar') return archivar(decision.dependencias)
+
+    // Recuento tras archivar: cierra la ventana que quedaba abierta.
+    const { count: despues } = await admin
+      .from('quiz_respuestas').select('*', { count: 'exact', head: true }).eq('quiz_id', params.id)
+    if ((despues ?? 0) > 0) return archivar(despues ?? 0)
 
     const { error } = await admin.from('quiz_semana').delete().eq('id', params.id)
     if (error) return NextResponse.json({ error: error.message }, { status: 500 })

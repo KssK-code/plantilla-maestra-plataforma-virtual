@@ -207,3 +207,23 @@ test('el POST del quiz valida como quiz, no como examen', () => {
   const src = leer('src/app/api/admin/semanas/[id]/quiz/route.ts')
   expect(src).toContain("tipo: 'quiz'")
 })
+
+test('el borrado archiva primero y vuelve a contar antes de borrar de verdad', () => {
+  const src = leer('src/app/api/admin/quiz/[id]/route.ts')
+  const del = src.slice(src.indexOf('export async function DELETE'))
+  // El conteo y el DELETE son dos viajes sin transaccion: archivar antes deja
+  // de servir la pregunta y estrecha la ventana en la que una respuesta nueva
+  // se iria con el ON DELETE CASCADE.
+  expect(del).toContain("update({ activa: false })")
+  expect(del.indexOf("update({ activa: false })")).toBeLessThan(del.indexOf('.delete()'))
+  // Y hay un SEGUNDO conteo, despues de archivar
+  expect((del.match(/from\('quiz_respuestas'\)/g) ?? []).length).toBe(2)
+})
+
+test('tocar una pregunta inexistente da 404 en las dos ramas del PATCH', () => {
+  const src = leer('src/app/api/admin/quiz/[id]/route.ts')
+  const patch = src.slice(src.indexOf('export async function PATCH'), src.indexOf('export async function DELETE'))
+  // La rama de `activa` tambien comprueba que la fila exista: antes devolvia
+  // 200 {ok:true} sin haber cambiado nada.
+  expect((patch.match(/Pregunta no encontrada/g) ?? []).length).toBe(2)
+})

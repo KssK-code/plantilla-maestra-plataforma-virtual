@@ -920,6 +920,17 @@ Estilo: el de `ApuntesEditor`/`MaterialesPanel` (`#0D1017`, `1px solid #2A2F3E`,
 - [ ] Retirar una pregunta sin responder **borra**
 - [ ] Calificar NO filtra `activa` en ninguno de los cuatro puntos marcados
 
+## ⚠️ Para F4: la cascada que esquiva toda esta regla
+
+F3 protege el borrado de una PREGUNTA. Pero la cadena
+`semanas → quiz_semana → quiz_respuestas` es **CASCADE de punta a punta**, así
+que en cuanto F4 añada un `DELETE` de semanas, borrar una semana se llevará las
+respuestas de los alumnos sin pasar por `decidirRetirada` ni contar nada.
+
+El `DELETE` de semanas de F4 **tiene que contar también `quiz_respuestas`**, no
+solo `progreso_semanas`. Lo mismo con meses y materias, que están un nivel más
+arriba de la misma cadena.
+
 ## Qué NO entra en F3
 
 - F4: crear/archivar/reordenar materias, meses y semanas, el barrido de `activa`
