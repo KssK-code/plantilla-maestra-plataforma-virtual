@@ -269,3 +269,78 @@ test('un quiz redactado sin responder impide el borrado duro de la semana', () =
   // Y el mensaje al admin tiene que saber nombrarlas
   expect(src).toContain("preguntas_quiz: 'preguntas de quiz redactadas'")
 })
+
+// ─────────────────── Rutas admin de la estructura ───────────────────────────
+
+const RUTAS_ESTRUCTURA = [
+  'src/app/api/admin/semanas/route.ts',
+  'src/app/api/admin/semanas/[id]/route.ts',
+  'src/app/api/admin/meses/route.ts',
+  'src/app/api/admin/meses/[id]/route.ts',
+  'src/app/api/admin/materias/route.ts',
+  'src/app/api/admin/materias/[id]/route.ts',
+]
+
+test('todas las rutas de estructura exigen rol ADMIN', () => {
+  for (const r of RUTAS_ESTRUCTURA) {
+    const src = leer(r)
+    expect(src, `${r} sin verifyAdmin`).toContain('verifyAdmin')
+    expect(src, `${r} usa verifyStaff`).not.toContain('verifyStaff')
+  }
+})
+
+test('los tres DELETE cuentan dependencias ANTES de borrar, y archivan primero', () => {
+  const casos = [
+    ['src/app/api/admin/semanas/[id]/route.ts',  'dependenciasSemana'],
+    ['src/app/api/admin/meses/[id]/route.ts',    'dependenciasMes'],
+    ['src/app/api/admin/materias/[id]/route.ts', 'dependenciasMateria'],
+  ] as const
+  for (const [ruta, fn] of casos) {
+    const src = leer(ruta)
+    const del = src.slice(src.indexOf('export async function DELETE'))
+    expect(del, `${ruta} no cuenta`).toContain(fn)
+    expect(del, `${ruta} no usa la regla comun`).toContain('decidirRetirada')
+    // Archivar va SIEMPRE antes del borrado fisico: el conteo y el DELETE son
+    // dos viajes sin transaccion.
+    expect(del.indexOf('activa: false'), `${ruta}: borra antes de archivar`).toBeLessThan(del.indexOf('.delete()'))
+    // Y hay un SEGUNDO conteo tras archivar
+    expect((del.match(new RegExp(fn, 'g')) ?? []).length, `${ruta}: no recuenta`).toBeGreaterThanOrEqual(2)
+  }
+})
+
+test('el admin se entera de QUE se conserva al archivar', () => {
+  for (const r of ['semanas/[id]', 'meses/[id]', 'materias/[id]']) {
+    const src = leer(`src/app/api/admin/${r}/route.ts`)
+    expect(src, `${r} no describe las dependencias`).toContain('describirDependencias')
+  }
+})
+
+test('crear una semana o un mes comprueba que su padre existe', () => {
+  expect(leer('src/app/api/admin/semanas/route.ts')).toContain("from('meses_contenido')")
+  expect(leer('src/app/api/admin/meses/route.ts')).toContain("from('materias')")
+})
+
+test('el PATCH de materia cierra la coherencia nivel-carrera contra la FILA', () => {
+  const src = leer('src/app/api/admin/materias/[id]/route.ts')
+  // validarMateria no ve la fila: si el body cambia `carrera` sin cambiar
+  // `nivel`, solo la ruta sabe si esa materia es de licenciatura.
+  expect(src).toContain('nivelFinal')
+  expect(src).toContain('licenciatura')
+})
+
+test('el padre no se acepta del cliente al crear', () => {
+  // mes_id y materia_id se leen aparte y se verifican; no entran por la
+  // whitelist de validarSemana/validarMes.
+  //
+  // El aserto se acota a la mitad de VALIDACION del modulo, no al fichero
+  // entero: la mitad de abajo —el conteo de dependencias— consulta por esas
+  // MISMAS columnas (idsDe(db, 'semanas', 'mes_id', ...)), asi que un
+  // not.toContain sobre todo el fichero no puede pasar nunca. El agujero que
+  // esta prueba vigila esta solo arriba: que el padre entre por la whitelist.
+  const lib = leer('src/lib/estructura-contenido.ts')
+  const validacion = lib.slice(0, lib.indexOf('Conteo de dependencias'))
+  expect(validacion).not.toContain("'mes_id'")
+  expect(validacion).not.toContain("'materia_id'")
+  expect([...CAMPOS_SEMANA] as string[], 'la semana acepta su mes del cliente').not.toContain('mes_id')
+  expect([...CAMPOS_MES] as string[], 'el mes acepta su materia del cliente').not.toContain('materia_id')
+})
