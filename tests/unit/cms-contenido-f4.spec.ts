@@ -467,3 +467,35 @@ test('los que NO filtran lo dicen por escrito', () => {
       .toMatch(/SIN filtro de `activa`|filtra `activa`/)
   }
 })
+
+// ─────────────── La lista de contenido del admin (N+1) ──────────────────────
+
+test('la lista de contenido no hace N+1: 3 queries, no 2 por materia', () => {
+  const src = leer('src/app/api/admin/contenido/route.ts')
+  // Con 185 materias, 2-3 queries por materia eran ~550 por carga.
+  expect(src).not.toMatch(/materias[\s\S]{0,80}\.map\(async/)
+  expect(src).not.toMatch(/Promise\.all\([\s\S]{0,200}async \(mat\)/)
+})
+
+test('el conteo del admin es el que ve el alumno: activa en los dos niveles', () => {
+  const src = leer('src/app/api/admin/contenido/route.ts')
+  for (const t of ['meses_contenido', 'semanas']) {
+    const i = src.indexOf(`from('${t}')`)
+    expect(i, `no encontré el select de ${t}`).toBeGreaterThan(-1)
+    expect(src.slice(i, i + 160), `el conteo cuenta ${t} archivados`).toContain(".eq('activa', true)")
+  }
+  // Las semanas de un mes archivado tampoco cuentan: sin materia activa detrás
+  // se descartan al agrupar.
+  expect(src).toContain('materiaDeMes.get(s.mes_id)')
+})
+
+test('las lecturas masivas se paginan: Supabase corta en max-rows', () => {
+  // Un cliente de 185 materias ronda las 9.000 semanas. Un select plano
+  // devolvería 1.000 y el conteo saldría corto SIN error: peor que el N+1.
+  const src = leer('src/app/api/admin/contenido/route.ts')
+  expect(src, 'no hay paginación').toContain('traerTodas')
+  expect(src, 'la paginación no avanza por las filas devueltas')
+    .toContain('desde += lote.length')
+  // Y se ordena, o la paginación duplica y salta filas
+  expect((src.match(/\.order\('id'\)/g) ?? []).length).toBe(3)
+})
