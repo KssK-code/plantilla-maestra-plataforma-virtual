@@ -170,3 +170,40 @@ test('orden tiene techo: la columna es INTEGER, no bigint', () => {
   // Sin techo, Postgres respondia "integer out of range" con un 500 opaco
   expect(validarPregunta({ orden: ORDEN_MAX + 1 }, { crear: false, tipo: 'quiz' }).ok).toBe(false)
 })
+
+// ─────────────────────── Rutas admin del quiz ───────────────────────────────
+
+test('las rutas de quiz exigen rol ADMIN', () => {
+  for (const r of [
+    'src/app/api/admin/semanas/[id]/quiz/route.ts',
+    'src/app/api/admin/quiz/[id]/route.ts',
+  ]) {
+    const src = leer(r)
+    expect(src, `${r} sin verifyAdmin`).toContain('verifyAdmin')
+    expect(src, `${r} usa verifyStaff`).not.toContain('verifyStaff')
+  }
+})
+
+test('borrar una pregunta cuenta las respuestas ANTES de tocarla', () => {
+  const src = leer('src/app/api/admin/quiz/[id]/route.ts')
+  const del = src.slice(src.indexOf('export async function DELETE'))
+  expect(del).toContain("from('quiz_respuestas')")
+  expect(del).toContain('decidirRetirada')
+  // El DELETE fisico va DESPUES de la decision, nunca antes: quiz_respuestas
+  // cuelga con ON DELETE CASCADE.
+  expect(del.indexOf('decidirRetirada')).toBeLessThan(del.indexOf('.delete()'))
+})
+
+test("el PATCH cierra la coherencia 'd' contra la FILA, no solo contra el body", () => {
+  const src = leer('src/app/api/admin/quiz/[id]/route.ts')
+  expect(src).toContain('opcionDFinal')
+  expect(src).toContain('correctaFinal')
+  // Se relee la fila: sin eso, un PATCH que solo cambia una de las dos cosas
+  // no puede saber como queda la otra.
+  expect(src).toContain("select('opcion_d, respuesta_correcta')")
+})
+
+test('el POST del quiz valida como quiz, no como examen', () => {
+  const src = leer('src/app/api/admin/semanas/[id]/quiz/route.ts')
+  expect(src).toContain("tipo: 'quiz'")
+})
