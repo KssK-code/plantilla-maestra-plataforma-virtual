@@ -3,6 +3,7 @@
 import { Loader2, Save, Check, AlertCircle, Video } from 'lucide-react'
 import ApuntesEditor from './ApuntesEditor'
 import MaterialesPanel, { type Material } from './MaterialesPanel'
+import QuizEditor from './QuizEditor'
 import {
   TIEMPO_MIN, TIEMPO_MAX, TITULO_MAX, DESCRIPCION_MAX, URL_MAX,
   camposCambiados, type ValoresSemana, type CampoValor,
@@ -122,6 +123,10 @@ export default function SemanaEditor({ numero, semanaId, estado: v, materiales, 
 
       {/* Materiales (PDF) de la semana */}
       <MaterialesPanel semanaId={semanaId} iniciales={materiales} />
+
+      {/* Quiz de la semana. Las preguntas se piden al desplegar, no aqui: van
+          por su cuenta, igual que los materiales, y no entran en el Guardar. */}
+      <QuizEditor semanaId={semanaId} />
 
       {/* Miniaturas de los tres videos */}
       <div className="flex gap-2">

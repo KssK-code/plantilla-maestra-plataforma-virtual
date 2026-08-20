@@ -431,3 +431,34 @@ test('el avance del admin cuenta lo que el alumno respondio, archivado o no', ()
   expect(i).toBeGreaterThan(-1)
   expect(avance.slice(i, i + 200), 'el avance filtra activa').not.toContain(".eq('activa'")
 })
+
+// ─────────────────────────────── UI ─────────────────────────────────────────
+
+test('la explicación solo se manda en el quiz — la tabla del examen no la tiene', () => {
+  const src = leer('src/app/(dashboard)/admin/contenido/[id]/PreguntaEditor.tsx')
+  expect(src).toContain('if (esQuiz) cuerpo.explicacion')
+  // Y la opcion D solo puede ir vacia en el quiz: en el examen es NOT NULL
+  expect(src).toContain("esQuiz ? null : ''")
+})
+
+test('las preguntas se cargan al desplegar, no con la materia', () => {
+  const quiz = leer('src/app/(dashboard)/admin/contenido/[id]/QuizEditor.tsx')
+  expect(quiz).toContain('/api/admin/semanas/')
+  // Carga perezosa: un cliente con 360 semanas no puede traerse miles de
+  // preguntas que el admin no va a mirar.
+  expect(quiz).toMatch(/cargad|abierto|desplegad/i)
+  // Y la API de contenido NO se amplio para traerlas
+  const api = leer('src/app/api/admin/contenido/[id]/route.ts')
+  expect(api).not.toContain('quiz_semana')
+})
+
+test('el admin ve el mensaje del servidor cuando se archiva en vez de borrar', () => {
+  const src = leer('src/app/(dashboard)/admin/contenido/[id]/PreguntaEditor.tsx')
+  expect(src).toContain("accion === 'archivada'")
+  expect(src).toContain('r.mensaje')
+})
+
+test('el examen cuelga del mes y el quiz de la semana', () => {
+  expect(leer('src/app/(dashboard)/admin/contenido/[id]/SemanaEditor.tsx')).toContain('QuizEditor')
+  expect(leer('src/app/(dashboard)/admin/contenido/[id]/page.tsx')).toContain('EvaluacionEditor')
+})
