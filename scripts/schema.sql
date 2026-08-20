@@ -408,6 +408,7 @@ CREATE TABLE public.meses_contenido (
     numero_mes integer NOT NULL,
     titulo text NOT NULL,
     descripcion text,
+    activa boolean DEFAULT true NOT NULL,
     created_at timestamp with time zone DEFAULT now() NOT NULL
 );
 
@@ -529,7 +530,8 @@ CREATE TABLE public.semanas (
     created_at timestamp with time zone DEFAULT now() NOT NULL,
     contenido text,
     video_url_2 text,
-    video_url_3 text
+    video_url_3 text,
+    activa boolean DEFAULT true NOT NULL
 );
 
 --
@@ -788,6 +790,12 @@ CREATE INDEX idx_intentos_alumno ON public.intentos_evaluacion USING btree (alum
 CREATE INDEX idx_intentos_evaluacion ON public.intentos_evaluacion USING btree (evaluacion_id);
 
 --
+-- Name: idx_meses_contenido_activa; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX IF NOT EXISTS idx_meses_contenido_activa ON public.meses_contenido USING btree (materia_id) WHERE activa;
+
+--
 -- Name: idx_meses_materia; Type: INDEX; Schema: public; Owner: -
 --
 
@@ -834,6 +842,12 @@ CREATE INDEX IF NOT EXISTS idx_quiz_semana_activa ON public.quiz_semana USING bt
 --
 
 CREATE INDEX idx_semana_materiales_semana ON public.semana_materiales USING btree (semana_id);
+
+--
+-- Name: idx_semanas_activa; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX IF NOT EXISTS idx_semanas_activa ON public.semanas USING btree (mes_id) WHERE activa;
 
 --
 -- Name: idx_semanas_mes; Type: INDEX; Schema: public; Owner: -

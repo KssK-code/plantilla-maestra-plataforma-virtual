@@ -88,6 +88,7 @@ CREATE TABLE IF NOT EXISTS public.meses_contenido (
   numero_mes    INTEGER     NOT NULL,
   titulo        TEXT        NOT NULL,
   descripcion   TEXT,
+  activa        BOOLEAN     NOT NULL DEFAULT true,
   created_at    TIMESTAMPTZ NOT NULL DEFAULT NOW(),
   UNIQUE (materia_id, numero_mes)
 );
@@ -106,6 +107,7 @@ CREATE TABLE IF NOT EXISTS public.semanas (
   video_url_2              TEXT,
   video_url_3              TEXT,
   tiempo_estimado_minutos  INTEGER     NOT NULL DEFAULT 60,
+  activa                   BOOLEAN     NOT NULL DEFAULT true,
   created_at               TIMESTAMPTZ NOT NULL DEFAULT NOW(),
   UNIQUE (mes_id, numero_semana)
 );
@@ -745,7 +747,9 @@ CREATE INDEX IF NOT EXISTS idx_calificaciones_alumno    ON public.calificaciones
 CREATE INDEX IF NOT EXISTS idx_documentos_alumno        ON public.documentos_alumno (alumno_id);
 CREATE INDEX IF NOT EXISTS idx_notas_alumno             ON public.notas_alumno (alumno_id);
 CREATE INDEX IF NOT EXISTS idx_semanas_mes              ON public.semanas (mes_id);
+CREATE INDEX IF NOT EXISTS idx_semanas_activa           ON public.semanas (mes_id) WHERE activa;
 CREATE INDEX IF NOT EXISTS idx_meses_materia            ON public.meses_contenido (materia_id);
+CREATE INDEX IF NOT EXISTS idx_meses_contenido_activa   ON public.meses_contenido (materia_id) WHERE activa;
 CREATE INDEX IF NOT EXISTS idx_quiz_semana              ON public.quiz_semana (semana_id);
 CREATE INDEX IF NOT EXISTS idx_quiz_semana_activa       ON public.quiz_semana (semana_id) WHERE activa;
 CREATE INDEX IF NOT EXISTS idx_preguntas_activa         ON public.preguntas (evaluacion_id) WHERE activa;
