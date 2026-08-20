@@ -2,7 +2,7 @@ import { test, expect } from '@playwright/test'
 import { readFileSync } from 'node:fs'
 import { join } from 'node:path'
 import {
-  validarMateria, validarMes, validarSemana,
+  validarMateria, validarMes, validarSemana, validarOrden,
   CAMPOS_MATERIA, CAMPOS_MES, CAMPOS_SEMANA, NIVELES,
   ORDEN_MAX, NUMERO_MES_MAX, NUMERO_SEMANA_MAX,
   describirDependencias,
@@ -510,4 +510,32 @@ test('la lista del admin cuenta lo ACTIVO en los tres niveles', () => {
     expect(i, `no encontre el select de ${tabla}`).toBeGreaterThan(-1)
     expect(src.slice(i, i + 160), `${tabla} no filtra activa en la lista`).toContain("activa")
   }
+})
+
+// ─────────────── Reordenar (PARTE A) y la UI de estructura ──────────────────
+
+test('reordenar rechaza posiciones o ids repetidos', () => {
+  const dup = { tipo: 'semana', orden: [{ id: 'a', posicion: 1 }, { id: 'a', posicion: 2 }] }
+  expect(validarOrden(dup).ok).toBe(false)
+  const pos = { tipo: 'semana', orden: [{ id: 'a', posicion: 1 }, { id: 'b', posicion: 1 }] }
+  expect(validarOrden(pos).ok).toBe(false)
+  expect(validarOrden({ tipo: 'semana', orden: [{ id: 'a', posicion: 1 }, { id: 'b', posicion: 2 }] }).ok).toBe(true)
+})
+
+test('reordenar rechaza un tipo inventado y un lote vacio o enorme', () => {
+  expect(validarOrden({ tipo: 'materias', orden: [{ id: 'a', posicion: 1 }] }).ok).toBe(false)
+  expect(validarOrden({ tipo: 'semana', orden: [] }).ok).toBe(false)
+  const enorme = Array.from({ length: 501 }, (_, i) => ({ id: `id-${i}`, posicion: i + 1 }))
+  expect(validarOrden({ tipo: 'semana', orden: enorme }).ok).toBe(false)
+})
+
+test('reordenar comprueba que todos los ids son del MISMO padre', () => {
+  const src = leer('src/app/api/admin/contenido/orden/route.ts')
+  // Sin esto, un lote podria reescribir el numero_semana de semanas de otra
+  // materia. Se verifica ANTES de escribir nada.
+  expect(src).toMatch(/mes_id|materia_id/)
+  expect(src).toContain('409')
+  const iVerif = Math.min(src.indexOf('materia_id'), src.indexOf('mes_id'))
+  expect(iVerif, 'no encontre la verificacion de padre').toBeGreaterThan(-1)
+  expect(iVerif).toBeLessThan(src.indexOf('.update('))
 })

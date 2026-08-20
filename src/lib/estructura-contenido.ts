@@ -200,6 +200,89 @@ export function validarSemana(body: unknown, opciones: { crear: boolean }): Resu
   return { ok: true, datos }
 }
 
+// ── Reordenamiento en lote ───────────────────────────────────────────────────
+
+/** Los tres niveles que se pueden reordenar. Cada uno escribe en su columna:
+ *  materia→`orden`, mes→`numero_mes`, semana→`numero_semana`. */
+export const TIPOS_ORDEN = ['materia', 'mes', 'semana'] as const
+export type TipoOrden = (typeof TIPOS_ORDEN)[number]
+
+export const CAMPOS_ORDEN = ['tipo', 'orden'] as const
+export const CAMPOS_POSICION = ['id', 'posicion'] as const
+
+/** Tope del lote. No es capricho: sin transacción cada elemento es un viaje a
+ *  la base, y un lote enorme deja el árbol a medio renumerar durante segundos. */
+export const ORDEN_LOTE_MAX = 500
+
+export interface ItemOrden { id: string; posicion: number }
+export interface DatosOrden { tipo: TipoOrden; orden: ItemOrden[] }
+
+/** Rango de la columna de cada tipo. Mes y semana EMPIEZAN EN 1 (el alumno ve
+ *  "Mes 1"); `materias.orden` admite el 0. */
+const RANGO_ORDEN: Record<TipoOrden, { min: number; max: number; campo: string }> = {
+  materia: { min: 0, max: ORDEN_MAX,          campo: 'orden' },
+  mes:     { min: 1, max: NUMERO_MES_MAX,     campo: 'numero_mes' },
+  semana:  { min: 1, max: NUMERO_SEMANA_MAX,  campo: 'numero_semana' },
+}
+
+/**
+ * Valida un lote de reordenamiento. PURA: no mira la base.
+ *
+ * Lo que NO puede comprobar desde aquí —y es lo que de verdad importa— es que
+ * todos los ids cuelguen del MISMO padre. Eso lo cierra la ruta contra las
+ * filas, porque sin ello un lote renumeraría semanas de otra materia.
+ */
+export function validarOrden(body: unknown): Resultado<DatosOrden> {
+  const w = whitelist(body, CAMPOS_ORDEN)
+  if (!w.ok) return w
+  const b = w.datos
+
+  const tipo = b.tipo
+  if (typeof tipo !== 'string' || !(TIPOS_ORDEN as readonly string[]).includes(tipo)) {
+    return { ok: false, error: `tipo debe ser uno de: ${TIPOS_ORDEN.join(', ')}` }
+  }
+  const rango = RANGO_ORDEN[tipo as TipoOrden]
+
+  const lote = b.orden
+  if (!Array.isArray(lote)) return { ok: false, error: 'orden debe ser un array' }
+  if (lote.length === 0) return { ok: false, error: 'orden no puede venir vacío' }
+  if (lote.length > ORDEN_LOTE_MAX) {
+    return { ok: false, error: `orden no puede pasar de ${ORDEN_LOTE_MAX} elementos` }
+  }
+
+  const orden: ItemOrden[] = []
+  const ids = new Set<string>()
+  const posiciones = new Set<number>()
+
+  for (const [i, crudo] of lote.entries()) {
+    const item = whitelist(crudo, CAMPOS_POSICION)
+    if (!item.ok) return { ok: false, error: `orden[${i}]: ${item.error}` }
+
+    const id = item.datos.id
+    if (typeof id !== 'string' || !id.trim()) {
+      return { ok: false, error: `orden[${i}]: id debe ser texto no vacío` }
+    }
+    // Un id repetido significa dos posiciones para la misma fila: gana la
+    // última escritura y el lote deja un hueco donde el admin esperaba orden.
+    if (ids.has(id)) return { ok: false, error: `orden: el id ${id} viene repetido` }
+    ids.add(id)
+
+    const p = entero(item.datos.posicion, rango.min, rango.max, `orden[${i}].posicion`)
+    if (!p.ok) return p
+    // Una posición repetida es un empate: `meses_contenido` y `semanas` tienen
+    // UNIQUE (padre, número), así que ni siquiera entraría — y en `materias`,
+    // que no lo tiene, dejaría dos materias en el mismo puesto.
+    if (posiciones.has(p.datos)) {
+      return { ok: false, error: `orden: la posición ${p.datos} viene repetida` }
+    }
+    posiciones.add(p.datos)
+
+    orden.push({ id, posicion: p.datos })
+  }
+
+  return { ok: true, datos: { tipo: tipo as TipoOrden, orden } }
+}
+
 // ── Conteo de dependencias ───────────────────────────────────────────────────
 
 export interface Dependencias {
