@@ -27,7 +27,8 @@ export async function GET(
           semanas (
             id, numero_semana, titulo, descripcion, contenido,
             tiempo_estimado_minutos,
-            video_url, video_url_2, video_url_3
+            video_url, video_url_2, video_url_3,
+            semana_materiales ( id, nombre, tamano_bytes, orden, created_at )
           )
         )
       `)

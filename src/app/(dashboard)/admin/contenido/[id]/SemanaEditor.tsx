@@ -2,6 +2,7 @@
 
 import { Loader2, Save, Check, AlertCircle, Video } from 'lucide-react'
 import ApuntesEditor from './ApuntesEditor'
+import MaterialesPanel, { type Material } from './MaterialesPanel'
 import {
   TIEMPO_MIN, TIEMPO_MAX, TITULO_MAX, DESCRIPCION_MAX, URL_MAX,
   camposCambiados, type ValoresSemana, type CampoValor,
@@ -23,7 +24,9 @@ export type CampoTexto = Exclude<CampoValor, 'tiempo_estimado_minutos'>
 
 interface Props {
   numero: number
+  semanaId: string
   estado: SemanaState
+  materiales: Material[]
   onCampo: (campo: CampoTexto, valor: string) => void
   onTiempo: (minutos: number) => void
   onGuardar: () => void
@@ -61,7 +64,7 @@ const VIDEOS = [
   { field: 'video_url_3' as const, label: 'Video 3'             },
 ]
 
-export default function SemanaEditor({ numero, estado: v, onCampo, onTiempo, onGuardar }: Props) {
+export default function SemanaEditor({ numero, semanaId, estado: v, materiales, onCampo, onTiempo, onGuardar }: Props) {
   const cambiados = camposCambiados(v, v.inicial)
   const cambio = (c: CampoValor) => cambiados.includes(c)
   const dirty = cambiados.length > 0
@@ -116,6 +119,9 @@ export default function SemanaEditor({ numero, estado: v, onCampo, onTiempo, onG
 
       {/* Apuntes */}
       <ApuntesEditor valor={v.contenido} onChange={valor => onCampo('contenido', valor)} />
+
+      {/* Materiales (PDF) de la semana */}
+      <MaterialesPanel semanaId={semanaId} iniciales={materiales} />
 
       {/* Miniaturas de los tres videos */}
       <div className="flex gap-2">

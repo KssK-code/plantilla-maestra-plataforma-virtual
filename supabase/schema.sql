@@ -110,6 +110,23 @@ CREATE TABLE IF NOT EXISTS public.semanas (
   UNIQUE (mes_id, numero_semana)
 );
 
+-- ── SEMANA_MATERIALES ───────────────────────────────────────
+-- Los PDF que el admin sube a cada semana (F2 del CMS de contenido). TABLA y
+-- no una columna en `semanas`: una clase reparte varios archivos y con una
+-- columna el segundo borraría al primero sin avisar.
+-- `path` apunta al bucket privado 'materias'; el alumno NUNCA lo lee directo,
+-- pasa por /api/material/[id]. Ver
+-- supabase/migrations/20260819130000_cms_contenido_materiales.sql.
+CREATE TABLE IF NOT EXISTS public.semana_materiales (
+  id            UUID        PRIMARY KEY DEFAULT gen_random_uuid(),
+  semana_id     UUID        NOT NULL REFERENCES public.semanas(id) ON DELETE CASCADE,
+  nombre        TEXT        NOT NULL,
+  path          TEXT        NOT NULL,
+  tamano_bytes  BIGINT,
+  orden         INTEGER,
+  created_at    TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
 -- ── PROGRESO_SEMANAS ────────────────────────────────────────
 CREATE TABLE IF NOT EXISTS public.progreso_semanas (
   id                    UUID        PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -436,6 +453,7 @@ ALTER TABLE public.alumnos               ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.materias              ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.meses_contenido       ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.semanas               ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.semana_materiales     ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.progreso_semanas      ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.evaluaciones          ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.preguntas             ENABLE ROW LEVEL SECURITY;
@@ -538,6 +556,18 @@ CREATE POLICY "semanas: lectura autenticados"
 
 CREATE POLICY "semanas: admin gestiona"
   ON public.semanas FOR ALL
+  USING (public.es_admin());
+
+-- ── POLÍTICAS: SEMANA_MATERIALES ─────────────────────────────
+-- Metadatos (nombre, tamaño) legibles por cualquier autenticado, igual que
+-- `semanas`. El ARCHIVO no se abre con esto: el bucket 'materias' es privado
+-- y admin-only, y el alumno lo pide por /api/material/[id].
+CREATE POLICY "semana_materiales: lectura autenticados"
+  ON public.semana_materiales FOR SELECT
+  USING (auth.role() = 'authenticated');
+
+CREATE POLICY "semana_materiales: admin gestiona"
+  ON public.semana_materiales FOR ALL
   USING (public.es_admin());
 
 -- ── POLÍTICAS: PROGRESO_SEMANAS ──────────────────────────────
@@ -715,6 +745,7 @@ CREATE INDEX IF NOT EXISTS idx_notas_alumno             ON public.notas_alumno (
 CREATE INDEX IF NOT EXISTS idx_semanas_mes              ON public.semanas (mes_id);
 CREATE INDEX IF NOT EXISTS idx_meses_materia            ON public.meses_contenido (materia_id);
 CREATE INDEX IF NOT EXISTS idx_quiz_semana              ON public.quiz_semana (semana_id);
+CREATE INDEX IF NOT EXISTS idx_semana_materiales_semana ON public.semana_materiales (semana_id);
 CREATE INDEX IF NOT EXISTS idx_pagos_alumno             ON public.pagos (alumno_id);
 CREATE INDEX IF NOT EXISTS idx_pagos_created_at         ON public.pagos (created_at DESC);
 
@@ -724,7 +755,10 @@ CREATE INDEX IF NOT EXISTS idx_pagos_created_at         ON public.pagos (created
 --  (Ejecutar en SQL Editor de Supabase o desde el Dashboard)
 -- ============================================================
 
--- NOTA CLIENTES NUEVOS: los 4 buckets son necesarios desde el día 1.
+-- NOTA CLIENTES NUEVOS: estos 5 buckets son necesarios desde el día 1.
+-- ('cursos' NO está aquí a propósito: es del módulo opcional de Diplomados y
+--  vive en scripts/migracion-cursos-diplomados.sql, que solo se aplica a los
+--  clientes que lo contratan.)
 -- 'recibos' guarda los PDF de recibo de pago (Fase 3 Panel Admin Unificado);
 -- son archivos pequeños, de ahí el límite de 2MB.
 INSERT INTO storage.buckets (id, name, public, file_size_limit, allowed_mime_types)
@@ -732,7 +766,10 @@ VALUES
   ('avatares',    'avatares',    true,  5242880,   ARRAY['image/jpeg','image/png','image/webp']),
   ('documentos',  'documentos',  false, 10485760,  ARRAY['image/jpeg','image/png','application/pdf']),
   ('constancias', 'constancias', false, 10485760,  ARRAY['application/pdf','image/jpeg','image/png']),
-  ('recibos',     'recibos',     false, 2097152,   ARRAY['application/pdf'])
+  ('recibos',     'recibos',     false, 2097152,   ARRAY['application/pdf']),
+  -- F2: PDF de material por semana. Privado y SIN lectura para el alumno: se
+  -- sirve por GET /api/material/[id], que comprueba el acceso en TypeScript.
+  ('materias',    'materias',    false, 10485760,  ARRAY['application/pdf'])
 ON CONFLICT (id) DO NOTHING;
 
 -- Políticas de Storage
@@ -762,6 +799,27 @@ CREATE POLICY "documentos: ver propio"
 CREATE POLICY "documentos: subir propio"
   ON storage.objects FOR INSERT
   WITH CHECK (bucket_id = 'documentos' AND auth.uid()::TEXT = (storage.foldername(name))[1]);
+
+-- Materias (F2): SOLO admin, en las cuatro operaciones.
+-- El alumno NUNCA lee de este bucket. Pide GET /api/material/[id], que reusa
+-- tieneAccesoSemana() y firma con service role. Reproducir aquí la regla de
+-- acceso del alumno es exactamente lo que rompió las portadas de Cursos: la
+-- política y el path divergieron y la imagen salía en blanco SOLO para él.
+CREATE POLICY "materias: solo admin lee"
+  ON storage.objects FOR SELECT TO authenticated
+  USING (bucket_id = 'materias' AND public.es_admin());
+
+CREATE POLICY "materias: solo admin escribe"
+  ON storage.objects FOR INSERT TO authenticated
+  WITH CHECK (bucket_id = 'materias' AND public.es_admin());
+
+CREATE POLICY "materias: solo admin actualiza"
+  ON storage.objects FOR UPDATE TO authenticated
+  USING (bucket_id = 'materias' AND public.es_admin());
+
+CREATE POLICY "materias: solo admin borra"
+  ON storage.objects FOR DELETE TO authenticated
+  USING (bucket_id = 'materias' AND public.es_admin());
 
 -- Constancias: solo el dueño y admins
 CREATE POLICY "constancias: ver propio"

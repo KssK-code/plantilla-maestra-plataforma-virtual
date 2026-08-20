@@ -60,7 +60,22 @@ const EXCEPCIONES: Record<string, string> = {
 
 // Objetos individuales exentos aunque su migración NO lo esté.
 // (Hoy vacío a propósito: si necesitas uno, documenta el porqué.)
-const OBJETOS_EXENTOS = new Set<string>([])
+const OBJETOS_EXENTOS = new Set<string>([
+  // Políticas del bucket `materias` (F2, materiales PDF por semana:
+  // 20260819130000_cms_contenido_materiales.sql). scripts/schema.sql NO tiene
+  // ni una línea de storage —ni buckets ni políticas, para NINGÚN bucket—:
+  // esa capa la crea el pre-vuelo del onboarding, no este SQL. Y meterla aquí
+  // no sería solo desentonar: el DDL sobre storage.objects exige ser dueño de
+  // la tabla, así que con el rol del onboarding aborta el script ENTERO con
+  // "must be owner of table objects" y el cliente nuevo nace sin base de
+  // datos. Mismo trato que el módulo de Cursos, exento arriba en bloque.
+  // Lo que SÍ se exige y sí está reflejado: la tabla public.semana_materiales,
+  // su índice y sus dos políticas de RLS. Lo exento es solo el storage.
+  'materias: solo admin lee',
+  'materias: solo admin escribe',
+  'materias: solo admin actualiza',
+  'materias: solo admin borra',
+])
 
 function sinComentarios(sql: string): string {
   // Comentarios de línea completos y de bloque. Evita el falso positivo que ya

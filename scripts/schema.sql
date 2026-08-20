@@ -499,6 +499,20 @@ CREATE TABLE public.racha_actividad (
 );
 
 --
+-- Name: semana_materiales; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.semana_materiales (
+    id uuid DEFAULT gen_random_uuid() NOT NULL,
+    semana_id uuid NOT NULL,
+    nombre text NOT NULL,
+    path text NOT NULL,
+    tamano_bytes bigint,
+    orden integer,
+    created_at timestamp with time zone DEFAULT now() NOT NULL
+);
+
+--
 -- Name: semanas; Type: TABLE; Schema: public; Owner: -
 --
 
@@ -708,6 +722,13 @@ ALTER TABLE ONLY public.racha_actividad
     ADD CONSTRAINT racha_actividad_pkey PRIMARY KEY (id);
 
 --
+-- Name: semana_materiales semana_materiales_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.semana_materiales
+    ADD CONSTRAINT semana_materiales_pkey PRIMARY KEY (id);
+
+--
 -- Name: semanas semanas_mes_id_numero_semana_key; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -793,6 +814,12 @@ CREATE INDEX idx_progreso_semana ON public.progreso_semanas USING btree (semana_
 --
 
 CREATE INDEX idx_quiz_semana ON public.quiz_semana USING btree (semana_id);
+
+--
+-- Name: idx_semana_materiales_semana; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX idx_semana_materiales_semana ON public.semana_materiales USING btree (semana_id);
 
 --
 -- Name: idx_semanas_mes; Type: INDEX; Schema: public; Owner: -
@@ -979,6 +1006,13 @@ ALTER TABLE ONLY public.quiz_semana
 
 ALTER TABLE ONLY public.racha_actividad
     ADD CONSTRAINT racha_actividad_alumno_id_fkey FOREIGN KEY (alumno_id) REFERENCES public.alumnos(id) ON DELETE CASCADE;
+
+--
+-- Name: semana_materiales semana_materiales_semana_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.semana_materiales
+    ADD CONSTRAINT semana_materiales_semana_id_fkey FOREIGN KEY (semana_id) REFERENCES public.semanas(id) ON DELETE CASCADE;
 
 --
 -- Name: semanas semanas_mes_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
@@ -1335,6 +1369,24 @@ CREATE POLICY "racha: ver propia" ON public.racha_actividad FOR SELECT USING (((
 --
 
 ALTER TABLE public.racha_actividad ENABLE ROW LEVEL SECURITY;
+
+--
+-- Name: semana_materiales; Type: ROW SECURITY; Schema: public; Owner: -
+--
+
+ALTER TABLE public.semana_materiales ENABLE ROW LEVEL SECURITY;
+
+--
+-- Name: semana_materiales semana_materiales: admin gestiona; Type: POLICY; Schema: public; Owner: -
+--
+
+CREATE POLICY "semana_materiales: admin gestiona" ON public.semana_materiales USING (public.es_admin());
+
+--
+-- Name: semana_materiales semana_materiales: lectura autenticados; Type: POLICY; Schema: public; Owner: -
+--
+
+CREATE POLICY "semana_materiales: lectura autenticados" ON public.semana_materiales FOR SELECT USING ((auth.role() = 'authenticated'::text));
 
 --
 -- Name: semanas; Type: ROW SECURITY; Schema: public; Owner: -

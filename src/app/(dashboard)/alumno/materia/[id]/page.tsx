@@ -3,7 +3,7 @@
 
 import { useState, useEffect, useRef } from 'react'
 import { useRouter, useParams } from 'next/navigation'
-import { ArrowLeft, Loader2 } from 'lucide-react'
+import { ArrowLeft, FileText, Loader2 } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
 import VideoEmbed from '@/components/alumno/VideoEmbed'
 import ReadingProgress from '@/components/alumno/ReadingProgress'
@@ -26,6 +26,7 @@ interface Semana {
   id: string; numero: number; titulo: string; titulo_en: string
   contenido: string; contenido_en: string
   url_en: string; videos: Video[]
+  materiales: { id: string; nombre: string; tamano_bytes: number | null }[]
 }
 interface Evaluacion {
   id: string; titulo: string; titulo_en: string; tipo: string; intentos_max: number
@@ -328,6 +329,28 @@ export default function MateriaPage() {
 
                       {/* Contenido — Markdown renderizado (compartido con el editor del admin) */}
                       <ContenidoMarkdown texto={contenidoSemana} />
+
+                      {/* Materiales de la clase — el enlace va a la ruta gateada */}
+                      {semana.materiales?.length > 0 && (
+                        <div className="space-y-2 pt-1" style={{ borderTop: '1px solid #2A2F3E', paddingTop: '1rem' }}>
+                          <p className="text-xs font-medium" style={{ color: '#94A3B8' }}>
+                            Material de la clase
+                          </p>
+                          {semana.materiales.map(m => (
+                            <a
+                              key={m.id}
+                              href={`/api/material/${m.id}`}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="flex items-center gap-2 rounded-lg px-3 py-2 text-sm transition-all"
+                              style={{ background: '#0D1017', border: '1px solid #2A2F3E', color: '#F1F5F9' }}
+                            >
+                              <FileText className="w-4 h-4 flex-shrink-0" style={{ color: CONFIG.colores.acento }} />
+                              <span className="flex-1 min-w-0 truncate">{m.nombre}</span>
+                            </a>
+                          ))}
+                        </div>
+                      )}
 
                       {/* Videos — embebidos (YouTube iframe) */}
                       {semana.videos?.length > 0 && (
