@@ -499,3 +499,15 @@ test('las lecturas masivas se paginan: Supabase corta en max-rows', () => {
   // Y se ordena, o la paginación duplica y salta filas
   expect((src.match(/\.order\('id'\)/g) ?? []).length).toBe(3)
 })
+
+test('la lista del admin cuenta lo ACTIVO en los tres niveles', () => {
+  const src = leer('src/app/api/admin/contenido/route.ts')
+  // El numero que ve el admin tiene que ser lo que el alumno puede abrir. Las
+  // evaluaciones ya se filtraban del lado del alumno desde antes de F3, asi que
+  // contarlas todas aqui hacia divergir las dos vistas.
+  for (const tabla of ['meses_contenido', 'semanas', 'evaluaciones']) {
+    const i = src.indexOf(`.from('${tabla}')`)
+    expect(i, `no encontre el select de ${tabla}`).toBeGreaterThan(-1)
+    expect(src.slice(i, i + 160), `${tabla} no filtra activa en la lista`).toContain("activa")
+  }
+})

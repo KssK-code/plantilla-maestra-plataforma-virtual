@@ -78,10 +78,14 @@ export async function GET() {
       traerTodas<{ mes_id: string | null }>((desde, hasta) => admin
         .from('semanas').select('mes_id')
         .eq('activa', true).order('id').range(desde, hasta)),
-      // Las evaluaciones se cuentan TODAS, como hasta ahora: este endpoint
-      // nunca las filtró por `activa` y cambiar ese número no es parte de esto.
+      // Solo las evaluaciones ACTIVAS, igual que las semanas y los meses: el
+      // numero de esta lista tiene que ser lo que el alumno ve, y el alumno ya
+      // filtra `evaluaciones.activa` desde antes de F3
+      // (api/alumno/materia/[id]). Sin esto, archivar un examen lo retiraba
+      // para el alumno pero el admin seguia viendolo contado.
       traerTodas<{ materia_id: string | null }>((desde, hasta) => admin
-        .from('evaluaciones').select('materia_id').order('id').range(desde, hasta)),
+        .from('evaluaciones').select('materia_id')
+        .eq('activa', true).order('id').range(desde, hasta)),
     ])
 
     const materiaDeMes = new Map<string, string>()
