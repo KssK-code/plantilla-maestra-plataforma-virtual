@@ -107,12 +107,6 @@ CREATE TABLE IF NOT EXISTS public.semanas (
   video_url_3              TEXT,
   tiempo_estimado_minutos  INTEGER     NOT NULL DEFAULT 60,
   created_at               TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-  -- F1 del CMS de contenido: apuntes en Markdown y hasta tres videos. Este
-  -- espejo nacía sin ellas (scripts/schema.sql sí las tenía), así que el
-  -- cliente instalado desde aquí no podía guardar los apuntes.
-  contenido                TEXT,
-  video_url_2              TEXT,
-  video_url_3              TEXT,
   UNIQUE (mes_id, numero_semana)
 );
 

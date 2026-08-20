@@ -246,3 +246,33 @@ test('el redirect de descarga declara su estado, no hereda el default de Next', 
   // redirect que entrega una URL firmada, el estado se escribe.
   expect(src).toContain('NextResponse.redirect(url, 302)')
 })
+
+// ───────────── Ninguna tabla declara la misma columna dos veces ─────────────
+// Postgres rechaza `column "x" specified more than once`, asi que un duplicado
+// no es un detalle de estilo: revienta la instalacion del cliente nuevo.
+//
+// Paso de verdad al fusionar F2 con main: dos ramas anadieron las MISMAS tres
+// columnas a `semanas` en distinto sitio del mismo CREATE TABLE, git fusiono
+// sin conflicto y el resultado tenia contenido/video_url_2/video_url_3 por
+// duplicado. El guardian de deriva no lo ve: compara CONJUNTOS de columnas y un
+// Set deduplica por definicion.
+
+test('ningún CREATE TABLE declara una columna repetida', () => {
+  for (const archivo of ESQUEMAS) {
+    const sql = leer(archivo)
+    for (const m of sql.matchAll(/CREATE TABLE (?:IF NOT EXISTS )?(?:public\.)?(\w+)\s*\(([\s\S]*?)\n\s*\);/g)) {
+      const tabla = m[1]
+      const vistas = new Set<string>()
+      const repetidas: string[] = []
+      for (const linea of m[2].split('\n')) {
+        const c = linea.match(/^\s{2,}"?(\w+)"?\s+[A-Za-z]/)
+        if (!c) continue
+        const col = c[1]
+        if (/^(PRIMARY|UNIQUE|CHECK|CONSTRAINT|FOREIGN|EXCLUDE)$/i.test(col)) continue
+        if (vistas.has(col)) repetidas.push(col)
+        vistas.add(col)
+      }
+      expect(repetidas, `${archivo}: ${tabla} declara dos veces ${repetidas.join(', ')}`).toEqual([])
+    }
+  }
+})
