@@ -174,3 +174,97 @@ export function validarPregunta(
 
   return { ok: true, datos }
 }
+
+// ─── La evaluación en sí (no sus preguntas) ──────────────────────────────────
+
+export const CAMPOS_EVALUACION = [
+  'titulo', 'descripcion', 'tiempo_limite_minutos', 'intentos_permitidos',
+] as const
+
+export const TITULO_EVAL_MAX      = 300
+export const DESCRIPCION_EVAL_MAX = 2_000
+export const TIEMPO_EVAL_MIN      = 1
+export const TIEMPO_EVAL_MAX      = 600
+export const INTENTOS_MIN         = 1
+export const INTENTOS_MAX         = 20
+
+export interface DatosEvaluacion {
+  titulo?: string
+  descripcion?: string | null
+  tiempo_limite_minutos?: number
+  intentos_permitidos?: number
+}
+
+export type ResultadoEvaluacion =
+  | { ok: true; datos: DatosEvaluacion }
+  | { ok: false; error: string }
+
+/**
+ * Valida el cuerpo de una evaluación.
+ *
+ * `materia_id` y `mes_id` NO están en la whitelist a propósito: se derivan del
+ * mes por el que entra la petición. Aceptarlos del cliente permitiría colgar un
+ * examen de una materia ajena.
+ */
+export function validarEvaluacion(
+  body: unknown,
+  opciones: { crear: boolean },
+): ResultadoEvaluacion {
+  if (typeof body !== 'object' || body === null || Array.isArray(body)) {
+    return { ok: false, error: 'El cuerpo de la petición debe ser un objeto.' }
+  }
+
+  const claves = Object.keys(body)
+  const extras = claves.filter(k => !(CAMPOS_EVALUACION as readonly string[]).includes(k))
+  if (extras.length > 0) {
+    return {
+      ok: false,
+      error: `Campo no permitido: ${extras.join(', ')}. Solo se aceptan ${CAMPOS_EVALUACION.join(', ')}.`,
+    }
+  }
+  if (!opciones.crear && claves.length === 0) {
+    return { ok: false, error: 'No se envió ningún campo para actualizar.' }
+  }
+
+  const b = body as Record<string, unknown>
+  const datos: DatosEvaluacion = {}
+
+  if (claves.includes('titulo')) {
+    const r = texto(b.titulo, TITULO_EVAL_MAX, 'titulo')
+    if (!r.ok) return r
+    datos.titulo = r.valor
+  } else if (opciones.crear) {
+    return { ok: false, error: 'titulo es requerido' }
+  }
+
+  if (claves.includes('descripcion')) {
+    const v = b.descripcion
+    if (v === null || v === undefined) {
+      datos.descripcion = null
+    } else if (typeof v !== 'string') {
+      return { ok: false, error: 'descripcion debe ser texto' }
+    } else if (v.length > DESCRIPCION_EVAL_MAX) {
+      return { ok: false, error: `descripcion no puede pasar de ${DESCRIPCION_EVAL_MAX} caracteres` }
+    } else {
+      datos.descripcion = v.trim() || null
+    }
+  }
+
+  if (claves.includes('tiempo_limite_minutos')) {
+    const n = b.tiempo_limite_minutos
+    if (typeof n !== 'number' || !Number.isInteger(n) || n < TIEMPO_EVAL_MIN || n > TIEMPO_EVAL_MAX) {
+      return { ok: false, error: `tiempo_limite_minutos debe ser un entero entre ${TIEMPO_EVAL_MIN} y ${TIEMPO_EVAL_MAX}` }
+    }
+    datos.tiempo_limite_minutos = n
+  }
+
+  if (claves.includes('intentos_permitidos')) {
+    const n = b.intentos_permitidos
+    if (typeof n !== 'number' || !Number.isInteger(n) || n < INTENTOS_MIN || n > INTENTOS_MAX) {
+      return { ok: false, error: `intentos_permitidos debe ser un entero entre ${INTENTOS_MIN} y ${INTENTOS_MAX}` }
+    }
+    datos.intentos_permitidos = n
+  }
+
+  return { ok: true, datos }
+}

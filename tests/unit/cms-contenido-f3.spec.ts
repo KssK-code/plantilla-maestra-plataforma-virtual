@@ -1,7 +1,10 @@
 import { test, expect } from '@playwright/test'
 import { readFileSync } from 'node:fs'
 import { join } from 'node:path'
-import { validarPregunta, CAMPOS_PREGUNTA, CAMPOS_QUIZ, PREGUNTA_MAX, OPCION_MAX, ORDEN_MAX } from '@/lib/preguntas'
+import {
+  validarPregunta, CAMPOS_PREGUNTA, CAMPOS_QUIZ, PREGUNTA_MAX, OPCION_MAX, ORDEN_MAX,
+  validarEvaluacion, CAMPOS_EVALUACION, TITULO_EVAL_MAX, TIEMPO_EVAL_MAX, INTENTOS_MAX,
+} from '@/lib/preguntas'
 import { decidirRetirada } from '@/lib/retirar-contenido'
 
 /**
@@ -226,4 +229,156 @@ test('tocar una pregunta inexistente da 404 en las dos ramas del PATCH', () => {
   // La rama de `activa` tambien comprueba que la fila exista: antes devolvia
   // 200 {ok:true} sin haber cambiado nada.
   expect((patch.match(/Pregunta no encontrada/g) ?? []).length).toBe(2)
+})
+
+// ─────────────────── Validación de la evaluación en sí ──────────────────────
+
+test('la whitelist de la evaluación deja fuera materia_id y mes_id — se derivan', () => {
+  expect([...CAMPOS_EVALUACION]).toEqual([
+    'titulo', 'descripcion', 'tiempo_limite_minutos', 'intentos_permitidos',
+  ])
+  // Aceptarlos del cliente permitiria colgar un examen de una materia ajena
+  for (const clave of ['materia_id', 'mes_id']) {
+    const r = validarEvaluacion({ [clave]: 'otra' }, { crear: false })
+    expect(r.ok, clave).toBe(false)
+    if (!r.ok) expect(r.error).toContain(`Campo no permitido: ${clave}`)
+  }
+  // Y tampoco colandolos junto a un campo legitimo
+  expect(validarEvaluacion({ titulo: 'Examen', materia_id: 'otra' }, { crear: true }).ok).toBe(false)
+})
+
+test('crear una evaluación exige titulo, y no vale uno en blanco', () => {
+  expect(validarEvaluacion({}, { crear: true }).ok).toBe(false)
+  expect(validarEvaluacion({ titulo: '   ' }, { crear: true }).ok).toBe(false)
+  expect(validarEvaluacion({ titulo: 'a'.repeat(TITULO_EVAL_MAX + 1) }, { crear: true }).ok).toBe(false)
+  const r = validarEvaluacion({ titulo: '  Examen del mes 1  ' }, { crear: true })
+  expect(r.ok).toBe(true)
+  if (r.ok) expect(r.datos).toEqual({ titulo: 'Examen del mes 1' })
+})
+
+test('editar acepta un solo campo, pero no un cuerpo vacío', () => {
+  const r = validarEvaluacion({ intentos_permitidos: 2 }, { crear: false })
+  expect(r.ok).toBe(true)
+  if (r.ok) expect(Object.keys(r.datos)).toEqual(['intentos_permitidos'])
+  expect(validarEvaluacion({}, { crear: false }).ok).toBe(false)
+  expect(validarEvaluacion(null, { crear: false }).ok).toBe(false)
+  expect(validarEvaluacion([], { crear: false }).ok).toBe(false)
+})
+
+test('tiempo_limite_minutos es un entero entre 1 y 600', () => {
+  for (const malo of [0, -5, 601, 1.5, '60', null]) {
+    expect(validarEvaluacion({ tiempo_limite_minutos: malo }, { crear: false }).ok, String(malo)).toBe(false)
+  }
+  expect(validarEvaluacion({ tiempo_limite_minutos: 1 }, { crear: false }).ok).toBe(true)
+  expect(validarEvaluacion({ tiempo_limite_minutos: TIEMPO_EVAL_MAX }, { crear: false }).ok).toBe(true)
+  expect(TIEMPO_EVAL_MAX).toBe(600)
+})
+
+test('intentos_permitidos es un entero entre 1 y 20', () => {
+  // Cero intentos dejaria el examen imposible de presentar sin decirlo
+  for (const malo of [0, -1, 21, 2.5, '3', null]) {
+    expect(validarEvaluacion({ intentos_permitidos: malo }, { crear: false }).ok, String(malo)).toBe(false)
+  }
+  expect(validarEvaluacion({ intentos_permitidos: 1 }, { crear: false }).ok).toBe(true)
+  expect(validarEvaluacion({ intentos_permitidos: INTENTOS_MAX }, { crear: false }).ok).toBe(true)
+  expect(INTENTOS_MAX).toBe(20)
+})
+
+test('descripcion es opcional: null o vacía se guardan como null', () => {
+  for (const v of [null, '', '   ']) {
+    const r = validarEvaluacion({ descripcion: v }, { crear: false })
+    expect(r.ok, String(v)).toBe(true)
+    if (r.ok) expect(r.datos.descripcion).toBeNull()
+  }
+  expect(validarEvaluacion({ descripcion: 7 }, { crear: false }).ok).toBe(false)
+})
+
+// ───────────────── Rutas admin del examen mensual ───────────────────────────
+
+const RUTAS_EVAL = [
+  'src/app/api/admin/meses/[id]/evaluaciones/route.ts',
+  'src/app/api/admin/evaluaciones/[id]/route.ts',
+  'src/app/api/admin/evaluaciones/[id]/preguntas/route.ts',
+  'src/app/api/admin/preguntas/[id]/route.ts',
+]
+
+test('todas las rutas del examen exigen rol ADMIN', () => {
+  for (const r of RUTAS_EVAL) {
+    const src = leer(r)
+    expect(src, `${r} sin verifyAdmin`).toContain('verifyAdmin')
+    expect(src, `${r} usa verifyStaff`).not.toContain('verifyStaff')
+  }
+})
+
+test('la materia de una evaluación se deriva del mes, no se acepta del cliente', () => {
+  const src = leer('src/app/api/admin/meses/[id]/evaluaciones/route.ts')
+  expect(src).toContain('meses_contenido')
+  expect(src).toContain('materia_id')
+  // Colgar un examen de una materia ajena seria trivial si esto se leyera
+  expect(src).not.toMatch(/body\.materia_id/)
+  expect(src).not.toMatch(/body\.mes_id/)
+})
+
+test('las preguntas de examen se validan como examen, no como quiz', () => {
+  for (const r of [
+    'src/app/api/admin/evaluaciones/[id]/preguntas/route.ts',
+    'src/app/api/admin/preguntas/[id]/route.ts',
+  ]) {
+    const src = leer(r)
+    expect(src, `${r}`).toContain("tipo: 'examen'")
+    // Con tipo 'quiz' se colaria `explicacion`, columna que preguntas NO tiene
+    expect(src, `${r} valida como quiz`).not.toContain("tipo: 'quiz'")
+  }
+})
+
+test('preguntas.opcion_d es NOT NULL: se inserta cadena vacía, no null', () => {
+  const src = leer('src/app/api/admin/evaluaciones/[id]/preguntas/route.ts')
+  expect(src).toContain('opcion_d')
+  expect(src).toMatch(/opcion_d[^\n]*\?\?\s*''/)
+})
+
+test('borrar una evaluación suma intentos Y calificaciones antes de decidir', () => {
+  const src = leer('src/app/api/admin/evaluaciones/[id]/route.ts')
+  const del = src.slice(src.indexOf('export async function DELETE'))
+  expect(del).toContain("from('intentos_evaluacion')")
+  expect(del).toContain("from('calificaciones')")
+  expect(del).toContain('decidirRetirada')
+  expect(del.indexOf('decidirRetirada')).toBeLessThan(del.indexOf('.delete()'))
+})
+
+test('borrar una pregunta de examen mira los intentos de SU evaluación', () => {
+  const src = leer('src/app/api/admin/preguntas/[id]/route.ts')
+  const del = src.slice(src.indexOf('export async function DELETE'))
+  expect(del).toContain("from('intentos_evaluacion')")
+  expect(del).toContain('evaluacion_id')
+})
+
+test('las cuatro rutas archivan antes de borrar', () => {
+  for (const r of ['src/app/api/admin/evaluaciones/[id]/route.ts', 'src/app/api/admin/preguntas/[id]/route.ts']) {
+    const src = leer(r)
+    const del = src.slice(src.indexOf('export async function DELETE'))
+    expect(del, `${r}`).toContain('activa: false')
+    expect(del.indexOf('activa: false'), `${r}`).toBeLessThan(del.indexOf('.delete()'))
+  }
+})
+
+test('el borrado del examen vuelve a contar después de archivar', () => {
+  // El conteo y el DELETE son dos viajes sin transaccion: sin el segundo
+  // conteo, un intento que llega entre medias se iria con el CASCADE.
+  for (const r of ['src/app/api/admin/evaluaciones/[id]/route.ts', 'src/app/api/admin/preguntas/[id]/route.ts']) {
+    const src = leer(r)
+    const del = src.slice(src.indexOf('export async function DELETE'))
+    expect((del.match(/await contar\(\)/g) ?? []).length, `${r}`).toBe(2)
+  }
+})
+
+test('tocar una evaluación o pregunta inexistente da 404 en las dos ramas del PATCH', () => {
+  for (const [r, msg] of [
+    ['src/app/api/admin/evaluaciones/[id]/route.ts', 'Evaluación no encontrada'],
+    ['src/app/api/admin/preguntas/[id]/route.ts', 'Pregunta no encontrada'],
+  ] as const) {
+    const src = leer(r)
+    const patch = src.slice(src.indexOf('export async function PATCH'), src.indexOf('export async function DELETE'))
+    expect((patch.match(new RegExp(msg, 'g')) ?? []).length, r).toBe(2)
+  }
 })
