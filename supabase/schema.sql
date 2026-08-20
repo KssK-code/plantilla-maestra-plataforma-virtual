@@ -756,7 +756,10 @@ CREATE INDEX IF NOT EXISTS idx_pagos_created_at         ON public.pagos (created
 --  (Ejecutar en SQL Editor de Supabase o desde el Dashboard)
 -- ============================================================
 
--- NOTA CLIENTES NUEVOS: los 4 buckets son necesarios desde el día 1.
+-- NOTA CLIENTES NUEVOS: estos 5 buckets son necesarios desde el día 1.
+-- ('cursos' NO está aquí a propósito: es del módulo opcional de Diplomados y
+--  vive en scripts/migracion-cursos-diplomados.sql, que solo se aplica a los
+--  clientes que lo contratan.)
 -- 'recibos' guarda los PDF de recibo de pago (Fase 3 Panel Admin Unificado);
 -- son archivos pequeños, de ahí el límite de 2MB.
 INSERT INTO storage.buckets (id, name, public, file_size_limit, allowed_mime_types)
@@ -764,7 +767,10 @@ VALUES
   ('avatares',    'avatares',    true,  5242880,   ARRAY['image/jpeg','image/png','image/webp']),
   ('documentos',  'documentos',  false, 10485760,  ARRAY['image/jpeg','image/png','application/pdf']),
   ('constancias', 'constancias', false, 10485760,  ARRAY['application/pdf','image/jpeg','image/png']),
-  ('recibos',     'recibos',     false, 2097152,   ARRAY['application/pdf'])
+  ('recibos',     'recibos',     false, 2097152,   ARRAY['application/pdf']),
+  -- F2: PDF de material por semana. Privado y SIN lectura para el alumno: se
+  -- sirve por GET /api/material/[id], que comprueba el acceso en TypeScript.
+  ('materias',    'materias',    false, 10485760,  ARRAY['application/pdf'])
 ON CONFLICT (id) DO NOTHING;
 
 -- Políticas de Storage
@@ -794,6 +800,27 @@ CREATE POLICY "documentos: ver propio"
 CREATE POLICY "documentos: subir propio"
   ON storage.objects FOR INSERT
   WITH CHECK (bucket_id = 'documentos' AND auth.uid()::TEXT = (storage.foldername(name))[1]);
+
+-- Materias (F2): SOLO admin, en las cuatro operaciones.
+-- El alumno NUNCA lee de este bucket. Pide GET /api/material/[id], que reusa
+-- tieneAccesoSemana() y firma con service role. Reproducir aquí la regla de
+-- acceso del alumno es exactamente lo que rompió las portadas de Cursos: la
+-- política y el path divergieron y la imagen salía en blanco SOLO para él.
+CREATE POLICY "materias: solo admin lee"
+  ON storage.objects FOR SELECT TO authenticated
+  USING (bucket_id = 'materias' AND public.es_admin());
+
+CREATE POLICY "materias: solo admin escribe"
+  ON storage.objects FOR INSERT TO authenticated
+  WITH CHECK (bucket_id = 'materias' AND public.es_admin());
+
+CREATE POLICY "materias: solo admin actualiza"
+  ON storage.objects FOR UPDATE TO authenticated
+  USING (bucket_id = 'materias' AND public.es_admin());
+
+CREATE POLICY "materias: solo admin borra"
+  ON storage.objects FOR DELETE TO authenticated
+  USING (bucket_id = 'materias' AND public.es_admin());
 
 -- Constancias: solo el dueño y admins
 CREATE POLICY "constancias: ver propio"

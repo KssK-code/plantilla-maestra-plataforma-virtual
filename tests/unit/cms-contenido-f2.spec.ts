@@ -66,7 +66,12 @@ test('los espejos dejan de nacer sin las columnas que F1 hizo editables', () => 
     const ddl = leer(archivo).match(/CREATE TABLE (?:IF NOT EXISTS )?public\.semanas[\s\S]*?\n\);/)?.[0] ?? ''
     expect(ddl, `${archivo}: no encontré el DDL de semanas`).not.toBe('')
     for (const col of ['contenido', 'video_url_2', 'video_url_3']) {
-      expect(ddl, `${archivo}: semanas sin ${col}`).toContain(col)
+      // Declaración REAL de columna, no una subcadena. Con toContain, este test
+      // daba un PASS falso para `contenido`: esa cadena ya aparecía dentro de
+      // `REFERENCES public.meses_contenido(id)`, así que la aserción pasaba
+      // aunque la columna no existiera — que es justo el caso que vigila.
+      expect(ddl, `${archivo}: semanas sin la columna ${col}`)
+        .toMatch(new RegExp(`^\\s*${col}\\s+(?:text|TEXT)\\b`, 'm'))
     }
   }
 })
