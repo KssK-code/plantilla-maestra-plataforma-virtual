@@ -110,6 +110,9 @@ export async function POST(
       semanaIds = (semanas ?? []).map((s: { id: string }) => s.id)
 
       if (semanaIds.length > 0) {
+        // SIN filtro de `activa`: aquí se recogen los ids para BORRAR las
+        // respuestas del alumno. Filtrar dejaría huérfanas las de preguntas
+        // archivadas.
         const { data: quizzes } = await admin
           .from('quiz_semana')
           .select('id')

@@ -382,3 +382,52 @@ test('tocar una evaluación o pregunta inexistente da 404 en las dos ramas del P
     expect((patch.match(new RegExp(msg, 'g')) ?? []).length, r).toBe(2)
   }
 })
+
+// ───────── `activa` se filtra al LISTAR, nunca al CALIFICAR ─────────────────
+// Un filtro puesto donde no toca cambia la nota de un alumno. Estas pruebas
+// existen para que el barrido no se "complete" por inercia mas adelante.
+
+test('el alumno no ve las preguntas archivadas al abrir quiz y examen', () => {
+  const quiz = leer('src/app/api/alumno/quiz/[semanaId]/route.ts')
+  // OJO: `.eq('semana_id'` tambien aparece antes, leyendo quiz_respuestas. El
+  // select que LISTA es el de quiz_semana dentro del GET: se ancla ahi.
+  const iTabla = quiz.indexOf("from('quiz_semana')", quiz.indexOf('export async function GET'))
+  expect(iTabla, 'no encontre el select de quiz_semana en el GET').toBeGreaterThan(-1)
+  const iListar = quiz.indexOf(".eq('semana_id'", iTabla)
+  expect(iListar, 'no encontre el select por semana_id').toBeGreaterThan(-1)
+  expect(quiz.slice(iListar - 300, iListar + 300), 'el listado del quiz no filtra activa').toContain('activa')
+
+  const ev = leer('src/app/api/alumno/evaluacion/[id]/route.ts')
+  const iEv = ev.indexOf("from('preguntas')")
+  expect(ev.slice(iEv, iEv + 400), 'el listado del examen no filtra activa').toContain("activa")
+})
+
+test('CALIFICAR nunca filtra activa: archivar a mitad no puede cambiar la nota', () => {
+  const enviar = leer('src/app/api/alumno/evaluacion/[id]/enviar/route.ts')
+  const i = enviar.indexOf("from('preguntas')")
+  expect(i, 'no encontre el select de preguntas en enviar').toBeGreaterThan(-1)
+  // Se mira solo la CADENA de la query, no los comentarios de alrededor
+  const query = enviar.slice(i, enviar.indexOf('\n\n', i))
+  expect(query, 'el calificador filtra activa y no debe').not.toContain(".eq('activa'")
+
+  const quiz = leer('src/app/api/alumno/quiz/[semanaId]/route.ts')
+  const j = quiz.indexOf(".in('id', ids)")
+  expect(j, 'no encontre el select por ids en quiz').toBeGreaterThan(-1)
+  expect(quiz.slice(j - 200, j + 100), 'el calificador del quiz filtra activa').not.toContain(".eq('activa'")
+})
+
+test('cerrar-mes recoge TODOS los ids de quiz, tambien los archivados', () => {
+  const cerrar = leer('src/app/api/admin/alumnos/[id]/cerrar-mes/route.ts')
+  const i = cerrar.indexOf("from('quiz_semana')")
+  expect(i).toBeGreaterThan(-1)
+  const query = cerrar.slice(i, i + 250)
+  // Filtrar aqui dejaria huerfanas las respuestas de preguntas archivadas
+  expect(query, 'cerrar-mes filtra activa').not.toContain(".eq('activa'")
+})
+
+test('el avance del admin cuenta lo que el alumno respondio, archivado o no', () => {
+  const avance = leer('src/app/api/admin/alumnos/[id]/avance/route.ts')
+  const i = avance.indexOf("from('quiz_semana')")
+  expect(i).toBeGreaterThan(-1)
+  expect(avance.slice(i, i + 200), 'el avance filtra activa').not.toContain(".eq('activa'")
+})

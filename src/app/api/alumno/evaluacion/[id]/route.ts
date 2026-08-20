@@ -55,6 +55,9 @@ export async function GET(
       .from('preguntas')
       .select('id, orden, pregunta, opcion_a, opcion_b, opcion_c, opcion_d, respuesta_correcta')
       .eq('evaluacion_id', params.id)
+      // Solo las activas: una pregunta archivada deja de servirse, aunque lo
+      // que el alumno ya respondió de ella se siga calificando igual.
+      .eq('activa', true)
       .order('orden')
 
     if (pregError) return NextResponse.json({ error: pregError.message }, { status: 500 })

@@ -106,6 +106,8 @@ export async function GET(
     const respuestas = ((respuestasRaw ?? []) as { quiz_id: string; fecha: string | null }[])
     const quizIds = [...new Set(respuestas.map(r => r.quiz_id).filter(Boolean))]
 
+    // SIN filtro de `activa`: el avance se calcula sobre lo que el alumno YA
+    // respondió. Una pregunta archivada que contestó sigue contando igual.
     const { data: quizzesRaw } = quizIds.length > 0
       ? await admin.from('quiz_semana').select('id, semana_id').in('id', quizIds)
       : { data: [] }

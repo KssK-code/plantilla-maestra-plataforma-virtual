@@ -192,6 +192,9 @@ async function saveRespuestasLegacy(
   const ids = Object.keys(respuestas)
   if (ids.length === 0) return { error: null as null }
 
+  // SIN filtro de `activa` a propósito: esto CALIFICA lo que el alumno ya
+  // respondió. Si el admin archiva una pregunta con el examen abierto,
+  // filtrar aquí le cambiaría la nota.
   const { data: rows, error: qErr } = await supabase
     .from('quiz_semana')
     .select('id, respuesta_correcta')
@@ -257,6 +260,9 @@ export async function GET(
       .from('quiz_semana')
       .select('*')
       .eq('semana_id', semanaId)
+      // Solo las activas: una pregunta archivada deja de servirse, aunque lo
+      // que el alumno ya respondió de ella se siga calificando igual.
+      .eq('activa', true)
       .order('orden', { ascending: true })
 
     if (quizErr) {
