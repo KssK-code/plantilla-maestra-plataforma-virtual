@@ -40,16 +40,23 @@ Editar SOLO este archivo: src/lib/config.ts
    > | `scripts/schema.sql` | **Línea tradicional.** Se mantiene a mano. | `mev-onboarding.py` (TAREA 3, paso 1), este documento, `INSTRUCCIONES-NUEVO-CLIENTE.md`, `scripts/README.md` |
    > | `supabase/schema.sql` | **Línea Solo-Cursos** y desarrollo local con la cadena de migraciones. | `INSTRUCCIONES-SOLO-CURSOS.md`, `supabase db reset` |
    >
-   > La diferencia que queda es de **políticas de storage**: solo
-   > `supabase/schema.sql` declara las 9 de los buckets `avatares`,
-   > `documentos`, `constancias` y `recibos`. Por la ruta de este documento
-   > esas políticas se crean en el paso 6 (Storage), así que no falta nada.
+   > **`supabase/schema.sql` es hoy un superconjunto estricto de
+   > `scripts/schema.sql`**: mismas 22 tablas, mismas columnas, 13 funciones,
+   > 3 triggers y 22 RLS — más las **9 políticas de storage** de los buckets
+   > `avatares`, `documentos`, `constancias` y `recibos`, que solo él declara.
+   > Por la ruta de este documento esas políticas se crean en el paso 9
+   > (Buckets de Storage), así que tampoco falta nada aquí.
+   >
+   > Los dos archivos los vigila **`tests/unit/guardian-schema-onboarding.spec.ts`
+   > en ambas direcciones**: que todo `CREATE` de `supabase/migrations/` llegue a
+   > `scripts/schema.sql`, y que toda columna de `scripts/schema.sql` exista
+   > también en `supabase/schema.sql`. Si agregas algo a uno, el guardián te
+   > exige el otro.
    >
    > *Historia:* hasta ago-2026 `supabase/schema.sql` no traía
    > `semanas.contenido`, `video_url_2` ni `video_url_3`, y usarlo aquí hacía
    > reventar el seed del paso 3 con *column "video_url_2" does not exist*.
-   > Ya no: ambos archivos declaran las mismas columnas. Ver **Bug 99** del
-   > PLAYBOOK.
+   > **Esa advertencia ya no aplica.** Ver **Bug 99** del PLAYBOOK.
 
    (Al correrlo verás `ERROR: schema "public" already exists` en la línea 28:
    es inofensivo — toda base de Postgres ya trae `public`. Continúa solo.)
@@ -121,10 +128,10 @@ Editar SOLO este archivo: src/lib/config.ts
 
    | Bucket | Privacidad | Límite | Lo crea | Notas |
    |---|---|---|---|---|
-   | `avatares` | **público** | 5 MB | `supabase/schema.sql:688` | ⚠️ ver aviso abajo |
-   | `documentos` | privado | 10 MB | `supabase/schema.sql:689` | documentos del alumno + la constancia |
-   | `constancias` | privado | 10 MB | `supabase/schema.sql:690` | declarado pero **sin uso en la app** hoy |
-   | `recibos` | privado | 2 MB | `supabase/schema.sql:691` + `migrations/20260716140000` | recibos de pago |
+   | `avatares` | **público** | 5 MB | `supabase/schema.sql` → `INSERT INTO storage.buckets` | ⚠️ ver aviso abajo |
+   | `documentos` | privado | 10 MB | idem | documentos del alumno + la constancia |
+   | `constancias` | privado | 10 MB | idem | declarado pero **sin uso en la app** hoy |
+   | `recibos` | privado | 2 MB | idem + `migrations/20260716140000` | recibos de pago |
    | `cursos` | privado | 10 MB | `scripts/migracion-cursos-diplomados.sql:241` | portadas y PDF de Cursos y Diplomados |
 
    > ⚠️ **Discrepancia conocida `avatares` vs `avatars`.** El schema crea el bucket
