@@ -80,6 +80,17 @@ Igual que `SETUP.md`, **más el módulo de Cursos, que aquí no es opcional**:
 | Parches de seguridad | los tres `20260729*` |
 | Línea Solo-Cursos | los `20260730*`, en orden (B1 → B2 → B3 → B4 → B6 → B7) |
 
+> **El schema base de esta línea es `supabase/schema.sql`, a propósito** — no lo
+> cambies por `scripts/schema.sql` aunque `SETUP.md` use ese otro. Solo
+> `supabase/schema.sql` declara las 9 políticas de storage (`avatares`,
+> `documentos`, `constancias`, `recibos`), y repuntar aquí las perdería.
+> Las tablas `cursos` y `curso_inscripciones` no salen de ningún schema base:
+> las crea `scripts/migracion-cursos-diplomados.sql`, el paso siguiente.
+>
+> Hasta ago-2026 este archivo además no traía `semanas.contenido`,
+> `video_url_2` ni `video_url_3`; ya no es el caso
+> (`20260819120000_bootstrap_drift_semanas.sql`, Bug 99 del PLAYBOOK).
+
 **Puedes saltarte** `scripts/setup.sql` (el seed de materias, meses y las 265
 preguntas del programa). Un cliente Solo-Cursos no usa nada de eso, y sembrarlo
 solo deja tablas llenas que nadie consulta.

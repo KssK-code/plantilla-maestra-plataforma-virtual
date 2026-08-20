@@ -30,14 +30,29 @@ Editar SOLO este archivo: src/lib/config.ts
 
 1. supabase.com → New project
 2. **Schema base** → ejecutar `scripts/schema.sql` completo
-   ⚠️ **`scripts/schema.sql`, NO `supabase/schema.sql`.** Los dos existen y no son
-   iguales: solo el de `scripts/` trae `semanas.video_url_2` y `video_url_3`, y
-   el seed del paso 3 las necesita. Con `supabase/schema.sql` el seed revienta en
-   `seed-contenido-ivs.sql` con *column "video_url_2" does not exist*. Verificado
-   en B8; `INSTRUCCIONES-NUEVO-CLIENTE.md` ya apuntaba al correcto.
+
+   > **Hay DOS instaladores de esquema y no son intercambiables.** Desde
+   > `20260819120000_bootstrap_drift_semanas.sql` ya no divergen en columnas,
+   > pero siguen sirviendo a rutas distintas:
+   >
+   > | Archivo | Para qué | Quién lo usa |
+   > |---|---|---|
+   > | `scripts/schema.sql` | **Línea tradicional.** Se mantiene a mano. | `mev-onboarding.py` (TAREA 3, paso 1), este documento, `INSTRUCCIONES-NUEVO-CLIENTE.md`, `scripts/README.md` |
+   > | `supabase/schema.sql` | **Línea Solo-Cursos** y desarrollo local con la cadena de migraciones. | `INSTRUCCIONES-SOLO-CURSOS.md`, `supabase db reset` |
+   >
+   > La diferencia que queda es de **políticas de storage**: solo
+   > `supabase/schema.sql` declara las 9 de los buckets `avatares`,
+   > `documentos`, `constancias` y `recibos`. Por la ruta de este documento
+   > esas políticas se crean en el paso 6 (Storage), así que no falta nada.
+   >
+   > *Historia:* hasta ago-2026 `supabase/schema.sql` no traía
+   > `semanas.contenido`, `video_url_2` ni `video_url_3`, y usarlo aquí hacía
+   > reventar el seed del paso 3 con *column "video_url_2" does not exist*.
+   > Ya no: ambos archivos declaran las mismas columnas. Ver **Bug 99** del
+   > PLAYBOOK.
+
    (Al correrlo verás `ERROR: schema "public" already exists` en la línea 28:
-   es inofensivo — el archivo es un `pg_dump` y toda base de Postgres ya trae
-   `public`. Continúa solo.)
+   es inofensivo — toda base de Postgres ya trae `public`. Continúa solo.)
 3. **Seed de contenido** → ejecutar `scripts/setup.sql`
    ⚠️ **Desde dentro de `scripts/`**, no desde la raíz del repo: usa `\i` con
    rutas relativas al *directorio de trabajo*, así que `psql -f scripts/setup.sql`
