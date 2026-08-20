@@ -16,6 +16,7 @@ interface Semana {
   video_url:   string | null
   video_url_2: string | null
   video_url_3: string | null
+  semana_materiales: { id: string; nombre: string; tamano_bytes: number | null }[]
 }
 
 interface Mes {
@@ -341,7 +342,9 @@ export default function ContenidoDetallePage() {
                           <SemanaEditor
                             key={sem.id}
                             numero={sem.numero_semana}
+                            semanaId={sem.id}
                             estado={v}
+                            materiales={sem.semana_materiales ?? []}
                             onCampo={(campo, valor) => handleCampo(sem.id, campo, valor)}
                             onTiempo={minutos => handleTiempo(sem.id, minutos)}
                             onGuardar={() => guardar(sem.id)}

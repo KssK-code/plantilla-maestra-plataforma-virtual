@@ -213,3 +213,21 @@ test('las APIs devuelven metadatos, no URLs firmadas por adelantado', () => {
     expect(src, `${r} firma URLs por adelantado (N+1 de red)`).not.toContain('createSignedUrl')
   }
 })
+
+test('los materiales no entran en el diff de campos de la semana', () => {
+  const lib = leer('src/lib/contenido-semana.ts')
+  expect(lib).not.toContain('materiales')          // CAMPOS_VALOR sigue con 7
+  const editor = leer('src/app/(dashboard)/admin/contenido/[id]/SemanaEditor.tsx')
+  expect(editor).toContain('MaterialesPanel')
+})
+
+test('el panel valida el PDF antes de pedir la URL de subida', () => {
+  const src = leer('src/app/(dashboard)/admin/contenido/[id]/MaterialesPanel.tsx')
+  // La MISMA funcion que valida el servidor: cliente y servidor no pueden
+  // discrepar sobre que es un PDF valido.
+  expect(src).toContain('validarMaterial')
+  // La subida pasa por el helper compartido, no reimplementa los tres pasos
+  expect(src).toContain('subirArchivo')
+  expect(src).not.toContain('uploadToSignedUrl')
+  expect(src).toContain('/api/material/')          // el enlace de descarga
+})
