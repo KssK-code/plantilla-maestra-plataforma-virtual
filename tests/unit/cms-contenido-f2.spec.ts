@@ -1,6 +1,10 @@
 import { test, expect } from '@playwright/test'
 import { readFileSync } from 'node:fs'
 import { join } from 'node:path'
+import {
+  BUCKET_MATERIAS, MATERIALES_MAX_POR_SEMANA,
+  materialPathSemana, nombreVisible, validarRutaMaterial,
+} from '@/lib/materiales-semana'
 
 /**
  * CMS de Contenido — F2 (materiales PDF por semana).
@@ -105,4 +109,40 @@ test('el uploader de cliente tambien recibe el bucket como parametro', () => {
   expect(comun).not.toContain('BUCKET_CURSOS')
   const cursos = leer('src/lib/cursos/upload.ts')
   expect(cursos).toContain("from '@/lib/upload-comun'")
+})
+
+// ───────────────────── Rutas y nombres de material ──────────────────────────
+
+test('la ruta lleva materia y semana, en ese orden', () => {
+  const p = materialPathSemana('MAT', 'SEM', 'Guía de estudio.pdf', 1700000000000)
+  expect(p.startsWith('MAT/SEM/')).toBe(true)
+  // Nombre saneado: sin acentos, sin espacios, minúsculas
+  expect(p).toContain('guia-de-estudio.pdf')
+  expect(p).toContain('1700000000000-')
+})
+
+test('el nombre visible conserva el original, no el saneado', () => {
+  expect(nombreVisible('Guía de estudio.pdf')).toBe('Guía de estudio.pdf')
+  expect(nombreVisible('   ')).toBe('material.pdf')
+  expect(nombreVisible('a'.repeat(300)).length).toBeLessThanOrEqual(200)
+})
+
+test('una ruta que se sale de su carpeta se rechaza', () => {
+  const ok = validarRutaMaterial('MAT/SEM/1700000000000-guia.pdf', 'MAT', 'SEM')
+  expect(ok.ok).toBe(true)
+  for (const mala of [
+    'OTRA/SEM/1-guia.pdf',            // otra materia
+    'MAT/OTRA/1-guia.pdf',            // otra semana
+    'MAT/SEM/sub/1-guia.pdf',         // subcarpeta
+    'MAT/SEM/../../otro.pdf',         // escape
+    'MAT/SEM/',                       // sin archivo
+    '',                               // vacía
+  ]) {
+    expect(validarRutaMaterial(mala, 'MAT', 'SEM').ok, mala).toBe(false)
+  }
+})
+
+test('hay un tope de materiales por semana', () => {
+  expect(MATERIALES_MAX_POR_SEMANA).toBeGreaterThan(0)
+  expect(BUCKET_MATERIAS).toBe('materias')
 })
