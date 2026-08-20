@@ -18,6 +18,9 @@ export async function GET(
     // Usar admin client para bypass RLS
     const admin = createAdminClient()
 
+    // SIN filtro de `activa` en meses ni en semanas: este es el EDITOR. El admin
+    // tiene que ver lo archivado —marcado como tal— para poder restaurarlo; si
+    // se filtrara aquí, retirar una semana sería indistinguible de borrarla.
     const { data: materia, error } = await admin
       .from('materias')
       .select(`

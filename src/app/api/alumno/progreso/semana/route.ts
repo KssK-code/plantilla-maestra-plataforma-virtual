@@ -111,10 +111,16 @@ export async function POST(request: NextRequest) {
     if (gate.materiaId) {
       const materia_id = gate.materiaId
 
+      // Solo lo ACTIVO, en los dos niveles: el logro se otorga cuando el alumno
+      // termina lo que se le sirve. Un mes o una semana que el admin retiró ya
+      // no aparecen en su materia, así que exigírselos dejaría el logro
+      // inalcanzable para siempre — y contarlos como progreso tampoco vale: la
+      // parte de abajo mide contra ESTOS mismos ids.
       const { data: mesesDeMateria } = await supabase
         .from('meses_contenido')
         .select('id')
         .eq('materia_id', materia_id)
+        .eq('activa', true)
 
       const mesIds = ((mesesDeMateria ?? []) as { id: string }[]).map(m => m.id)
 
@@ -122,6 +128,7 @@ export async function POST(request: NextRequest) {
         .from('semanas')
         .select('id')
         .in('mes_id', mesIds.length > 0 ? mesIds : ['00000000-0000-0000-0000-000000000000'])
+        .eq('activa', true)
 
       const semanaIds  = ((semanasDeMateria ?? []) as { id: string }[]).map(s => s.id)
       const totalSemanas = semanaIds.length

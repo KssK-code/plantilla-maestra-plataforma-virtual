@@ -344,3 +344,126 @@ test('el padre no se acepta del cliente al crear', () => {
   expect([...CAMPOS_SEMANA] as string[], 'la semana acepta su mes del cliente').not.toContain('mes_id')
   expect([...CAMPOS_MES] as string[], 'el mes acepta su materia del cliente').not.toContain('materia_id')
 })
+
+// ───────── `activa` se filtra al LISTAR, nunca al CALIFICAR ni al BORRAR ────
+// Mismo criterio que F3 (ver cms-contenido-f3.spec.ts). La regla no es
+// "filtrar en todas partes", es por INTENCIÓN:
+//   SÍ  → donde se LISTA contenido al alumno, y donde se CUENTA lo que va a ver.
+//   NO  → donde se mide lo que YA hizo (avance), donde se recogen ids para
+//         BORRAR sus datos (cerrar-mes), y en el editor del admin, que tiene que
+//         seguir viendo lo archivado para poder restaurarlo.
+// Estas pruebas existen para que el barrido no se "complete" por inercia dentro
+// de seis meses: cada una de las de abajo falla si alguien mete el filtro donde
+// no toca.
+
+test('el detalle de una materia no sirve meses ni semanas archivados', () => {
+  const src = leer('src/app/api/alumno/materia/[id]/route.ts')
+  const i = src.indexOf("from('meses_contenido')")
+  expect(i, 'no encontré el select de meses').toBeGreaterThan(-1)
+  const query = src.slice(i, src.indexOf(".order('numero_mes')", i))
+  expect(query, 'el listado de meses no filtra activa').toContain(".eq('activa', true)")
+
+  // Las semanas cuelgan ANIDADAS de ese mismo select. Filtrar un embed con
+  // .eq() cambia la semántica del join y haría desaparecer el mes ENTERO en
+  // cuanto una de sus semanas se archive: se filtra en el .map() de después.
+  const embed = src.slice(src.indexOf('semanas ('), src.indexOf('semana_materiales'))
+  expect(embed, 'el select anidado no pide activa de las semanas').toContain('activa')
+  expect(src, 'las semanas archivadas no se filtran en JS')
+    .toContain('.filter(s => s.activa !== false)')
+})
+
+test('el catálogo del alumno no cuenta meses ni semanas archivados', () => {
+  const src = leer('src/app/api/alumno/materias/route.ts')
+  // Los dos niveles vienen anidados en el select de materias → filtro en JS
+  expect(src, 'el embed de meses no pide activa').toMatch(/meses_contenido \([\s\S]{0,120}activa/)
+  expect(src, 'el embed de semanas no pide activa').toMatch(/semanas \( id, activa \)/)
+  expect(src, 'total_meses cuenta los archivados')
+    .toContain('.filter(mes => mes.activa !== false)')
+  expect(src, 'total_semanas cuenta las archivadas')
+    .toContain('.filter(s => s.activa !== false)')
+})
+
+test('la ruta de meses del alumno tampoco lista los archivados', () => {
+  const src = leer('src/app/api/alumno/meses/route.ts')
+  const i = src.indexOf("from('meses_contenido')")
+  expect(i).toBeGreaterThan(-1)
+  expect(src.slice(i, i + 320), 'el listado de meses del alumno no filtra activa')
+    .toContain(".eq('activa', true)")
+})
+
+test('marcar una semana no mide el logro contra meses ni semanas retirados', () => {
+  // `materia_completada` compara semanas completadas contra el total de la
+  // materia. Sin filtrar, una semana archivada dejaría el logro inalcanzable.
+  const src = leer('src/app/api/alumno/progreso/semana/route.ts')
+  const bloque = src.slice(src.indexOf("from('meses_contenido')"))
+  expect((bloque.match(/\.eq\('activa', true\)/g) ?? []).length,
+    'el conteo del logro no filtra los dos niveles').toBe(2)
+})
+
+test('un mes archivado no corre la ventana de acceso', () => {
+  const src = leer('src/lib/acceso-materias.ts')
+  // toMateriaVentana lo comparten /api/alumno/materias y cargarContextoAcceso:
+  // filtrar en el mapper es lo que impide que lista y gate diverjan (Bug 59).
+  const fn = src.slice(src.indexOf('export function toMateriaVentana'), src.indexOf('type ClienteDb'))
+  expect(fn, 'toMateriaVentana cuenta meses archivados').toContain('activa !== false')
+  expect(src, 'el contexto de acceso no pide activa de los meses')
+    .toContain('meses_contenido(numero_mes, activa)')
+})
+
+test('el gate de la semana NO filtra activa: lo comparte el ENVÍO del quiz', () => {
+  // tieneAccesoSemana gatea el LISTADO del quiz y también su POST, que guarda
+  // lo que el alumno respondió. Filtrar ahí haría que archivar una semana con
+  // el quiz abierto tirase el envío con un 404 y el alumno perdiera su trabajo.
+  const lib = leer('src/lib/acceso-materias.ts')
+  const fn = lib.slice(
+    lib.indexOf('export async function tieneAccesoSemana'),
+    lib.indexOf('export async function cargarContextoAcceso'))
+  expect(fn, 'el gate compartido filtra activa').not.toContain(".eq('activa'")
+  const quiz = leer('src/app/api/alumno/quiz/[semanaId]/route.ts')
+  const post = quiz.slice(quiz.indexOf('export async function POST'))
+  expect(post, 'el envío del quiz ya no usa el gate común').toContain('tieneAccesoSemana')
+})
+
+test('cerrar-mes recoge TODOS los meses y semanas, también los archivados', () => {
+  // Estos ids son para BORRAR datos del alumno: filtrar dejaría huérfanos el
+  // progreso y las respuestas de lo archivado.
+  const src = leer('src/app/api/admin/alumnos/[id]/cerrar-mes/route.ts')
+  for (const t of ['meses_contenido', 'semanas']) {
+    const i = src.indexOf(`from('${t}')`)
+    expect(i, `no encontré el select de ${t}`).toBeGreaterThan(-1)
+    expect(src.slice(i, i + 220), `cerrar-mes filtra activa en ${t}`).not.toContain(".eq('activa'")
+  }
+})
+
+test('el avance del admin cuenta lo que el alumno YA hizo, archivado o no', () => {
+  const src = leer('src/app/api/admin/alumnos/[id]/avance/route.ts')
+  for (const t of ['meses_contenido', 'semanas']) {
+    const i = src.indexOf(`from('${t}')`)
+    expect(i, `no encontré el select de ${t}`).toBeGreaterThan(-1)
+    expect(src.slice(i, i + 220), `el avance filtra activa en ${t}`).not.toContain(".eq('activa'")
+  }
+})
+
+test('el editor del admin sigue viendo lo archivado — si no, no podría restaurarlo', () => {
+  const src = leer('src/app/api/admin/contenido/[id]/route.ts')
+  expect(src, 'el editor filtra activa').not.toMatch(/\.eq\('activa'/)
+  // Pero la columna SÍ se pide: la pantalla necesita pintar el estado.
+  expect(src).toContain('activa')
+})
+
+test('el PATCH y el DELETE de una semana operan por id, archivada o no', () => {
+  const src = leer('src/app/api/admin/semanas/[id]/route.ts')
+  expect(src, 'la ruta por id filtra activa').not.toMatch(/\.eq\('activa'/)
+})
+
+test('los que NO filtran lo dicen por escrito', () => {
+  for (const r of [
+    'src/app/api/admin/alumnos/[id]/avance/route.ts',
+    'src/app/api/admin/alumnos/[id]/cerrar-mes/route.ts',
+    'src/app/api/admin/contenido/[id]/route.ts',
+    'src/app/api/admin/semanas/[id]/route.ts',
+  ]) {
+    expect(leer(r), `${r} no explica por qué no filtra`)
+      .toMatch(/SIN filtro de `activa`|filtra `activa`/)
+  }
+})

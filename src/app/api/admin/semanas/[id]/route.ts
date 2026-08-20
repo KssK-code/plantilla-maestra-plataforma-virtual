@@ -17,6 +17,9 @@ async function authAdmin() {
   return { denied: null }
 }
 
+// Ninguna consulta de este archivo filtra `activa`: aquí se opera sobre UNA
+// semana concreta por id, archivada o no. Filtrar volvería irrestaurable justo
+// lo que se acaba de retirar.
 export async function PATCH(
   request: NextRequest,
   { params }: { params: { id: string } }

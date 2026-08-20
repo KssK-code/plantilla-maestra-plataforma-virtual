@@ -83,10 +83,15 @@ export async function GET() {
     const materiasPorMes = getMateriasPorMesByModalidad(modalidadAlumno)
 
     // ── Obtener meses del contenido (filtrado por nivel del alumno) ───────────
+    // Los meses ARCHIVADOS no se listan: esta es la ruta de meses del alumno, y
+    // retirar un mes tiene que quitarlo también de aquí, no solo del detalle de
+    // la materia. (No estaba en la tabla del plan F4 —que enumeraba los que leen
+    // `semanas`—, pero es el mismo listado y la misma regla.)
     let mesesQuery = supabase
       .from('meses_contenido')
       .select('id, numero_mes, titulo, materias!inner(id, nombre, color)')
       .lte('numero_mes', duracionMeses)
+      .eq('activa', true)
       .order('numero_mes')
 
     if (nivelAlumno) {

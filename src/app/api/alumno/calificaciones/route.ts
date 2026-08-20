@@ -79,6 +79,8 @@ export async function GET() {
     }
 
     // ── Materias del plan via meses_contenido ─────────────────────────────────
+    // SIN filtro de `activa`: esto es el HISTORIAL de calificaciones. Retirar un
+    // mes no puede borrar del boletín una materia que el alumno ya cursó.
     const { data: meses } = await supabase
       .from('meses_contenido')
       .select('numero_mes, materias(id, nombre, nivel)')

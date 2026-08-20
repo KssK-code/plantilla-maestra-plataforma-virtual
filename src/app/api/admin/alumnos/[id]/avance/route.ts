@@ -59,6 +59,9 @@ export async function GET(
 
     // ── 3. Semanas por materia: semanas.mes_id -> meses_contenido.materia_id ──
     //    (`semanas` NO tiene materia_id; ese camino no existe)
+    // SIN filtro de `activa` en meses ni en semanas: esto mide lo que el alumno
+    // YA hizo. Ocultar una semana archivada le borraría del avance el trabajo
+    // que sí entregó, y movería el "en curso" a una semana que nunca tocó.
     const { data: mesesRaw } = await admin
       .from('meses_contenido')
       .select('id, materia_id')
