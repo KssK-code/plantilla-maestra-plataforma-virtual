@@ -162,6 +162,35 @@ Copiar .env.example → .env.local y llenar con datos de Supabase
 1. Vercel → Settings → Domains → Add
 2. Configurar DNS en el registrador del dominio
 
+## Paso 8 — Entrega al cliente (ÚLTIMO PASO, obligatorio)
+
+Con la plataforma ya en producción **y el dominio definitivo conectado**:
+
+```bash
+cp scripts/entrega/entrega.local.ejemplo.json entrega.local.json
+# …llenar con nombre del admin, correo y contraseñas…
+pnpm entrega
+```
+
+Genera los dos entregables del cliente:
+
+| Archivo | Qué es |
+|---|---|
+| `entrega/<NOMBRE>_Entrega_Oficial.pdf` | Documento de entrega con la marca del cliente |
+| `entrega/ENTREGA-WHATSAPP.txt` | Mensaje listo para copiar y pegar |
+
+Ambos se arman solos desde `src/lib/config.ts` y de la base: niveles,
+modalidades, precios, licenciaturas y conteo real de contenido. **Se adaptan a lo
+que el cliente contrató** — un plan o varios, inscripción plana o por nivel, con
+licenciaturas o sin ellas.
+
+> ⚠️ **El comando aborta si el dominio no es el definitivo.** No se emite un
+> documento oficial con una URL de `vercel.app`: el cliente lo guarda y lo
+> reenvía, y meses después el enlace ya no existe. Si el dominio no está listo,
+> el paso pendiente es conectarlo.
+
+Detalle completo en `scripts/entrega/README.md`.
+
 ## Qué cambiar por cliente
 | Archivo | Qué cambiar |
 |---|---|

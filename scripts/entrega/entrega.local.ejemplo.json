@@ -1,0 +1,11 @@
+{
+  "_comentario": "Copia este archivo a la RAÍZ del repo como entrega.local.json y llénalo. Git lo ignora: trae contraseñas.",
+  "adminNombre": "Nombre Apellido",
+  "adminGenero": "f",
+  "adminEmail": "admin@cliente.com",
+  "adminPassword": "••••••••",
+  "alumnoEmail": "prueba@gmail.com",
+  "alumnoPassword": "12345678",
+  "palabraInstitucion": "instituto",
+  "validez": true
+}

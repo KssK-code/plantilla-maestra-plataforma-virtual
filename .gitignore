@@ -55,3 +55,8 @@ supabase/.temp/
 next-env.d.ts
 
 .claude/worktrees/
+
+# Entrega final (scripts/entrega) — credenciales del cliente y PDF generado.
+# entrega.local.json trae contraseñas; entrega/ se regenera cuando haga falta.
+/entrega.local.json
+/entrega/

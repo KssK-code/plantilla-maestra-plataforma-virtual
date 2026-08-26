@@ -104,9 +104,25 @@ INSERT INTO planes_estudio (nombre, duracion_meses, precio_mensual, activo) VALU
 - Descargar constancia ✓
 - Probar en móvil ✓
 
-### Paso 12: Entrega al cliente
-- Enviar URL de la plataforma
-- Enviar credenciales del admin
+### Paso 12: Entrega al cliente (último paso)
+
+Con el dominio definitivo ya conectado:
+
+```bash
+cp scripts/entrega/entrega.local.ejemplo.json entrega.local.json
+# …llenar con los datos del cliente…
+pnpm entrega
+```
+
+Produce `entrega/<NOMBRE>_Entrega_Oficial.pdf` y `entrega/ENTREGA-WHATSAPP.txt`,
+con la marca y la paleta del cliente, y adaptados a las modalidades que contrató.
+El mensaje también se imprime en la terminal listo para copiar y pegar.
+
+Después:
+- Enviar el PDF y el mensaje al cliente
 - Capacitar al admin en: crear alumnos, registrar pagos, ver reportes
+
+Ver `scripts/entrega/README.md`. El comando **aborta si el dominio todavía es
+provisional** — un documento oficial no se emite con una URL temporal.
 
 ## Tiempo estimado por cliente: 1-2 horas
