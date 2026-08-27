@@ -1,5 +1,6 @@
 import { test, expect } from '@playwright/test'
-import { readFileSync } from 'node:fs'
+import { existsSync, readFileSync } from 'node:fs'
+import { createHash } from 'node:crypto'
 import { join } from 'node:path'
 import { celda, armarCSV, nombreArchivoSeguro } from '@/lib/reportes/csv'
 
@@ -202,13 +203,57 @@ test('el export es admin-only y no se cachea', () => {
   expect(src).toContain("'Cache-Control': 'no-store'")
 })
 
-test('NO se agregó la dependencia xlsx', () => {
-  // Generar .xlsx de verdad exige meter `xlsx` (SheetJS), que en npm está
-  // congelada en 0.18.5 con CVEs conocidos. Es una decisión de cadena de
-  // suministro para una plantilla de 144 clientes, no algo que deba entrar de
-  // contrabando en un commit de reportes.
+/**
+ * La única hoja de cálculo permitida es el tarball oficial de SheetJS,
+ * versionado en `vendor/` y con su SHA-256 comprobado aquí.
+ *
+ * LA DECISIÓN ES DE CADENA DE SUMINISTRO, NO DE EXPLOTABILIDAD.
+ * En esta plantilla `xlsx` se usa SOLO PARA ESCRIBIR: la única ruta que lo
+ * importa es reportes/excel, y su superficie es book_new / json_to_sheet /
+ * aoa_to_sheet / book_append_sheet / write. Los dos avisos de npm
+ * —CVE-2023-30533 (prototype pollution) y CVE-2024-22363 (ReDoS)— son de la
+ * ruta de LECTURA, así que la exposición práctica de 0.18.5 era ~nula.
+ *
+ * Aun así no se deja: una plantilla que se despliega a 144 clientes no debe
+ * llevar una dependencia archivada con avisos abiertos «porque en nuestro
+ * caso no aplica». Quien reabra esto, que discuta ESE argumento.
+ *
+ * Se descartó `exceljs`: pesa 21.8 MB contra 8.1, no publica desde dic-2024,
+ * obliga a reescribir la ruta y arrastra 9 dependencias — entre ellas jszip,
+ * unzipper y saxes. Cambiar una librería de solo escritura por una que trae
+ * dos descompresores de ZIP y un parser de XML es ir en la dirección
+ * contraria.
+ *
+ * Procedimiento de actualización: vendor/README.md.
+ */
+test('la hoja de cálculo viene del tarball oficial, existe y su SHA-256 cuadra', () => {
+  const TARBALL = 'vendor/xlsx-0.20.3.tgz'
+  const SHA256  = '8dc73fc3b00203e72d176e85b50938627c7b086e607c682e8d3c22c02bb99fe8'
+
+  // 1. package.json apunta EXACTAMENTE al tarball versionado, no a npm.
   const pkg = JSON.parse(leer('package.json'))
   const deps = { ...(pkg.dependencies ?? {}), ...(pkg.devDependencies ?? {}) }
-  expect(Object.keys(deps)).not.toContain('xlsx')
-  expect(Object.keys(deps)).not.toContain('exceljs')
+  expect(deps['xlsx'], 'xlsx debe venir de vendor/, nunca de npm').toBe(`file:${TARBALL}`)
+
+  // 2. El tarball existe y es BYTE POR BYTE el que se auditó. Un blob binario
+  //    en el repo sin checksum verificado solo cambia un riesgo de cadena de
+  //    suministro por otro.
+  const ruta = join(raiz, TARBALL)
+  expect(existsSync(ruta), `falta ${TARBALL} — ver vendor/README.md`).toBe(true)
+  const hash = createHash('sha256').update(readFileSync(ruta)).digest('hex')
+  expect(hash, `${TARBALL} no coincide con el SHA-256 auditado`).toBe(SHA256)
+
+  // 3. Ninguna otra librería de hojas de cálculo entra por la puerta de atrás.
+  for (const prohibida of ['exceljs', 'node-xlsx', 'xlsx-populate', 'write-excel-file', 'sheetjs']) {
+    expect(Object.keys(deps), `${prohibida} no está permitida`).not.toContain(prohibida)
+  }
+})
+
+test('xlsx se usa solo para ESCRIBIR: un read reabre la decisión', () => {
+  // Todo el razonamiento de arriba cuelga de este supuesto. Si alguien
+  // introduce un XLSX.read, los CVEs de parseo dejan de ser teóricos y hay que
+  // volver a decidir — no seguir de largo.
+  const ruta = sinComentariosTS(leer('src/app/api/admin/reportes/excel/route.ts'))
+  expect(ruta, 'apareció un XLSX.read: reabrir la decisión de vendor/README.md')
+    .not.toMatch(/XLSX\.(read|readFile)\b/)
 })
