@@ -84,9 +84,40 @@ INSERT INTO planes_estudio (nombre, duracion_meses, precio_mensual, activo) VALU
 - En Vercel → Settings → Domains → agregar dominio del cliente
 - Configurar DNS del dominio apuntando a Vercel
 
-### Paso 10: Configurar emails (recomendado)
-- Crear cuenta en resend.com
-- Verificar dominio del cliente
+### Paso 10: Auth del proyecto Supabase — OBLIGATORIO, no opcional
+
+⚠️ Un proyecto Supabase recién creado viene con valores por defecto que dejan
+**el registro y la recuperación de contraseña rotos**. Los tres puntos de abajo
+no son afinación: sin ellos ningún alumno puede entrar.
+
+**10.1 · URLs (si no, el correo lleva a `localhost`)**
+
+Por defecto `site_url` es `http://localhost:3000` y `uri_allow_list` está vacía.
+El enlace de "olvidé mi contraseña" pasa `redirectTo` con el origen real, pero
+Supabase lo VALIDA contra la allow list: si está vacía, lo descarta y cae al
+`site_url`, es decir a la máquina del propio alumno. Nadie lo nota hasta que un
+alumno pide recuperar su contraseña.
+
+En Supabase → Authentication → URL Configuration:
+- **Site URL**: `https://<dominio-del-cliente>`
+- **Redirect URLs**: `https://<dominio>/**`, `https://www.<dominio>/**` y la
+  URL de Vercel `https://<proyecto>.vercel.app/**` (útil mientras el DNS propaga)
+
+**10.2 · Confirmación de correo (si no, nadie puede iniciar sesión)**
+
+Por defecto Supabase exige confirmar el correo y manda ese correo por su SMTP
+integrado, **limitado a 2 correos por hora**. Sin SMTP propio, el tercer alumno
+que se registre en una hora nunca recibe su enlace y queda sin poder entrar.
+
+Elegir UNA de las dos, y dejar constancia de cuál:
+- **Con SMTP propio** (preferible): configurar 10.3 y dejar la confirmación activa.
+- **Sin SMTP todavía**: Authentication → Providers → Email →
+  **Confirm email = OFF** (`mailer_autoconfirm = true`). El alumno entra al
+  registrarse. Es aceptable en los clientes donde el acceso al contenido lo
+  autoriza el admin tras el pago, que es el caso de la línea Solo-Cursos.
+
+**10.3 · SMTP del cliente (recomendado)**
+- Crear cuenta en resend.com y verificar el dominio del cliente
 - En Supabase → Authentication → Settings → SMTP:
   - Host: smtp.resend.com
   - Port: 465
@@ -94,14 +125,26 @@ INSERT INTO planes_estudio (nombre, duracion_meses, precio_mensual, activo) VALU
   - Password: API key de Resend
 
 ### Paso 11: Prueba final
-- Login como admin ✓
-- Crear alumno de prueba ✓
-- Desbloquear mes ✓
+
+⚠️ **Registrar al alumno de prueba DESDE EL FORMULARIO PÚBLICO**, no por SQL ni
+por la Admin API. Es el único paso que ejerce `POST /api/auth/register-complete`,
+y ahí es donde se detectan de una vez: que falte una columna que el endpoint
+manda, que `alumnos_nivel_check` no acepte el nivel del modo, que el correo no
+se confirme, y que el prefijo de matrícula sea el del cliente y no `MEV-`.
+Sembrar el alumno por SQL salta todo eso y el fallo aparece con el primer
+alumno real del cliente.
+
+- Registro de un alumno **por el formulario público** ✓
+- Su matrícula usa el prefijo del cliente, no `MEV-` ✓
 - Login como alumno ✓
-- Ver contenido ✓
+- Login como admin ✓
+- Inscribir al alumno a un curso y **Abrir mes** ✓
+- El alumno ve **TODOS** los módulos, incluido el último ✓
 - Presentar examen ✓
-- Ver calificaciones ✓
-- Descargar constancia ✓
+- **Emitir diploma** desde la pestaña Alumnos del curso, y que el folio use el
+  prefijo configurado ✓
+- El alumno descarga su diploma ✓
+- Recuperar contraseña: que el enlace del correo NO apunte a `localhost` ✓
 - Probar en móvil ✓
 
 ### Paso 12: Entrega al cliente (último paso)

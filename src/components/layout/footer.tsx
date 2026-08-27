@@ -1,6 +1,7 @@
 'use client'
 
 import { CONFIG, ESCUELA_CONFIG } from '@/lib/config'
+import { esSoloCursos } from '@/lib/modo'
 
 export function Footer() {
   return (
@@ -14,8 +15,14 @@ export function Footer() {
       <p className="text-xs font-semibold" style={{ color: '#475569' }}>
         {ESCUELA_CONFIG.nombre}
       </p>
+      {/* Este footer vive DENTRO del portal del alumno y del admin, no en la
+          landing, así que el gateo por modo de la portada no lo cubría: en
+          solo_cursos le anunciaba al alumno, en todas las pantallas de su
+          curso, dos programas que su instituto no vende. */}
       <p className="text-xs" style={{ color: '#374151' }}>
-        Preparatoria · Secundaria · 100% en línea
+        {esSoloCursos()
+          ? 'Cursos de preparación · 100% en línea'
+          : 'Preparatoria · Secundaria · 100% en línea'}
       </p>
       <div className="flex items-center justify-center flex-wrap gap-x-4 gap-y-1">
         <a
