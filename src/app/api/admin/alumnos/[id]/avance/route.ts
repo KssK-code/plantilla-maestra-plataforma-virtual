@@ -39,20 +39,30 @@ export async function GET(
     // ── 1. Nivel del alumno ───────────────────────────────────────────────────
     const { data: alumnoRow } = await admin
       .from('alumnos')
-      .select('nivel')
+      .select('nivel, carrera')
       .eq('id', params.id)
       .single()
 
     if (!alumnoRow) return NextResponse.json({ error: 'Alumno no encontrado' }, { status: 404 })
-    const nivel = (alumnoRow as { nivel: string | null }).nivel
+    const { nivel, carrera } = alumnoRow as { nivel: string | null; carrera: string | null }
 
     // ── 2. Materias del plan ──────────────────────────────────────────────────
-    const { data: materiasRaw } = await admin
+    // Scope por CARRERA además de por nivel: todas las de licenciatura
+    // comparten `nivel`, así que filtrar solo por nivel listaba en la ficha el
+    // catálogo de TODOS los programas del cliente —48 materias en vez de 24— y
+    // el avance salía calculado sobre el plan equivocado. Mismo criterio que
+    // `cargarContextoAcceso()` en lib/acceso-materias. Ver Bug 59.
+    let materiasQuery = admin
       .from('materias')
       .select('id, nombre, orden')
       .eq('nivel', nivel ?? '')
       .eq('activa', true)
-      .order('orden')
+
+    if (nivel === 'licenciatura' && carrera) {
+      materiasQuery = materiasQuery.eq('carrera', carrera)
+    }
+
+    const { data: materiasRaw } = await materiasQuery.order('orden')
 
     const materias = ((materiasRaw ?? []) as { id: string; nombre: string; orden: number | null }[])
     if (materias.length === 0) return NextResponse.json({ materias: [] })

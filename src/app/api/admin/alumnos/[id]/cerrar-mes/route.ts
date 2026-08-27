@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { createAdminClient } from '@/lib/supabase/admin'
-import { getMateriasPorMesByModalidad } from '@/lib/modalidades'
+import { getMateriasPorMesByModalidad, getMateriasPorMesLicenciatura } from '@/lib/modalidades'
 
 export async function POST(
   _request: NextRequest,
@@ -31,7 +31,7 @@ export async function POST(
     // ── Obtener alumno ────────────────────────────────────────────────────────
     const { data: alumnoData, error: alumnoErr } = await admin
       .from('alumnos')
-      .select('id, nivel, modalidad, meses_desbloqueados')
+      .select('id, nivel, carrera, modalidad, meses_desbloqueados')
       .eq('id', alumnoId)
       .single()
 
@@ -42,6 +42,8 @@ export async function POST(
     const alumno = alumnoData as {
       id: string
       nivel: string
+      /** Solo licenciatura. Acota el rango de materias del mes a SU programa. */
+      carrera: string | null
       modalidad: string | null
       meses_desbloqueados: number
     }
@@ -60,16 +62,32 @@ export async function POST(
     // Al cerrar mes N (1-indexed), las materias afectadas son las que están en
     // posiciones [(N-1)*MPM, N*MPM - 1] ordenadas por orden,nombre (0-indexed)
     const mesACerrar      = alumno.meses_desbloqueados
-    const materiasPorMes  = getMateriasPorMesByModalidad(alumno.modalidad)
+    // Igual que en `materiasPorMesDePlan()`: los ids de las dos tablas de
+    // modalidades colisionan y `getMateriasPorMesByModalidad` devuelve el del
+    // programa de Sec/Prepa. Aquí eso partiría el rango a la mitad. Ver Bug 103.
+    const materiasPorMes  = (alumno.nivel === 'licenciatura'
+      ? getMateriasPorMesLicenciatura(alumno.modalidad)
+      : undefined) ?? getMateriasPorMesByModalidad(alumno.modalidad)
     const offsetInicio    = (mesACerrar - 1) * materiasPorMes
     const offsetFin       = mesACerrar * materiasPorMes - 1
 
     // ── Obtener IDs de las materias del mes ───────────────────────────────────
-    const { data: materias, error: matErr } = await admin
+    // Scope por CARRERA además de por nivel. Sin esto el `.range()` cae sobre
+    // el catálogo de TODAS las carreras de licenciatura mezcladas —comparten
+    // nivel— y el cierre toca materias de otro programa mientras deja el propio
+    // mes cerrado a medias. Y esto BORRA progreso, respuestas de quiz e
+    // intentos, así que el rango tiene que ser exacto. Ver Bug 59.
+    let materiasQuery = admin
       .from('materias')
       .select('id, nombre')
       .eq('nivel', alumno.nivel)
       .eq('activa', true)
+
+    if (alumno.nivel === 'licenciatura' && alumno.carrera) {
+      materiasQuery = materiasQuery.eq('carrera', alumno.carrera)
+    }
+
+    const { data: materias, error: matErr } = await materiasQuery
       .order('orden', { ascending: true })
       .order('nombre', { ascending: true })
       .range(offsetInicio, offsetFin)

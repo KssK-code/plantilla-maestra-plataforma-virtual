@@ -243,12 +243,22 @@ export async function POST(
           // así que hay que filtrar por el nivel del alumno. Sin ese filtro, el
           // mes 1 incluiría materias de secundaria, prepa y licenciatura y el
           // every() no se cumpliría nunca.
-          const { data: hermanas } = await adminLogros
+          // Y también por CARRERA: todas las de licenciatura comparten
+          // `nivel`, así que sin este filtro el mes 1 de un alumno de un
+          // programa incluiría las materias de los otros y el every() no se
+          // cumpliría nunca. Mismo criterio que `cargarContextoAcceso()`.
+          let hermanasQuery = adminLogros
             .from('meses_contenido')
-            .select('materia_id, materias!inner(nivel, activa)')
+            .select('materia_id, materias!inner(nivel, activa, carrera)')
             .in('numero_mes', numerosMes)
             .eq('materias.nivel', alumno.nivel)
             .eq('materias.activa', true)
+
+          if (alumno.nivel === 'licenciatura' && alumno.carrera) {
+            hermanasQuery = hermanasQuery.eq('materias.carrera', alumno.carrera)
+          }
+
+          const { data: hermanas } = await hermanasQuery
           const idsMes = [...new Set((hermanas ?? []).map(r => (r as { materia_id: string }).materia_id))]
           if (idsMes.length > 0 && idsMes.every(id => acreditadasSet.has(id))) {
             await supabase.from('logros_alumno').upsert(
@@ -257,12 +267,21 @@ export async function POST(
           }
         }
 
-        // Mitad del camino: la mitad de las materias regulares de su nivel.
-        const { count: totalNivel } = await adminLogros
+        // Mitad del camino: la mitad de las materias regulares de SU plan.
+        // Acotado por carrera además de por nivel: con dos programas de
+        // licenciatura el conteo salía sobre el doble de materias, así que el
+        // logro exigía el doble de acreditadas y no llegaba nunca.
+        let totalQuery = adminLogros
           .from('materias')
           .select('id', { count: 'exact', head: true })
           .eq('nivel', alumno.nivel)
           .eq('activa', true)
+
+        if (alumno.nivel === 'licenciatura' && alumno.carrera) {
+          totalQuery = totalQuery.eq('carrera', alumno.carrera)
+        }
+
+        const { count: totalNivel } = await totalQuery
         if (totalNivel && acreditadasSet.size >= Math.ceil(totalNivel / 2)) {
           await supabase.from('logros_alumno').upsert(
             { alumno_id: alumno.id, tipo_logro: 'mitad_carrera' },

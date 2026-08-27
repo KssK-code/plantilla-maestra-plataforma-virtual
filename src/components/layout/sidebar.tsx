@@ -4,10 +4,7 @@ import Link from 'next/link'
 import Image from 'next/image'
 import { usePathname, useRouter } from 'next/navigation'
 import { useState, useEffect } from 'react'
-import {
-  Home, BookOpen, BarChart3, Trophy, FolderOpen,
-  ClipboardList, LogOut, X, Users, Settings, LayoutDashboard, GraduationCap,
-} from 'lucide-react'
+import { BarChart3, BookOpen, ClipboardList, CreditCard, FolderOpen, GraduationCap, Home, LayoutDashboard, LogOut, Settings, TrendingUp, Trophy, Users, X } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
 import type { UserRole } from '@/types'
 import { CONFIG } from '@/lib/config'
@@ -25,6 +22,11 @@ const NAV_ITEMS: Record<UserRole, NavItem[]> = {
     { label: 'Dashboard',        href: '/admin',               emoji: '🏠', icon: LayoutDashboard },
     { label: 'Alumnos',          href: '/admin/alumnos',       emoji: '👥', icon: Users           },
     { label: 'Estado de Cuenta', href: '/admin/estado-cuenta', emoji: '🧾', icon: BarChart3       },
+    // Pagos e Informes viven en /admin desde hace tiempo pero no estaban
+    // enlazados en el modo tradicional: solo se llegaba escribiendo la URL.
+    // Informes es admin-only (el desglose de ingresos no es del secretario).
+    { label: 'Pagos',            href: '/admin/pagos',         emoji: '💳', icon: CreditCard      },
+    { label: 'Informes',         href: '/admin/reportes',      emoji: '📈', icon: TrendingUp      },
     { label: 'Contenido',        href: '/admin/contenido',     emoji: '📚', icon: BookOpen        },
     { label: 'Gestionar Cursos', href: '/admin/cursos',        emoji: '🎓', icon: GraduationCap   },
     { label: 'Documentos',       href: '/admin/documentos',    emoji: '📄', icon: FolderOpen      },
@@ -34,8 +36,11 @@ const NAV_ITEMS: Record<UserRole, NavItem[]> = {
   // Rol acotado: ve Alumnos (lectura + registrar pagos) y Estado de Cuenta.
   // Usuarios/Contenido/Documentos/Configuración/Reportes/Cursos quedan ocultos.
   SECRETARIO: [
-    { label: 'Alumnos',          href: '/admin/alumnos',       emoji: '👥', icon: Users     },
-    { label: 'Estado de Cuenta', href: '/admin/estado-cuenta', emoji: '🧾', icon: BarChart3 },
+    { label: 'Alumnos',          href: '/admin/alumnos',       emoji: '👥', icon: Users      },
+    { label: 'Estado de Cuenta', href: '/admin/estado-cuenta', emoji: '🧾', icon: BarChart3  },
+    // El secretario cobra, así que ve el historial de pagos. Informes NO:
+    // /api/admin/reportes/export exige rol ADMIN.
+    { label: 'Pagos',            href: '/admin/pagos',         emoji: '💳', icon: CreditCard },
   ],
   ALUMNO: [
     { label: 'Inicio',         href: '/alumno',                emoji: '🏠', icon: Home          },
@@ -175,12 +180,18 @@ export function Sidebar({ role, userName, avatarUrl, nivel, isOpen, onClose }: S
 
   const isAlumno = role === 'ALUMNO'
 
+  // Los realces del sidebar se pintan ENCIMA de `--color-primario`, así que no
+  // pueden salir de `--color-acento` sin más: si los dos colores del cliente son
+  // vecinos en el círculo cromático (p. ej. morado #6B21A8 e índigo #1E3A8A), el
+  // item activo queda como un bloque plano sobre el fondo y deja de leerse como
+  // seleccionado. Cada uno sale ahora de su propia variable, con FALLBACK al
+  // valor de siempre: un cliente que no las declare ve el mismo sidebar de hoy.
   const sidebarBg     = 'var(--color-primario)'
-  const sidebarBorder = 'rgba(30,136,229,0.22)'
-  const activeBg      = 'var(--color-acento)'
+  const sidebarBorder = 'var(--color-sidebar-borde, rgba(30,136,229,0.22))'
+  const activeBg      = 'var(--color-sidebar-activo, var(--color-acento))'
   const activeColor   = '#fff'
   const inactiveColor = 'rgba(255,255,255,0.65)'
-  const hoverBg       = 'rgba(21,101,192,0.28)'
+  const hoverBg       = 'var(--color-sidebar-hover, rgba(21,101,192,0.28))'
   const hoverColor    = '#fff'
 
   return (
@@ -266,10 +277,10 @@ export function Sidebar({ role, userName, avatarUrl, nivel, isOpen, onClose }: S
             {avatarUrl ? (
               <Image src={avatarUrl} alt={userName} width={38} height={38}
                 className="rounded-full object-cover flex-shrink-0"
-                style={{ border: '2px solid rgba(30,136,229,0.45)' }} />
+                style={{ border: '2px solid var(--color-sidebar-borde-fuerte, rgba(30,136,229,0.45))' }} />
             ) : (
               <div className="flex items-center justify-center w-9 h-9 rounded-full flex-shrink-0 text-xs font-bold"
-                style={{ background: 'rgba(21,101,192,0.35)', color: '#fff', border: '2px solid rgba(30,136,229,0.45)' }}>
+                style={{ background: 'var(--color-sidebar-realce, rgba(21,101,192,0.35))', color: '#fff', border: '2px solid var(--color-sidebar-borde-fuerte, rgba(30,136,229,0.45))' }}>
                 {initials}
               </div>
             )}
@@ -279,7 +290,7 @@ export function Sidebar({ role, userName, avatarUrl, nivel, isOpen, onClose }: S
               </p>
               {nivelLabel && (
                 <span className="inline-block mt-0.5 text-xs px-2 py-0.5 rounded-full font-medium"
-                  style={{ background: 'rgba(21,101,192,0.35)', color: '#E3F2FD', fontSize: 10 }}>
+                  style={{ background: 'var(--color-sidebar-realce, rgba(21,101,192,0.35))', color: '#fff', fontSize: 10 }}>
                   {nivelLabel}
                 </span>
               )}
@@ -341,7 +352,7 @@ function MobileBottomNav({ items, isActive }: { items: NavItem[]; isActive: (h: 
             key={`mobile-${item.href}-${item.label}`}
             href={item.href}
             className="flex flex-col items-center justify-center gap-0.5 flex-1 py-1 rounded-lg transition-all"
-            style={{ color: active ? 'var(--color-acento)' : 'rgba(255,255,255,0.45)' }}
+            style={{ color: active ? 'var(--color-sidebar-activo-texto, var(--color-acento))' : 'rgba(255,255,255,0.45)' }}
           >
             {item.emoji
               ? <span className="text-lg leading-none">{item.emoji}</span>

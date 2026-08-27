@@ -65,3 +65,166 @@ WHERE descripcion LIKE '%{{CLIENTE_NOMBRE}}%';
 ```
 
 ---
+
+### Bug 59-bis — Seis consultas mezclaban el catálogo de TODAS las carreras
+**Síntoma:** en un cliente con dos o más programas de licenciatura/diplomado, el
+alumno de uno ve materias del otro. En concreto:
+- La ficha del admin lista 48 materias en vez de 24 y el avance sale sobre el
+  plan equivocado.
+- El **boletín** y la **constancia** —documento que el alumno imprime— incluyen
+  materias de un programa que no cursa.
+- Los logros `mes_completado` y `mitad_carrera` **no se otorgan nunca**.
+- **Cerrar mes borra lo que no debe** (ver abajo).
+
+**Causa:** todas las carreras comparten `nivel = 'licenciatura'`. Filtrar solo
+por `nivel` devuelve el catálogo completo. El Bug 59 original ya se había
+corregido en `/api/alumno/materias` y en `cargarContextoAcceso()`, pero **no se
+portó** a estos seis lugares:
+
+| Archivo | Efecto |
+|---|---|
+| `api/admin/alumnos/[id]/avance` | ficha con el doble de materias |
+| `api/admin/alumnos/[id]/cerrar-mes` | **borra progreso del programa equivocado** |
+| `api/alumno/evaluacion/[id]/enviar` (×2) | logros que no llegan |
+| `api/alumno/calificaciones` | boletín mezclado |
+| `api/alumno/constancia` | **documento impreso mezclado** |
+
+**El peor es `cerrar-mes`.** Toma las materias del mes con
+`.range(inicio, fin)` sobre la lista ordenada y después **BORRA**
+`progreso_semanas`, `quiz_respuestas` e `intentos_evaluacion`. Con el catálogo
+mezclado el rango cae partido entre dos programas: cerrar el mes 1 de un alumno
+toca materias de otro programa y deja su propio mes cerrado a medias.
+
+**Fix:** en los seis, acotar por carrera **solo cuando el nivel es
+licenciatura**, con el mismo criterio que `cargarContextoAcceso()`:
+```ts
+if (alumno.nivel === 'licenciatura' && alumno.carrera) {
+  query = query.eq('carrera', alumno.carrera)
+}
+```
+⚠️ Hay que añadir `carrera` al `select` del alumno y al de `materias`, o el
+filtro queda inerte y el bug parece corregido sin estarlo.
+**Detectado en:** EDU CEL ACADEMY (#177) con Playwright sobre producción,
+27-ago-2026. Corregido en plantilla.
+
+---
+
+### Bug 103 — La ventana de licenciatura hereda `materiasPorMes` de prepa
+**Síntoma:** un alumno de un programa de 24 materias en el plan de 6 meses
+avanza hasta la materia 12 y ahí se detiene. Al abrir cualquier materia
+posterior, `/api/alumno/materia/[id]` responde **403**. Subirle
+`meses_desbloqueados` **no lo desbloquea**, porque el tope es un producto.
+**Causa:** los ids de las **dos** tablas de modalidades colisionan: `'3_meses'` y
+`'6_meses'` existen a la vez en `CONFIG.modalidades` (Sec/Prepa) y en
+`CONFIG.licenciaturas.modalidades`. En `src/lib/modalidades.ts`:
+```ts
+function buscarModalidad(id) {
+  const base = CONFIG.modalidades.find(m => m.id === id && m.activa)
+  if (base) return base            // ← el programa SIEMPRE gana
+  return modalidadesLic().find(...)
+}
+```
+`materiasPorMesDePlan()` recibía entonces el valor de prepa (2) y calculaba
+`límite = meses × 2`: 12 materias sobre un temario de 24.
+**Alcance:** cualquier cliente que venda un programa de licenciatura en 3 o 6
+meses. Los planes de 9, 12 y 18 meses no colisionan, y por eso no se había
+visto: el diplomado de enfermería del banco se documenta con `--meses 18`.
+**Fix:** `materiasPorMesDePlan()` ya recibe el alumno; cuando su nivel es
+`'licenciatura'` resuelve contra la tabla de licenciatura con
+`getMateriasPorMesLicenciatura()`, y conserva el fallback anterior si esa
+modalidad no está declarada ahí. Lo mismo en `cerrar-mes`, que calcula el rango.
+**`buscarModalidad()` NO se toca:** lo consumen los 11 archivos de API del
+programa y su comportamiento para Sec/Prepa debe quedar idéntico.
+**Alternativa descartada:** renombrar los ids a `lic_6_meses`. El CHECK de
+`alumnos.modalidad` solo acepta `'3_meses'` y `'6_meses'`, y
+`alumnos.duracion_meses` es una columna GENERATED que los lee. Exigiría migrar
+el esquema en toda la flota.
+**Validación:**
+```
+licenciatura 6_meses → ventana 24 materias (antes 12)
+preparatoria 6_meses → ventana 12 materias (sin cambio)
+```
+**Detectado en:** EDU CEL ACADEMY (#177), 27-ago-2026. Corregido en plantilla.
+
+---
+
+### Bug 105 — El item activo del sidebar podía perderse contra el fondo
+**Síntoma:** en un cliente cuyos dos colores de marca son vecinos en el círculo
+cromático (p. ej. morado `#6B21A8` e índigo `#1E3A8A`), el item seleccionado del
+sidebar se ve como un bloque plano y no se distingue del fondo.
+**Causa:** el realce salía de `var(--color-acento)` y se pinta **encima** de
+`var(--color-primario)`. Con colores vecinos y luminancia parecida, no hay
+contraste. Lo mismo con el avatar y el chip de nivel, que además llevaban azules
+escritos a mano (`rgba(21,101,192,…)`) que sobre un primario no azul se ven
+sucios.
+**Fix:** cada realce sale de su propia variable, **con fallback al valor de
+siempre**, así que un cliente que no las declare ve el sidebar idéntico:
+`--color-sidebar-activo`, `--color-sidebar-activo-texto`,
+`--color-sidebar-hover`, `--color-sidebar-realce`, `--color-sidebar-borde`,
+`--color-sidebar-borde-fuerte`. Se declaran opcionalmente en `CONFIG.colores` y
+`layout.tsx` las inyecta.
+**Para un cliente con este problema:** blanco translúcido resuelve el contraste
+sin meter un tercer color.
+**Detectado en:** EDU CEL ACADEMY (#177), 26-ago-2026. Corregido en plantilla.
+
+---
+
+### Bug 106 — Pagos e Informes existían pero no estaban enlazados
+**Síntoma:** el admin no encuentra el historial de pagos ni los informes.
+`/admin/pagos` responde 404 y a `/admin/reportes` solo se llega escribiendo la
+URL a mano.
+**Causa:** dos cosas distintas que se ven igual desde el panel:
+- `NAV_ITEMS.ADMIN` no incluía ni Pagos ni Informes. `NAV_ITEMS_SOLO_CURSOS`
+  sí lleva Informes, así que el módulo solo era alcanzable en modo Solo-Cursos.
+- `/admin/pagos` no existía como página. Sí existían `POST /api/admin/pagos`,
+  `GET /api/admin/pagos/[id]/recibo` (con PDF a Storage y URL de WhatsApp) y el
+  bucket `recibos`: todo el backend, sin pantalla que lo usara.
+**Fix:** ambos items en `NAV_ITEMS.ADMIN` (Pagos también en `SECRETARIO`, que es
+quien cobra; Informes NO, porque el export exige rol ADMIN), la página
+`/admin/pagos` y el `GET /api/admin/pagos` que lista el historial con KPIs.
+**⚠️ Al escribir ese GET:** el filtro por texto NO puede ir en un `.or()` de
+PostgREST. `alumnos.nombre.ilike.%x%` dentro de un `.or()` no filtra la tabla
+embebida — devuelve la fila con el embed en `null` y la tabla se llena de pagos
+"sin alumno". Hay que filtrar en el servidor sobre las filas ya unidas.
+**Detectado en:** EDU CEL ACADEMY (#177), 26-ago-2026. Corregido en plantilla.
+
+---
+
+### Bug 107 — La oferta del cliente estaba escrita a mano en el footer
+**Síntoma:** el pie del portal dice "Preparatoria · Secundaria · 100% en línea"
+en cualquier cliente. Uno que solo venda secundaria anuncia prepa, y el alumno
+de un curso o diplomado lee al pie de SU portal dos programas que no cursa.
+Aparece en todas las pantallas del portal.
+**Fix:** `src/components/layout/footer.tsx` arma el texto con `getNivelLabel()`
+y las carreras declaradas. Un cliente sin licenciaturas ve el mismo texto.
+**Detectado en:** EDU CEL ACADEMY (#177), 27-ago-2026. Corregido en plantilla.
+
+---
+
+### Bug 100 — El folio de la constancia cambia en cada recarga
+**Síntoma:** un alumno abre `/alumno/constancia`, ve `CONST-2026-890346`,
+recarga y ahora dice `CONST-2026-214877`. Dos impresiones del mismo documento
+salen con folios distintos, y el prefijo es `CONST-` en todos los clientes.
+**Causa:** `src/app/(dashboard)/alumno/constancia/page.tsx` genera el folio con
+`Math.random()` en el CLIENTE, en cada render. No se persiste ni se deriva de
+nada del alumno, y el prefijo está escrito a mano — ignora
+`CONFIG.diploma.folioPrefijo`.
+**Estado: NO corregido.** No rompe nada: la constancia se imprime igual. Es un
+problema de credibilidad del documento.
+**Fix propuesto:** derivarlo de datos estables del alumno (matrícula + nivel) y
+tomar el prefijo del config, o persistirlo en `public.constancias` la primera
+vez que se emite — que es lo que ya hace la constancia de diplomados con
+`curso_folio_seq`.
+**Detectado en:** EDU CEL ACADEMY (#177), 26-ago-2026.
+
+---
+
+### Nota 104 — La materia demo aparece dentro del catálogo de cada carrera
+**Síntoma:** un alumno inscrito a un programa de 24 materias ve **25**, y la
+primera de la lista no pertenece a su programa.
+**Causa:** `seed-demo-materia.sql` siembra una materia con `nivel = 'demo'`, que
+`acceso-materias.ts` trata como tutorial: siempre visible y sin lugar en la
+ventana. Es **deliberado** —el README de `scripts/` la marca como CRÍTICA para el
+modo prueba— y le pasa igual al alumno de preparatoria, que ve 13 en vez de 12.
+**No es un bug**, pero conviene saberlo antes de reportar un conteo que no cuadra.
+Si un cliente no la quiere: `UPDATE materias SET activa = false WHERE nivel = 'demo';`

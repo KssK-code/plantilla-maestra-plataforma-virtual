@@ -1,4 +1,4 @@
-import { getMesesByModalidad, getMateriasPorMesByModalidad } from './modalidades'
+import { getMateriasPorMesByModalidad, getMateriasPorMesLicenciatura, getMesesByModalidad } from './modalidades'
 
 /**
  * Fuente única de verdad del acceso del alumno a materias.
@@ -81,9 +81,19 @@ export function duracionPlan(
  * ventana en cero.
  */
 export function materiasPorMesDePlan(
-  alumno: Pick<AlumnoAcceso, 'modalidad' | 'duracion_meses'>,
+  alumno: Pick<AlumnoAcceso, 'nivel' | 'modalidad' | 'duracion_meses'>,
   totalRegulares: number
 ): number {
+  // Licenciatura primero, y por su propio helper: los ids de las dos tablas de
+  // modalidades colisionan ('6_meses' está en las dos) y `buscarModalidad()`
+  // siempre devuelve la del programa de Sec/Prepa. Sin esto, un alumno de un
+  // programa de 24 materias en '6_meses' hereda materiasPorMes = 2 y su ventana
+  // se cierra en la materia 12: el curso queda inacabable. Ver Bug 103.
+  if (alumno.nivel === 'licenciatura') {
+    const lic = getMateriasPorMesLicenciatura(alumno.modalidad)
+    if (lic !== undefined) return lic
+  }
+
   const configurado = getMateriasPorMesByModalidad(alumno.modalidad)
   if (Number.isFinite(configurado) && configurado > 0) return configurado
 
