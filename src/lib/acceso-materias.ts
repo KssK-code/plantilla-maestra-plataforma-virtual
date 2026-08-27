@@ -118,6 +118,44 @@ export function ordenarCanonico(materias: MateriaVentana[]): MateriaVentana[] {
 }
 
 /**
+ * Rango 0-indexado `[desde, hasta]` de las materias que ABRE el mes `n`.
+ *
+ * Es la inversa exacta de la ventana de `calcularDisponibilidad`: ahí el límite
+ * es `mesesDesbloqueados × materiasPorMes` comparado con `idxRegular <` SIN
+ * redondear, así que al mes `n` hay `ceil(n × mpm)` materias abiertas. De ahí
+ * que el rango del mes `n` sea `[ceil((n-1) × mpm), ceil(n × mpm) - 1]`.
+ *
+ * Existe para que `cerrar-mes` no vuelva a calcularlo por su cuenta. Cuando lo
+ * hacía inline como `[(n-1) × mpm, n × mpm - 1]` y `mpm` era fraccionario, los
+ * offsets salían decimales —`postgrest-js` los manda tal cual: `.range(3.56,
+ * 4.34)` se serializa como `?offset=3.56&limit=1.78`— y además no coincidían
+ * con la ventana, así que cerrar un mes borraba el avance de las materias
+ * equivocadas.
+ *
+ * `materiasPorMes` PUEDE ser fraccionario: el add-on de licenciaturas reparte
+ * 32 materias sobre planes de 9, 12, 18 o 24 meses, y la división exacta es lo
+ * único que le abre al alumno la última materia justo en su último mes.
+ *
+ * Con `mpm` ENTERO devuelve exactamente lo mismo que la fórmula vieja, así que
+ * para todo cliente ya sembrado es un no-op.
+ *
+ * `hasta` puede exceder la última posición existente cuando `n × mpm` pasa del
+ * total (p. ej. 9 × 3.56 = 32.04). No se acota aquí a propósito: quien consume
+ * el rango es un `.range()` de PostgREST, que simplemente devuelve las filas
+ * que existan.
+ */
+export function rangoMateriasDelMes(
+  mes: number,
+  materiasPorMes: number
+): { desde: number; hasta: number } {
+  const n = Math.max(1, mes)
+  return {
+    desde: Math.ceil((n - 1) * materiasPorMes),
+    hasta: Math.ceil(n * materiasPorMes) - 1,
+  }
+}
+
+/**
  * Calcula `disponible` para cada materia del catálogo del alumno.
  *
  * El límite (meses_desbloqueados × materiasPorMes) es un techo REAL sobre la
