@@ -26,7 +26,15 @@ import {
  */
 
 const raiz = process.cwd()
-const leer = (p: string) => readFileSync(join(raiz, p), 'utf8')
+// Normaliza los finales de linea a LF antes de que ninguna prueba mire el
+// texto. En Windows `core.autocrlf=true` deja los fuentes con CRLF, y una
+// prueba que recorte buscando dos saltos de linea seguidos no encuentra
+// nada: el `indexOf` devuelve -1, el `slice` entrega el resto del archivo
+// entero, y la asercion termina evaluandose sobre texto que no le tocaba.
+// Eso tenia roja a cms-contenido-f3 en `main` desde el PR #79, con el
+// codigo de la app correcto.
+const leer = (p: string) =>
+  readFileSync(join(raiz, p), 'utf8').replace(/\r\n/g, '\n')
 
 const MIGRACION = 'supabase/migrations/20260817120000_corregir_plan_estudio.sql'
 const RUTA_POST = 'src/app/api/admin/alumnos/[id]/corregir-plan/route.ts'
