@@ -59,6 +59,10 @@ export default function RootLayout({
   // Bug 31 fix: inyectar CSS vars desde CONFIG.colores para que páginas auth +
   // dashboard alumno + admin lean var(--color-*) en lugar de hex hardcoded.
   // Cliente solo configura src/lib/config.ts y la plataforma toma su paleta.
+  const c = ESCUELA_CONFIG.colores as typeof ESCUELA_CONFIG.colores & Partial<Record<
+    'sidebarActivo' | 'sidebarActivoTexto' | 'sidebarHover' | 'sidebarRealce'
+    | 'sidebarBorde' | 'sidebarBordeFuerte', string>>
+
   const cssVars = {
     '--color-primario':           ESCUELA_CONFIG.colores.primario,
     '--color-acento':             ESCUELA_CONFIG.colores.acento,
@@ -69,6 +73,17 @@ export default function RootLayout({
     '--color-fondo':              ESCUELA_CONFIG.colores.fondo,
     '--color-superficie':         ESCUELA_CONFIG.colores.superficie,
     '--color-borde':              ESCUELA_CONFIG.colores.borde,
+    // Realces del sidebar. OPCIONALES: si el cliente no los declara quedan
+    // undefined y sidebar.tsx cae en su fallback histórico, así que un cliente
+    // que no los use ve exactamente el mismo panel de siempre. Existen porque
+    // van ENCIMA de `primario`, y con dos colores de marca vecinos en el
+    // círculo cromático el item activo dejaba de distinguirse del fondo.
+    '--color-sidebar-activo':        c.sidebarActivo,
+    '--color-sidebar-activo-texto':  c.sidebarActivoTexto,
+    '--color-sidebar-hover':         c.sidebarHover,
+    '--color-sidebar-realce':        c.sidebarRealce,
+    '--color-sidebar-borde':         c.sidebarBorde,
+    '--color-sidebar-borde-fuerte':  c.sidebarBordeFuerte,
   } as React.CSSProperties
 
   return (

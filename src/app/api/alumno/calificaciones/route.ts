@@ -11,11 +11,12 @@ export async function GET() {
     let alumnoId:         string | null = null
     let mesesDesbloqueados              = 0
     let alumnoNivel:      string | null = null
+    let alumnoCarrera:    string | null = null
     let inscripcionPagada               = false
 
     const { data: aNuevo } = await supabase
       .from('alumnos')
-      .select('id, meses_desbloqueados, nivel, inscripcion_pagada')
+      .select('id, meses_desbloqueados, nivel, carrera, inscripcion_pagada')
       .eq('id', user.id)
       .maybeSingle()
 
@@ -24,11 +25,13 @@ export async function GET() {
         id: string
         meses_desbloqueados: number
         nivel: string | null
+        carrera: string | null
         inscripcion_pagada: boolean
       }
       alumnoId           = row.id
       mesesDesbloqueados = row.meses_desbloqueados ?? 0
       alumnoNivel        = row.nivel ?? null
+      alumnoCarrera      = row.carrera ?? null
       inscripcionPagada  = row.inscripcion_pagada ?? false
     }
 
@@ -44,11 +47,13 @@ export async function GET() {
           id: string
           meses_desbloqueados: number
           nivel: string | null
+          carrera: string | null
           inscripcion_pagada: boolean
         }
         alumnoId           = row.id
         mesesDesbloqueados = row.meses_desbloqueados ?? 0
         alumnoNivel        = row.nivel ?? null
+        alumnoCarrera      = row.carrera ?? null
         inscripcionPagada  = row.inscripcion_pagada ?? false
       }
     }
@@ -83,19 +88,27 @@ export async function GET() {
     // mes no puede borrar del boletín una materia que el alumno ya cursó.
     const { data: meses } = await supabase
       .from('meses_contenido')
-      .select('numero_mes, materias(id, nombre, nivel)')
+      .select('numero_mes, materias(id, nombre, nivel, carrera)')
       .order('numero_mes')
 
     type MesRow = {
       numero_mes: number
-      materias: { id: string; nombre: string; nivel: string } | null
+      materias: { id: string; nombre: string; nivel: string; carrera: string | null } | null
     }
 
     // Bug 1+2: solo materias del nivel del alumno; si pagó excluye demo automáticamente
     const mesesFiltrados = ((meses ?? []) as unknown as MesRow[]).filter((mc) => {
       const matNivel = mc.materias?.nivel
       if (!matNivel) return false
-      return inscripcionPagada ? matNivel === alumnoNivel : matNivel === 'demo'
+      if (!inscripcionPagada) return matNivel === 'demo'
+      if (matNivel !== alumnoNivel) return false
+      // Y por CARRERA. Todas las de licenciatura comparten `nivel`, así que sin
+      // esto el boletín mezclaba las materias de los otros programas del
+      // cliente. Mismo criterio que `cargarContextoAcceso()`. Ver Bug 59.
+      if (alumnoNivel === 'licenciatura' && alumnoCarrera) {
+        return mc.materias?.carrera === alumnoCarrera
+      }
+      return true
     })
 
     const resultado: {

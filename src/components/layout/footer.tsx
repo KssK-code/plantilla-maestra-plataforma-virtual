@@ -1,6 +1,27 @@
 'use client'
 
 import { CONFIG, ESCUELA_CONFIG } from '@/lib/config'
+import { getNivelLabel } from '@/lib/modalidades'
+import { getCarreras, licenciaturasActivas } from '@/lib/licenciatura-utils'
+
+/**
+ * Qué vende el cliente, leído de su config.
+ *
+ * Estaba escrito a mano como "Preparatoria · Secundaria · 100% en línea", así
+ * que un cliente que solo vendiera secundaria anunciaba prepa, y el alumno de
+ * un curso o diplomado leía al pie de su portal dos programas que no cursa.
+ */
+function ofertaDelCliente(): string {
+  const partes: string[] = []
+  const niveles = getNivelLabel()
+  if (niveles) partes.push(niveles)
+  if (licenciaturasActivas()) {
+    const n = getCarreras().length
+    if (n > 0) partes.push(n === 1 ? getCarreras()[0].nombre : `${n} cursos y diplomados`)
+  }
+  partes.push('100% en línea')
+  return partes.join(' · ')
+}
 
 export function Footer() {
   return (
@@ -15,7 +36,7 @@ export function Footer() {
         {ESCUELA_CONFIG.nombre}
       </p>
       <p className="text-xs" style={{ color: '#374151' }}>
-        Preparatoria · Secundaria · 100% en línea
+        {ofertaDelCliente()}
       </p>
       <div className="flex items-center justify-center flex-wrap gap-x-4 gap-y-1">
         <a
