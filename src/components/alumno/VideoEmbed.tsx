@@ -9,6 +9,25 @@ interface VideoEmbedProps {
   lang: string
 }
 
+/**
+ * ¿Esta URL produce algo que el alumno pueda ver?
+ *
+ * Se exporta para que la pantalla de la materia filtre ANTES de pintar el
+ * encabezado "Videos de la semana": si no se filtrara, una semana cuyo único
+ * video no sirve mostraría el encabezado con su borde y nada debajo.
+ *
+ * Las URL de búsqueda de YouTube NO son reproducibles. La plantilla las
+ * montaba en `youtube.com/embed/videosearch`, endpoint que YouTube retiró para
+ * sitios de terceros: hoy pinta la tarjeta "Este video no está disponible".
+ * Tampoco sirve degradarlas a link externo — mandarían al alumno a una lista de
+ * resultados de YouTube, fuera de la plataforma y sin curaduría.
+ */
+export function esVideoReproducible(url: string | null | undefined): boolean {
+  if (!url || !url.trim()) return false
+  if (url.includes('results?search_query')) return false
+  return true
+}
+
 function extractYouTubeId(url: string): string | null {
   if (!url) return null
   // youtu.be/ID
@@ -24,39 +43,16 @@ function extractYouTubeId(url: string): string | null {
 }
 
 export default function VideoEmbed({ url, titulo, duracion }: VideoEmbedProps) {
-  // ── Caso 1: URL de búsqueda de YouTube → iframe embed de resultados ─────────
-  // Ej: https://www.youtube.com/results?search_query=numeros+naturales
-  if (url.includes('results?search_query')) {
-    const searchQuery = new URLSearchParams(url.split('?')[1] ?? '').get('search_query') ?? ''
-    const embedSearch = `https://www.youtube.com/embed/videosearch?q=${encodeURIComponent(searchQuery.replace(/\+/g, ' '))}`
-
-    return (
-      <div className="rounded-xl overflow-hidden" style={{ background: '#1E2330' }}>
-        <div style={{ position: 'relative', paddingBottom: '56.25%', height: 0 }}>
-          <iframe
-            src={embedSearch}
-            title={titulo}
-            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-            allowFullScreen
-            style={{
-              position: 'absolute',
-              top: 0,
-              left: 0,
-              width: '100%',
-              height: '100%',
-              border: 'none',
-            }}
-          />
-        </div>
-        {(titulo || duracion) && (
-          <div className="px-4 py-3">
-            {titulo && <p className="text-sm font-medium" style={{ color: '#E2E8F0' }}>{titulo}</p>}
-            {duracion && <p className="text-xs mt-0.5" style={{ color: '#64748B' }}>{duracion}</p>}
-          </div>
-        )}
-      </div>
-    )
-  }
+  // Una URL no reproducible no pinta nada, igual que `video_url` en NULL. La
+  // pantalla ya filtra con `esVideoReproducible`, pero esto cierra el caso por
+  // si alguien monta el componente directo.
+  //
+  // Aquí vivía el "Caso 1", que con una URL `results?search_query` montaba un
+  // iframe de `youtube.com/embed/videosearch`. YouTube retiró ese endpoint para
+  // terceros y hoy devuelve "Este video no está disponible": era un reproductor
+  // muerto dentro de una materia pagada. Se quitó en vez de arreglarse porque
+  // no hay a qué arreglarlo — el endpoint ya no existe.
+  if (!esVideoReproducible(url)) return null
 
   // ── Caso 2: Video directo de YouTube (watch?v= o youtu.be/) ─────────────────
   // Ej: https://www.youtube.com/watch?v=YWLP8YKqGvE

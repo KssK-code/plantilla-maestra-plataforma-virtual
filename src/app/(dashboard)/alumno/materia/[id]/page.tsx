@@ -5,7 +5,7 @@ import { useState, useEffect, useRef } from 'react'
 import { useRouter, useParams } from 'next/navigation'
 import { ArrowLeft, FileText, Loader2 } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
-import VideoEmbed from '@/components/alumno/VideoEmbed'
+import VideoEmbed, { esVideoReproducible } from '@/components/alumno/VideoEmbed'
 import ReadingProgress from '@/components/alumno/ReadingProgress'
 import WeekRoadmap from '@/components/alumno/WeekRoadmap'
 import CelebrationBanner from '@/components/alumno/CelebrationBanner'
@@ -314,7 +314,9 @@ export default function MateriaPage() {
                           const minLectura = palabras > 0 ? Math.ceil(palabras / 200) : 0
                           // Contamos videos, no minutos: la API ya no inventa una
                           // duracion por video (el tiempo estimado es de la SEMANA).
-                          const numVideos = (semana.videos ?? []).length
+                          // Solo los reproducibles: una URL que no pinta nada no
+                          // puede anunciarse como "1 video".
+                          const numVideos = (semana.videos ?? []).filter(v => esVideoReproducible(v.url)).length
                           const partes = []
                           if (minLectura > 0) partes.push(`📖 ${minLectura} min lectura`)
                           if (numVideos > 0) partes.push(`🎬 ${numVideos} video${numVideos !== 1 ? 's' : ''}`)
@@ -353,12 +355,18 @@ export default function MateriaPage() {
                       )}
 
                       {/* Videos — embebidos (YouTube iframe) */}
-                      {semana.videos?.length > 0 && (
+                      {/* Se filtra ANTES del encabezado: si el único video de la
+                          semana no es reproducible, no debe quedar el título con
+                          su borde y nada debajo. */}
+                      {(() => {
+                        const videosOk = (semana.videos ?? []).filter(v => esVideoReproducible(v.url))
+                        if (videosOk.length === 0) return null
+                        return (
                         <div className="space-y-3 pt-1" style={{ borderTop: '1px solid #2A2F3E', paddingTop: '1rem' }}>
                           <p className="text-xs font-semibold uppercase tracking-wide" style={{ color: '#475569' }}>
                             🎬 Videos de la semana
                           </p>
-                          {semana.videos.map((v, i) => (
+                          {videosOk.map((v, i) => (
                             <VideoEmbed
                               key={i}
                               url={v.url}
@@ -368,7 +376,8 @@ export default function MateriaPage() {
                             />
                           ))}
                         </div>
-                      )}
+                        )
+                      })()}
 
                       {/* Mini quiz de refuerzo (sesión en API; alumnoId no requerido para montar) */}
                       <SemanaQuiz
