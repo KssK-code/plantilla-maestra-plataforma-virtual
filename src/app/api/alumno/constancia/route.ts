@@ -20,7 +20,7 @@ export async function GET() {
     // ── Alumno (schema nuevo: alumnos.id = user.id) ───────────────────────────
     const { data: alumno } = await supabase
       .from('alumnos')
-      .select('matricula, nivel, modalidad, meses_desbloqueados, inscripcion_pagada, created_at')
+      .select('matricula, nivel, carrera, modalidad, meses_desbloqueados, inscripcion_pagada, created_at')
       .eq('id', user.id)
       .single()
 
@@ -32,6 +32,7 @@ export async function GET() {
 
     const duracionMeses = getMesesByModalidad(alumno.modalidad)
     const alumnoNivel        = alumno.nivel ?? null
+    const alumnoCarrera      = (alumno as { carrera?: string | null }).carrera ?? null
     const inscripcionPagada  = alumno.inscripcion_pagada ?? false
     const mesesDesbloqueados = alumno.meses_desbloqueados ?? 0
 
@@ -55,12 +56,12 @@ export async function GET() {
     // lo cursado. Un mes retirado no puede desaparecer de un documento emitido.
     const { data: meses } = await supabase
       .from('meses_contenido')
-      .select('numero_mes, materias(id, nombre, nivel)')
+      .select('numero_mes, materias(id, nombre, nivel, carrera)')
       .order('numero_mes')
 
     type MesRow = {
       numero_mes: number
-      materias: { id: string; nombre: string; nivel: string } | null
+      materias: { id: string; nombre: string; nivel: string; carrera: string | null } | null
     }
 
     const materias_cursadas: {
@@ -78,6 +79,12 @@ export async function GET() {
       // automáticamente); sin pagar → solo demo. Mismo criterio que calificaciones.
       if (inscripcionPagada ? mat.nivel !== alumnoNivel : mat.nivel !== 'demo') continue
 
+      // Y por CARRERA. Todas las de licenciatura comparten `nivel`, así que sin
+      // esto la constancia de un alumno listaba materias de los otros programas
+      // del cliente — en un documento que el alumno imprime. Ver Bug 59.
+      if (inscripcionPagada && alumnoNivel === 'licenciatura' && alumnoCarrera
+          && mat.carrera !== alumnoCarrera) continue
+
       // Acreditada/No acreditada siempre visibles; Pendiente solo en meses desbloqueados
       if (!califMap.has(mat.id) && (mes.numero_mes ?? 0) > mesesDesbloqueados) continue
 
@@ -86,7 +93,12 @@ export async function GET() {
       const nivelPrefix = mat.nivel === 'preparatoria' ? 'PREP'
                         : mat.nivel === 'secundaria'   ? 'SECU'
                         : mat.nivel === 'demo'         ? 'TUT'
-                        : 'GEN'
+                        // Licenciatura: las siglas del slug de la carrera dicen
+                        // de qué programa es la materia. 'GEN' no distinguía
+                        // entre dos programas del mismo cliente.
+                        : (mat.carrera
+                            ? mat.carrera.split('-').map(x => x[0]).join('').toUpperCase().slice(0, 4)
+                            : 'GEN')
       const codigoGenerado = `${nivelPrefix}-M${mesNum}-${String(contadorPorMes[mesNum]).padStart(2, '0')}`
       materias_cursadas.push({
         materia_id:     mat.id,

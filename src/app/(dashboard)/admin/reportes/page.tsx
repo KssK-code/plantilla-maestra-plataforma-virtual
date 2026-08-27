@@ -260,9 +260,23 @@ export default function ReportesPage() {
 
   return (
     <div className="space-y-6">
-      <div>
-        <h2 className="text-xl font-bold text-gray-900">Reportes y Estadísticas</h2>
-        <p className="text-sm mt-0.5" style={{ color: '#94A3B8' }}>Resumen general de la plataforma</p>
+      <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3">
+        <div>
+          <h2 className="text-xl font-bold text-gray-900">Reportes y Estadísticas</h2>
+          <p className="text-sm mt-0.5" style={{ color: '#94A3B8' }}>Resumen general de la plataforma</p>
+        </div>
+        {/* Corte completo en un solo archivo. Los CSV por vertical de más abajo
+            siguen ahí: cubren el detalle de Diplomados, que este libro no
+            repite. Es un <a> y no un fetch porque la respuesta es el archivo
+            en sí y el navegador ya sabe descargarlo. */}
+        <a
+          href="/api/admin/reportes/excel"
+          className="inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl text-sm font-semibold flex-shrink-0 transition-opacity hover:opacity-90"
+          style={{ background: 'var(--color-primario)', color: 'var(--color-texto-sobre-acento)' }}
+        >
+          <Download className="w-4 h-4" />
+          Descargar Excel
+        </a>
       </div>
 
       {/* Stats */}
