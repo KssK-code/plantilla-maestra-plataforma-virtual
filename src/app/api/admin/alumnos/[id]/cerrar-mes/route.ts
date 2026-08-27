@@ -70,7 +70,7 @@ export async function POST(
     const mesACerrar     = alumno.meses_desbloqueados
     // Igual que en `materiasPorMesDePlan()`: los ids de las dos tablas de
     // modalidades colisionan y `getMateriasPorMesByModalidad` devuelve el del
-    // programa de Sec/Prepa. Aquí eso partiría el rango a la mitad. Ver Bug 103.
+    // programa de Sec/Prepa. Aquí eso partiría el rango a la mitad. Ver Bug 121.
     const materiasPorMes = (alumno.nivel === 'licenciatura'
       ? getMateriasPorMesLicenciatura(alumno.modalidad)
       : undefined) ?? getMateriasPorMesByModalidad(alumno.modalidad)

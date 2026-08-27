@@ -57,7 +57,7 @@ export function getModalidadesLicenciatura(): readonly ModalidadBase[] {
  * alumno de un programa de 24 materias en '6_meses' hereda el materiasPorMes
  * del plan de prepa (2) y su ventana queda en 6 × 2 = 12 materias. Se detiene a
  * la mitad del temario, con 403 al abrir cualquier materia posterior, y subirle
- * los meses desbloqueados no ayuda: el tope es un producto. Ver Bug 103.
+ * los meses desbloqueados no ayuda: el tope es un producto. Ver Bug 121.
  *
  * Devuelve undefined si la modalidad no está declarada en licenciaturas, para
  * que quien llama conserve su fallback de siempre.
