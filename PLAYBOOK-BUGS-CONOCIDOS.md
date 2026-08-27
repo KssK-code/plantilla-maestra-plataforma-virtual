@@ -228,3 +228,56 @@ ventana. Es **deliberado** —el README de `scripts/` la marca como CRÍTICA par
 modo prueba— y le pasa igual al alumno de preparatoria, que ve 13 en vez de 12.
 **No es un bug**, pero conviene saberlo antes de reportar un conteo que no cuadra.
 Si un cliente no la quiere: `UPDATE materias SET activa = false WHERE nivel = 'demo';`
+
+---
+
+### Bug 108 — El Documento de Entrega anunciaba precios que la plataforma no cobra
+**Síntoma:** el PDF de entrega de un cliente con precios distintos por nivel
+dice "Secundaria: 3 Meses $2,000/mes · 6 Meses $1,000/mes" cuando su plataforma
+cobra $1,800 y $900. El cliente recibe un documento oficial que contradice a su
+propia página de precios.
+**Causa:** `scripts/entrega/generar-entrega.mjs` leía `modalidades[].mensualidad`,
+que es **un solo número** para toda la tabla, y lo repetía en cada nivel: salía
+el de preparatoria para todos. Los precios reales por nivel viven en
+`CONFIG.precios.<nivel>_<n>meses_normal`, que es de donde lee la landing.
+**Fix:** `mens(m, nivel)` consulta primero `precios.<nivel>_<n>meses_normal` y
+solo cae a `mensualidad` si esa clave no existe. Un cliente con tarifa única no
+nota ningún cambio.
+**Cómo se detecta:** comparar la tabla de precios del PDF contra la sección de
+precios de la landing. Si no coinciden, es esto.
+**Detectado en:** EDU CEL ACADEMY (#177), 27-ago-2026. Corregido en plantilla.
+
+---
+
+### Bug 109 — La entrega ignoraba los cursos y diplomados ya cargados
+**Síntoma:** un cliente al que se le entregaron programas del riel de
+licenciatura (cursos, diplomados, carreras) recibía un PDF y un mensaje de
+WhatsApp que no los mencionaban. El WhatsApp no los nombraba **ni una vez**, y
+el PDF solo los delataba con una fila "Licenciatura — Plan 6 Meses" en la tabla
+de modalidades.
+**Causa:** el generador solo contaba materias por nivel `secundaria`/`preparatoria`
+y trataba `CONFIG.licenciaturas` como un bloque de precios, no como oferta.
+**Fix:** el inventario ahora se calcula **por carrera** (`INV.porCarrera[slug]`)
+—nunca por nivel, que sumaría los programas entre sí, ver Bug 59— y alimenta:
+una sección propia del PDF con catálogo y descripciones, un bloque en el
+WhatsApp, la portada, y la lista de funcionalidad.
+**Ojo con el vocabulario:** un curso de preparación no es una licenciatura ni
+tiene cuatrimestres. El generador infiere el tipo del nombre; para fijarlo,
+agrega `tipo: 'curso' | 'diplomado' | 'licenciatura'` a la carrera en el config.
+**Detectado en:** EDU CEL ACADEMY (#177), 27-ago-2026. Corregido en plantilla.
+
+---
+
+### Bug 110 — El enlace del PDF a la sección de programas caía en el vacío
+**Síntoma:** el Documento de Entrega ofrece "Sección pública:
+`<dominio>/#programas`". El cliente hace clic y la página no se mueve.
+**Causa:** ese id no existía. El único ancla parecida en la landing es
+`#diplomados`, que es **otra cosa** —el catálogo de cursos propios del cliente—
+y además solo se renderiza si publicó alguno, así que en un cliente recién
+entregado ni siquiera está en el DOM.
+**Fix:** el generador **lee** el id de `LandingClient.tsx` (busca `programas`,
+`carreras`, `licenciaturas`) en vez de darlo por hecho, y si no encuentra
+ninguno omite la fila. Prometer un enlace que no anda es peor que no darlo.
+**Al reescribir la landing de un cliente con programas:** ponle
+`id="programas"` a esa sección, o el PDF no podrá enlazarla.
+**Detectado en:** EDU CEL ACADEMY (#177), 27-ago-2026. Corregido en plantilla.

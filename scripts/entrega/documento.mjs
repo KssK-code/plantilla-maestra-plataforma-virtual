@@ -105,6 +105,8 @@ li::before{ content:''; position:absolute; left:.02in; top:.075in; width:6px; he
 .note > b{ display:block; font-size:10pt; margin-bottom:.04in; }
 .note p{ font-size:9pt; color:${P.suave}; line-height:1.55; }
 .note p b{ font-weight:700; color:${P.texto}; }
+.note ul{ margin:.06in 0 0 .16in; padding:0; }
+.note li{ font-size:8.6pt; color:${P.suave}; line-height:1.5; margin:.02in 0; }
 .center{ text-align:center; } .mt{ margin-top:.2in; } .mt2{ margin-top:.3in; }
 `
 
@@ -193,7 +195,7 @@ ${d.notaModalidades ? `<p class="small">${esc(d.notaModalidades)}</p>` : ''}`
 
 function cursos(d) {
   return `
-<h2><span class="num">Módulo incluido ·</span> Cursos y Diplomados</h2>
+<h2><span class="num">Módulo incluido ·</span> Crea tus propios cursos</h2>
 <div class="rule"></div>
 <p class="lead">Además del programa académico, tu plataforma incluye un módulo
 independiente para vender cursos y diplomados cortos. Se entrega
@@ -222,20 +224,43 @@ ${tablaModalidades(d)}`
 
 function licenciaturas(d) {
   const L = d.licenciaturas
+  // El cliente puede vender un curso, un diplomado o una licenciatura por los
+  // mismos rieles. El documento usa la palabra que corresponde a lo que compró.
+  const titulo  = d.etiquetaProgramas || 'Licenciaturas'
+  const bloque  = d.palabraBloque || 'Cuatrimestres'
+  const conInv  = L.carreras.some(c => c.inv?.materias)
+  // Materias: el conteo REAL de la base cuando lo hay; si no, lo declarado.
+  const mats    = c => c.inv?.materias ?? c.totalMaterias ?? 0
+  const react   = c => (c.inv?.preguntas || 0) + (c.inv?.quiz || 0)
+  const totalM  = L.carreras.reduce((a, c) => a + mats(c), 0)
+  const totalR  = L.carreras.reduce((a, c) => a + react(c), 0)
+
+  const cols = ['Programa', bloque, 'Materias', ...(conInv ? ['Reactivos'] : [])]
+  const filas = L.carreras.map(c => [
+    c.nombre, c.cuatrimestres, mats(c), ...(conInv ? [react(c) || '—'] : []),
+  ]).concat([{ celdas: ['Total', '', totalM, ...(conInv ? [totalR] : [])], total: true }])
+
   return `
-<h2><span class="num">Programa ·</span> Licenciaturas</h2>
+<h2><span class="num">Programa ·</span> ${titulo}</h2>
 <div class="rule"></div>
-<p class="lead">Vive dentro de la misma plataforma, con su propia sección en la
-página pública y su propio panel de contenido.</p>
+<p class="lead">${L.carreras.length === 1 ? 'Vive' : 'Viven'} dentro de la misma
+plataforma, con su propia sección en la página pública y su propio panel de
+contenido. Se ${L.carreras.length === 1 ? 'inscribe' : 'inscriben'} desde el
+mismo registro, eligiendo el programa.</p>
 ${kv([
-    ['Sección pública', `${d.url}/#licenciaturas`],
-    ['Inscripción', mxn(L.inscripcion)],
+    // El ancla se comprueba contra la landing real (ver `anclaProgramas` en
+    // generar-entrega.mjs). Prometer un enlace que no anda es peor que no darlo.
+    d.anclaProgramas ? ['Sección pública', `${d.url}/#${d.anclaProgramas}`] : null,
+    // Un cliente cuyo programa no lleva inscripción aparte no debe ver una
+    // fila que diga "$0.00": se omite.
+    L.inscripcion ? ['Inscripción', mxn(L.inscripcion)] : ['Inscripción', 'Sin inscripción adicional'],
     L.certificacion ? ['Certificación profesional', mxn(L.certificacion)] : null,
   ])}
-${L.carreras.length ? `<h3>Catálogo de carreras</h3>${dt(['Carrera', 'Cuatrimestres', 'Materias'],
-      L.carreras.map(c => [c.nombre, c.cuatrimestres, c.totalMaterias]).concat([
-        { celdas: ['Total', '', L.carreras.reduce((a, c) => a + (c.totalMaterias || 0), 0)], total: true },
-      ]))}` : ''}
+${L.carreras.length ? `<h3>Catálogo</h3>${dt(cols, filas)}` : ''}
+${L.carreras.some(c => c.desc) ? L.carreras.filter(c => c.desc).map(c => `
+<div class="note"><b>${esc(c.nombre)}</b><p>${esc(c.desc)}</p>${
+  (c.incluye || []).length ? ul(c.incluye.map(esc)) : ''
+}</div>`).join('') : ''}
 ${L.modalidades.length ? `<h3>Planes configurados</h3>${dt(['Plan', 'Duración', 'Mensualidad', 'Total del plan'],
       L.modalidades.map(m => [m.label || m.id, `${m.meses} meses`, `${mxn(m.mensualidad)}/mes`,
         mxn((m.mensualidad || 0) * (m.meses || 0))]))}` : ''}`

@@ -103,6 +103,34 @@ async function inventario() {
     if (nivel === 'licenciatura') continue
     inv[`materias_${nivel}`] = await n('materias', q => q.eq('nivel', nivel).eq('activa', true))
   }
+
+  // Programas de licenciatura: se cuenta POR CARRERA, no en bloque. Todas
+  // comparten `nivel = 'licenciatura'`, así que un conteo por nivel sumaría los
+  // programas entre sí y el documento diría "48 materias" donde el alumno de
+  // cada uno cursa 24. Ver Bug 59 del playbook.
+  inv.porCarrera = {}
+  for (const c of (CONFIG.licenciaturas?.activas ? (CONFIG.licenciaturas.carreras || []) : [])) {
+    const materias = await n('materias', q => q.eq('carrera', c.slug).eq('activa', true))
+    if (materias == null) continue
+    const { data: ids } = await sb.from('materias').select('id').eq('carrera', c.slug).eq('activa', true)
+    const materiaIds = (ids || []).map(x => x.id)
+    let evaluaciones = 0, preguntas = 0, quiz = 0, semanas = 0
+    if (materiaIds.length) {
+      const { data: ev } = await sb.from('evaluaciones').select('id').in('materia_id', materiaIds)
+      const evIds = (ev || []).map(x => x.id)
+      evaluaciones = evIds.length
+      if (evIds.length) preguntas = await n('preguntas', q => q.in('evaluacion_id', evIds)) ?? 0
+      const { data: mc } = await sb.from('meses_contenido').select('id').in('materia_id', materiaIds)
+      const mesIds = (mc || []).map(x => x.id)
+      if (mesIds.length) {
+        const { data: sem } = await sb.from('semanas').select('id').in('mes_id', mesIds)
+        const semIds = (sem || []).map(x => x.id)
+        semanas = semIds.length
+        if (semIds.length) quiz = await n('quiz_semana', q => q.in('semana_id', semIds)) ?? 0
+      }
+    }
+    inv.porCarrera[c.slug] = { materias, semanas, evaluaciones, preguntas, quiz }
+  }
   inv.materias_demo = await n('materias', q => q.eq('nivel', 'demo'))
   inv.semanas = await n('semanas')
   inv.evaluaciones = await n('evaluaciones')
@@ -118,6 +146,48 @@ log('· Leyendo inventario de contenido…')
 const INV = await inventario()
 
 /* ── 4. Modalidades y precios, adaptados a lo CONTRATADO ─────────────────── */
+/**
+ * Un cliente puede vender un CURSO, un DIPLOMADO o una LICENCIATURA por los
+ * mismos rieles internos. Llamarlos a todos "licenciatura" en el documento de
+ * entrega es decirle al cliente algo que no vendió — y "cuatrimestres" donde
+ * su temario habla de módulos. Se infiere del nombre y se puede fijar a mano
+ * con `tipo` en la carrera si algún día hace falta.
+ */
+const tipoDePrograma = (c) => {
+  if (c.tipo) return c.tipo
+  const n = String(c.nombre || '').toLowerCase()
+  if (n.startsWith('curso')) return 'curso'
+  if (n.startsWith('diplomado')) return 'diplomado'
+  return 'licenciatura'
+}
+const CARRERAS = (CONFIG.licenciaturas?.activas ? (CONFIG.licenciaturas.carreras || []) : [])
+  .map(c => ({ ...c, tipo: tipoDePrograma(c), inv: INV.porCarrera?.[c.slug] ?? null }))
+const TIPOS = [...new Set(CARRERAS.map(c => c.tipo))]
+/** Título de la sección y palabra para el bloque, según lo que el cliente vende. */
+// El documento enlaza a la sección de los programas en la página pública. El id
+// se LEE de la landing en vez de darlo por hecho: estaba escrito '#programas' y
+// el id real es 'diplomados', asi que el enlace del PDF no llevaba a ninguna
+// parte. Si no se encuentra ninguno, no se promete el enlace.
+const anclaProgramas = (() => {
+  if (!CARRERAS.length) return null
+  try {
+    const landing = fs.readFileSync(new URL('../../src/components/landing/LandingClient.tsx', import.meta.url), 'utf8')
+    // Solo la sección de los programas. `diplomados` NO sirve: es el catálogo
+    // de cursos propios del cliente y se renderiza únicamente si publicó
+    // alguno, así que enlazar ahí manda al vacío.
+    for (const id of ['programas', 'carreras', 'licenciaturas']) {
+      if (landing.includes(`id="${id}"`)) return id
+    }
+  } catch { /* sin landing legible, se omite el enlace */ }
+  return null
+})()
+
+const ETIQUETA_PROGRAMAS = TIPOS.length === 0 ? 'Programas'
+  : TIPOS.length === 1
+    ? ({ curso: 'Cursos de preparación', diplomado: 'Diplomados', licenciatura: 'Licenciaturas' })[TIPOS[0]]
+    : 'Cursos y diplomados'
+const PALABRA_BLOQUE = TIPOS.includes('licenciatura') ? 'Cuatrimestres' : 'Módulos'
+
 const nivelesPrograma = CONFIG.niveles.filter(n => n !== 'licenciatura')
 const modalidadesActivas = (CONFIG.modalidades || []).filter(m => m && typeof m === 'object' && m.activa)
 if (!modalidadesActivas.length && CONFIG.modo !== 'solo_cursos')
@@ -136,7 +206,23 @@ const porNivel = (v, nivel) => {
 const insc = (nivel) => porNivel(CONFIG.precios?.inscripcion, nivel)
 const cert = (nivel) => CONFIG.precios?.[`certificacion${cap(nivel)}`]
   ?? CONFIG.precios?.[`certificacion_${nivel}`] ?? 0
-const mens = (m, nivel) => porNivel(m.mensualidad, nivel)
+/**
+ * Mensualidad de una modalidad para un nivel.
+ *
+ * ⚠️ `modalidades[].mensualidad` es UN SOLO número, así que en un cliente con
+ * precios diferenciados por nivel devuelve el mismo para todos. La plantilla ya
+ * resuelve esa diferencia con las claves `precios.<nivel>_<n>meses_normal`, que
+ * es de donde lee la landing (ver LandingClient, tarjeta de Secundaria). Sin
+ * consultarlas, el documento de entrega contradecía a la propia plataforma:
+ * anunciaba la mensualidad de preparatoria como si fuera la de secundaria.
+ */
+const mens = (m, nivel) => {
+  const meses = m?.meses
+  const clave = nivel && meses ? `${String(nivel).toLowerCase()}_${meses}meses_normal` : null
+  const porClave = clave ? CONFIG.precios?.[clave] : undefined
+  if (typeof porClave === 'number') return porClave
+  return porNivel(m.mensualidad, nivel)
+}
 
 // Tabla de precios: una columna por nivel, una fila por concepto.
 const preciosCols = ['Concepto', ...nivelesPrograma.map(cap)]
@@ -167,11 +253,18 @@ for (const n of nivelesPrograma)
   for (const m of modalidadesActivas)
     modalidadesFilas.push([`${cap(n)} — plan ${m.label || m.id}`, `${m.meses} meses`,
       `${mxn(mens(m, n))}/mes`, `${m.materiasPorMes} materia${m.materiasPorMes === 1 ? '' : 's'} por mes`])
-if (CONFIG.licenciaturas?.activas)
+// Los programas de pago único: se nombran por lo que son. Decir "Licenciatura"
+// a un curso de preparación es anunciarle al cliente algo que no vendió.
+if (CARRERAS.length)
   for (const m of (CONFIG.licenciaturas.modalidades || []).filter(x => x.activa !== false))
-    modalidadesFilas.push([`Licenciatura — ${m.label || m.id}`, `${m.meses} meses`,
-      `${mxn(m.mensualidad)}/mes`, `${m.materiasPorMes} materias por mes`])
-modalidadesFilas.push(['Cursos y Diplomados', 'La define cada curso', 'Por curso', 'Por módulos'])
+    modalidadesFilas.push([
+      CARRERAS.length === 1 ? `${CARRERAS[0].nombre} — ${m.label || m.id}`
+                            : `${ETIQUETA_PROGRAMAS} — ${m.label || m.id}`,
+      `${m.meses} meses`, `${mxn(m.mensualidad)}/mes`,
+      `${m.materiasPorMes} materia${m.materiasPorMes === 1 ? '' : 's'} por mes`])
+// El módulo para que el cliente cargue SUS propios cursos, distinto de los
+// programas ya entregados: se etiqueta para que no se confundan.
+modalidadesFilas.push(['Cursos propios (módulo vacío)', 'La define cada curso', 'Por curso', 'Por módulos'])
 
 /* ── 5. Datos del documento ──────────────────────────────────────────────── */
 const b64 = (rel) => {
@@ -184,14 +277,28 @@ const b64 = (rel) => {
 const [tag1, tag2] = String(CONFIG.tagline || '').split(' / ')
 const taglineCierre = CONFIG.taglineSecundario || tag2 || tag1 || CONFIG.tagline
 
+
 const contenido = []
 for (const n of nivelesPrograma)
   if (INV[`materias_${n}`]) contenido.push([`Materias de ${cap(n)}`, INV[`materias_${n}`]])
 if (INV.materias_demo) contenido.push(['Materia tutorial (demostración)', INV.materias_demo])
-if (INV.semanas) contenido.push(['Semanas de contenido', INV.semanas])
-if (INV.evaluaciones) contenido.push(['Evaluaciones del programa', INV.evaluaciones])
-if (INV.preguntas) contenido.push(['Preguntas de examen', INV.preguntas])
-if (INV.quiz) contenido.push(['Preguntas de quiz semanal', INV.quiz])
+// Los totales de la base incluyen TODO, programas de pago único incluidos. Si
+// además se desglosa cada programa abajo, el cliente lee 746 preguntas y luego
+// 360 + 360 y parece que se suman. Se resta lo que ya se detalla aparte.
+const sumaCarreras = (k) => CARRERAS.reduce((a, c) => a + (c.inv?.[k] || 0), 0)
+const soloPrograma = (total, k) => Math.max(0, (total || 0) - sumaCarreras(k))
+if (INV.semanas) contenido.push(['Semanas de contenido', soloPrograma(INV.semanas, 'semanas')])
+if (INV.evaluaciones) contenido.push(['Evaluaciones del programa', soloPrograma(INV.evaluaciones, 'evaluaciones')])
+if (INV.preguntas) contenido.push(['Preguntas de examen', soloPrograma(INV.preguntas, 'preguntas')])
+if (INV.quiz) contenido.push(['Preguntas de quiz semanal', soloPrograma(INV.quiz, 'quiz')])
+// Cada programa aparte, con su conteo real: es lo que el cliente compró y lo
+// que quiere ver confirmado en el documento.
+for (const c of CARRERAS) {
+  if (!c.inv?.materias) continue
+  contenido.push([`${c.nombre} — materias`, c.inv.materias])
+  if (c.inv.preguntas || c.inv.quiz)
+    contenido.push([`${c.nombre} — reactivos`, (c.inv.preguntas || 0) + (c.inv.quiz || 0)])
+}
 
 const listaNiveles = nivelesPrograma.map(cap).join(' y ')
 const dur = modalidadesActivas.map(m => `${m.meses}`).join(' o ')
@@ -217,8 +324,14 @@ const datos = {
   whatsappDisplay: CONFIG.whatsappDisplay,
   logoData: CONFIG.logoListo === false ? null : (b64(CONFIG.logoOscuro || CONFIG.logo) || b64(CONFIG.logo)),
   isotipoData: CONFIG.isotipo ? b64(CONFIG.isotipo) : null,
-  frasePrograma: `tu instituto en línea — ${listaNiveles}`,
-  fraseIntro: `Una sola plataforma que atiende tus ${nivelesPrograma.length === 1 ? 'alumnos' : `${nivelesPrograma.length} niveles`}: ${listaNiveles}. El alumno se registra, elige su nivel y avanza mes a mes; tú lo administras todo desde un único panel.`,
+  // Usa la palabra que el cliente eligió para su institución —academia,
+  // instituto, centro— en lugar de "instituto" en duro, y nombra también los
+  // programas de pago único: son parte de lo que se le está entregando.
+  frasePrograma: `tu ${D.palabraInstitucion || 'instituto'} en línea — ${listaNiveles}${
+    CARRERAS.length ? `, ${CARRERAS.map(c => c.nombre).join(' y ')}` : ''}`,
+  fraseIntro: `Una sola plataforma que atiende tus ${nivelesPrograma.length === 1 ? 'alumnos' : `${nivelesPrograma.length} niveles`}: ${listaNiveles}${
+    CARRERAS.length ? `, más ${CARRERAS.length === 1 ? 'tu programa' : `tus ${CARRERAS.length} programas`} de pago único` : ''
+  }. El alumno se registra, elige ${CARRERAS.length ? 'qué quiere estudiar' : 'su nivel'} y avanza mes a mes; tú lo administras todo desde un único panel.`,
   frasePrecios: modalidadesActivas.length === 1
     ? `Tu escuela opera con un plan único de ${modalidadesActivas[0].meses} meses${inscDistinta ? ' y una inscripción diferenciada por nivel' : ''}. Así quedó cargado en la plataforma:`
     : `Tu escuela ofrece ${modalidadesActivas.length} planes de ${dur} meses${inscDistinta ? ', con inscripción diferenciada por nivel' : ''}. Así quedaron cargados:`,
@@ -228,7 +341,15 @@ const datos = {
   notaModalidades: modalidadesActivas.length === 1
     ? 'Tu plataforma ofrece un solo plan, así que el alumno no elige duración al registrarse: se le asigna automáticamente.'
     : 'El alumno elige su plan al registrarse, y el ritmo de apertura de materias se ajusta solo.',
-  licenciaturas: CONFIG.licenciaturas,
+  // Se enriquece con el conteo REAL de la base y con el tipo de cada programa,
+  // para que el documento no repita el `totalMaterias` declarado en el config
+  // sin comprobarlo, ni llame "licenciatura" a un curso de preparación.
+  licenciaturas: CONFIG.licenciaturas?.activas
+    ? { ...CONFIG.licenciaturas, carreras: CARRERAS }
+    : CONFIG.licenciaturas,
+  anclaProgramas,
+  etiquetaProgramas: ETIQUETA_PROGRAMAS,
+  palabraBloque: PALABRA_BLOQUE,
   incluirCursos: true,
   cursosPublicados: INV.cursos || 0,
   validez: D.validez !== false,
@@ -248,6 +369,11 @@ const datos = {
     modalidadesActivas.length === 1
       ? `Plan único de ${modalidadesActivas[0].meses} meses`
       : `${modalidadesActivas.length} planes de estudio (${dur} meses)`,
+    // Lo que el cliente ya tiene cargado va ANTES del módulo vacío: es lo que
+    // acaba de comprar y lo primero que quiere ver confirmado.
+    ...(CARRERAS.length ? [CARRERAS.length === 1
+      ? `${CARRERAS[0].nombre}, con su contenido cargado`
+      : `${CARRERAS.length} programas ya cargados: ${CARRERAS.map(c => c.nombre).join(' y ')}`] : []),
     'Módulo de Cursos y Diplomados listo para tu propio contenido',
     D.validez !== false && 'Sección de Validez Oficial México + Estados Unidos',
     'Panel de pagos, reportes y estado de cuenta',
@@ -267,6 +393,9 @@ const datos = {
     'Estado de cuenta por alumno',
     'Reportes de ingresos por semana y por mes, con descarga',
     'Gestión de documentos del alumno con validación del administrador',
+    ...(CARRERAS.length ? [
+      `${ETIQUETA_PROGRAMAS} ya cargados y listos para inscribir: ${CARRERAS.map(c => c.nombre).join(' y ')}`,
+    ] : []),
     'Módulo de Cursos y Diplomados, listo para cargar tu propio contenido',
     'Rol de secretario con accesos delimitados',
   ].filter(Boolean),
@@ -319,13 +448,40 @@ if (!flag('solo-pdf')) {
   L.push(modalidadesActivas.length === 1
     ? `Plan único de ${modalidadesActivas[0].meses} meses.`
     : `Planes disponibles: ${modalidadesActivas.map(m => m.label || m.id).join(' y ')}.`, '')
+
+  // Los programas de pago único van con su propio bloque: son otro producto,
+  // con otro precio y —normalmente— sin la inscripción del programa escolar.
+  // Sin esto, el mensaje de entrega no mencionaba ni una vez lo que el cliente
+  // acababa de comprar.
+  if (CARRERAS.length) {
+    const modsLic = (CONFIG.licenciaturas.modalidades || []).filter(m => m.activa !== false)
+    L.push(`🎓 ${ETIQUETA_PROGRAMAS.toUpperCase()}`)
+    for (const c of CARRERAS) {
+      const partes = []
+      if (c.inv?.materias) partes.push(`${c.inv.materias} materias`)
+      if (c.cuatrimestres) partes.push(`${c.cuatrimestres} módulos`)
+      const reactivos = (c.inv?.preguntas || 0) + (c.inv?.quiz || 0)
+      if (reactivos) partes.push(`${reactivos} reactivos`)
+      L.push(`• ${c.nombre}${partes.length ? ` — ${partes.join(' · ')}` : ''}`)
+    }
+    if (modsLic.length) {
+      const precios = modsLic.map(m => `${m.label || m.id}: ${mxn(m.mensualidad)}/mes`).join(' · ')
+      L.push(`Precio: ${precios}`)
+    }
+    const inscLic = CONFIG.licenciaturas.inscripcion
+    L.push(inscLic ? `Inscripción: ${mxn(inscLic)}` : 'Sin inscripción adicional.')
+    L.push('Se inscriben desde tu misma página, eligiendo el programa al registrarse.', '')
+  }
   L.push('⚙️ LO QUE PUEDES HACER DESDE TU PANEL',
     '• Dar de alta alumnos y abrirles el contenido mes a mes',
     '• Registrar pagos y generar el recibo en PDF con tu logo',
     '• Ver el estado de cuenta de cada alumno',
     '• Consultar reportes de ingresos por semana y por mes',
     '• Revisar y validar los documentos que suben tus alumnos',
-    '• Crear tus propios Cursos y Diplomados cuando quieras', '')
+    '• Crear tus propios Cursos y Diplomados cuando quieras',
+    ...(CARRERAS.length
+      ? [`• Gestionar a los alumnos de ${CARRERAS.length === 1 ? 'tu programa' : 'tus programas'} igual que a los de ${listaNiveles}`]
+      : []), '')
   L.push('📄 Te adjunto el Documento de Entrega Oficial con todo el detalle.',
     'Guárdalo, ahí tienes tus accesos y el resumen completo de tu plataforma.', '')
   L.push('🎬 ACADEMIA MEV — TUS TUTORIALES', '',
