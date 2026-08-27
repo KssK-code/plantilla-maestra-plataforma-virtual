@@ -88,7 +88,7 @@ export function materiasPorMesDePlan(
   // modalidades colisionan ('6_meses' está en las dos) y `buscarModalidad()`
   // siempre devuelve la del programa de Sec/Prepa. Sin esto, un alumno de un
   // programa de 24 materias en '6_meses' hereda materiasPorMes = 2 y su ventana
-  // se cierra en la materia 12: el curso queda inacabable. Ver Bug 103.
+  // se cierra en la materia 12: el curso queda inacabable. Ver Bug 121.
   if (alumno.nivel === 'licenciatura') {
     const lic = getMateriasPorMesLicenciatura(alumno.modalidad)
     if (lic !== undefined) return lic
