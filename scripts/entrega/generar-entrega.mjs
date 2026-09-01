@@ -29,6 +29,16 @@ import { fileURLToPath, pathToFileURL } from 'node:url'
 import { construirHTML, mxn, cap } from './documento.mjs'
 
 const RAIZ = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../..')
+
+// El import directo de `src/lib/config.ts` depende del type stripping nativo
+// de Node (sin flag desde 23.6). Con un Node anterior el error es críptico
+// ("Unknown file extension .ts"); mejor decirlo claro y antes de nada.
+const [NODE_MAJOR, NODE_MINOR] = process.versions.node.split('.').map(Number)
+if (NODE_MAJOR < 23 || (NODE_MAJOR === 23 && NODE_MINOR < 6)) {
+  console.error(`\n✖ Este script necesita Node >= 23.6 (tienes ${process.versions.node}).`)
+  console.error('Usa nvm/fnm para cambiar de versión y vuelve a correr `pnpm entrega`.')
+  process.exit(1)
+}
 const args = process.argv.slice(2)
 const flag = (n) => args.includes(`--${n}`)
 const opt = (n, def) => { const i = args.indexOf(`--${n}`); return i >= 0 ? args[i + 1] : def }
@@ -266,6 +276,32 @@ if (CARRERAS.length)
 // programas ya entregados: se etiqueta para que no se confundan.
 modalidadesFilas.push(['Cursos propios (módulo vacío)', 'La define cada curso', 'Por curso', 'Por módulos'])
 
+/* ── Infraestructura (dominio, registrador, proyecto de Supabase) ──────── */
+// Solo direcciones e identificadores públicos: de .env.local se toma únicamente
+// NEXT_PUBLIC_SUPABASE_URL (si el repo no lo tiene, vale `supabaseUrl` en
+// entrega.local.json). La service_role y la contraseña de BD nunca llegan al
+// documento. Registrador: entrega.local.json → `registrador` (default GoDaddy,
+// donde MEV registra todos los dominios). `"infraestructura": false` omite la página.
+function urlSupabaseDesdeEnv() {
+  const env = path.join(RAIZ, '.env.local')
+  if (!fs.existsSync(env)) return ''
+  const m = fs.readFileSync(env, 'utf8').match(/^NEXT_PUBLIC_SUPABASE_URL=["']?([^"'\n]+)["']?\s*$/m)
+  return m ? m[1].trim() : ''
+}
+const supabaseUrl = String(D.supabaseUrl || urlSupabaseDesdeEnv()).trim().replace(/\/$/, '')
+const supabaseRef = (supabaseUrl.match(/^https?:\/\/([a-z0-9-]+)\.supabase\.(?:co|in)$/i) || [])[1] || null
+if (D.infraestructura !== false && !supabaseRef)
+  log('  ⚠ sin NEXT_PUBLIC_SUPABASE_URL — la página de Infraestructura sale sin el proyecto de Supabase (añade "supabaseUrl" a entrega.local.json)')
+const infra = D.infraestructura === false ? null : {
+  dominio,
+  registrador: D.registrador || 'GoDaddy',
+  dns: D.dns || 'Apunta a Vercel, donde se aloja la plataforma',
+  url: URL_BASE,
+  supabaseRef,
+  supabaseUrl: supabaseRef ? supabaseUrl : null,
+  supabaseDashboard: supabaseRef ? `https://supabase.com/dashboard/project/${supabaseRef}` : null,
+}
+
 /* ── 5. Datos del documento ──────────────────────────────────────────────── */
 const b64 = (rel) => {
   const p = path.join(RAIZ, 'public', rel.replace(/^\//, ''))
@@ -322,6 +358,7 @@ const datos = {
   alumnoEmail: D.alumnoEmail, alumnoPassword: D.alumnoPassword,
   matricula: INV.matricula,
   whatsappDisplay: CONFIG.whatsappDisplay,
+  infra,
   logoData: CONFIG.logoListo === false ? null : (b64(CONFIG.logoOscuro || CONFIG.logo) || b64(CONFIG.logo)),
   isotipoData: CONFIG.isotipo ? b64(CONFIG.isotipo) : null,
   // Usa la palabra que el cliente eligió para su institución —academia,

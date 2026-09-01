@@ -175,6 +175,46 @@ de demostración a futuros estudiantes.</p>` : ''}
 ${d.contenido.length ? `<h3>Contenido cargado</h3>${dt(['Concepto', 'Cantidad'], d.contenido)}` : ''}`
 }
 
+/**
+ * Infraestructura: dominio, registrador y proyecto de Supabase.
+ *
+ * Es la página que necesitará cualquier técnico que en el futuro dé soporte al
+ * cliente: qué dominio es, dónde está registrado, a dónde apunta y en qué
+ * proyecto vive su base de datos. Va SOLO lo que es una dirección o un
+ * identificador público. Las llaves de servicio y la contraseña de la base de
+ * datos NO se imprimen nunca aquí: `generar-entrega.mjs` ni siquiera las pasa.
+ */
+function infraestructura(d) {
+  const I = d.infra
+  return `
+<h2>Tu infraestructura</h2>
+<div class="rule"></div>
+<p class="lead">Tu plataforma corre sobre tres piezas: un dominio, el servidor
+que sirve la página y una base de datos. Aquí queda por escrito dónde vive cada
+una, para que cualquier persona que te dé soporte en el futuro sepa a dónde
+entrar sin tener que adivinar.</p>
+<h3>Dominio</h3>
+${kv([
+    ['Dominio', I.dominio],
+    ['Registrador', I.registrador],
+    ['DNS', I.dns],
+    ['Dirección de la plataforma', I.url],
+  ])}
+<p class="small">El dominio se renueva cada año con el registrador. Si vence, la
+plataforma deja de abrir aunque todo lo demás siga funcionando.</p>
+${I.supabaseRef ? `<h3>Base de datos y usuarios (Supabase)</h3>
+${kv([
+    ['Proyecto', I.supabaseRef],
+    ['URL del proyecto', I.supabaseUrl],
+    ['Panel de control', I.supabaseDashboard],
+  ])}
+<p class="small">En el panel de Supabase viven los usuarios registrados, las
+tablas de alumnos y pagos, y los respaldos automáticos de tu base de datos.</p>` : ''}
+<div class="note"><b>Llaves y contraseñas de servicio</b><p>Las llaves de servicio
+y la contraseña de la base de datos <b>se entregan por canal seguro, nunca por
+chat</b>. No aparecen en este documento ni en el mensaje de WhatsApp.</p></div>`
+}
+
 function precios(d) {
   return `
 <h2>Precios configurados</h2>
@@ -323,7 +363,9 @@ ${d.isotipoData ? `<div class="center" style="margin-top:.35in;">
 export function construirHTML(d) {
   const P = paleta(d.colores)
   d.P = P
-  const secciones = [portada(d), accesos(d), precios(d)]
+  const secciones = [portada(d), accesos(d)]
+  if (d.infra) secciones.push(infraestructura(d))
+  secciones.push(precios(d))
   if (d.licenciaturas?.activas) secciones.push(licenciaturas(d))
   secciones.push(cursos(d))
   secciones.push(soporte(d), cierre(d))

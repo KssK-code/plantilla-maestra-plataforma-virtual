@@ -7,5 +7,7 @@
   "alumnoEmail": "prueba@gmail.com",
   "alumnoPassword": "12345678",
   "palabraInstitucion": "instituto",
-  "validez": true
+  "validez": true,
+  "_infraestructura": "Página de Infraestructura del PDF. Todo es opcional: registrador (default GoDaddy); supabaseUrl SOLO si el repo no tiene .env.local (es la URL pública https://<ref>.supabase.co, NUNCA una llave); infraestructura:false omite la página.",
+  "registrador": "GoDaddy"
 }
