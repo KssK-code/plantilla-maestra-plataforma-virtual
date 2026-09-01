@@ -214,3 +214,42 @@ body {
 @media (max-width: 640px) {
   .hero-title { font-size: clamp(1.55rem, 7vw, 2.25rem) !important; }
 }
+
+/* ─────────────────────────────────────────────────────────────────────────────
+   ESCALA TIPOGRÁFICA PARA LECTURA DE ADULTOS · CASO-2026-08-31-01
+
+   Mayra, de EDU CEL: «¿podrían hacer las letras más grandes? Todo está
+   demasiado pequeño, mucha gente adulta no ve bien (yo no veo bien)». No es
+   preferencia estética. El público de estas escuelas son adultos que vienen a
+   terminar la secundaria o la preparatoria — es el perfil, no una excepción.
+
+   Medido sobre una landing de esta plantilla: 42 textos por DEBAJO de 14px
+   (37 a 12px, 4 a 13px y uno a 11px), más otros 59 justo en 14px.
+
+   Se sube en dos tiempos en vez de tocar los cientos de sitios donde están
+   escritos:
+
+     1. El root pasa a 17px, así que todo lo definido en rem —incluidos los
+        títulos y los espaciados de Tailwind— escala un 6% de forma uniforme y
+        no se descuadra nada.
+     2. Las utilidades pequeñas suben POR ENCIMA de ese 6%, porque son las que
+        de verdad estorban: 12px y 14px son el grueso del texto que se lee.
+
+   Los tamaños grandes no se tocan aparte: ya crecen con el root, y agrandarlos
+   más rompería los saltos de línea del hero.
+
+   Verificado en EDU CEL: de 42 textos bajo 14px a 4, el más pequeño pasa de
+   11px a 13px, y sin desborde horizontal a 1440, 768 ni 390.
+   ──────────────────────────────────────────────────────────────────────────── */
+
+html {
+  font-size: 106.25%; /* 16px → 17px */
+}
+
+.text-\[10px\] { font-size: 0.75rem !important; }   /* 10 → 12.75 */
+.text-\[11px\] { font-size: 0.8125rem !important; } /* 11 → 13.8  */
+.text-\[13px\] { font-size: 0.875rem !important; }  /* 13 → 14.9  */
+
+.text-xs   { font-size: 0.8125rem; line-height: 1.25rem; }  /* 12 → 13.8 */
+.text-sm   { font-size: 0.9375rem; line-height: 1.45rem; }  /* 14 → 15.9 */
+.text-base { font-size: 1.0625rem; line-height: 1.7rem; }   /* 16 → 18.1 */
