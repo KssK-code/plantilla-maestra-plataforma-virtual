@@ -1,160 +1,82 @@
 import { NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
+import { cargarAlumnoAcceso, cargarContextoAcceso } from '@/lib/acceso-materias'
+import {
+  SELECT_CALIFICACIONES_BOLETIN,
+  armarBoletin,
+  normalizarCalificaciones,
+  resumirBoletin,
+} from '@/lib/boletin'
 
+const RESPUESTA_VACIA = {
+  materias: [],
+  resumen: {
+    total_materias_plan:     0,
+    materias_acreditadas:    0,
+    materias_no_acreditadas: 0,
+    materias_pendientes:     0,
+  },
+}
+
+/**
+ * Boletín del alumno (lo consumen /alumno/calificaciones y el dashboard).
+ *
+ * Consume la MISMA fuente de verdad que los gates (lib/acceso-materias) y la
+ * regla compartida con la constancia (lib/boletin). Antes esta ruta decidía el
+ * universo con `inscripcion_pagada` — que ningún gate real usa — y los
+ * Pendientes con `numero_mes` crudo en vez de la ventana posicional: una
+ * alumna con 10 materias acreditadas veía "Acreditadas 0 / Pendientes 1" (Bug
+ * 138, ticket renacimiento 2026-09-01).
+ */
 export async function GET() {
   try {
     const supabase = await createClient()
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) return NextResponse.json({ error: 'No autorizado' }, { status: 401 })
 
-    // ── Resolver alumno ─────────────────────────────────────────────────────────
-    let alumnoId:         string | null = null
-    let mesesDesbloqueados              = 0
-    let alumnoNivel:      string | null = null
-    let alumnoCarrera:    string | null = null
-    let inscripcionPagada               = false
+    // ── Alumno, por la misma vía que los gates ───────────────────────────────
+    // Resuelve alumnos.id = auth.uid() (y pide `carrera` con reintento si el
+    // esquema no la tiene). El fallback por `usuario_id` que vivía aquí no lo
+    // usa ningún gate: un alumno que solo resolviera por esa vía tendría boletín
+    // pero ningún acceso, otra divergencia lista/gate.
+    const alumno = await cargarAlumnoAcceso(supabase, user.id)
 
-    const { data: aNuevo } = await supabase
-      .from('alumnos')
-      .select('id, meses_desbloqueados, nivel, carrera, inscripcion_pagada')
-      .eq('id', user.id)
-      .maybeSingle()
+    // Sin alumno → respuesta vacía (no 404): contrato que ya consumía el panel.
+    if (!alumno) return NextResponse.json(RESPUESTA_VACIA)
 
-    if (aNuevo) {
-      const row = aNuevo as unknown as {
-        id: string
-        meses_desbloqueados: number
-        nivel: string | null
-        carrera: string | null
-        inscripcion_pagada: boolean
-      }
-      alumnoId           = row.id
-      mesesDesbloqueados = row.meses_desbloqueados ?? 0
-      alumnoNivel        = row.nivel ?? null
-      alumnoCarrera      = row.carrera ?? null
-      inscripcionPagada  = row.inscripcion_pagada ?? false
-    }
+    // ── Catálogo activo + acreditadas (fuente única) y calificaciones ────────
+    // `cargarContextoAcceso` es el mismo universo que lista /api/alumno/materias
+    // y con el que los gates calculan la ventana (nivel + demo, y en
+    // licenciatura acotado por carrera). Las calificaciones se piden aparte y
+    // con la materia embebida SIN filtro de `activa`: son historial y deben
+    // verse aunque la materia o su mes se hayan archivado.
+    const { materias: catalogo, acreditadas } = await cargarContextoAcceso(
+      supabase,
+      alumno.id,
+      alumno
+    )
 
-    if (!alumnoId) {
-      const { data: a1 } = await supabase
-        .from('alumnos')
-        .select('id, meses_desbloqueados, nivel, inscripcion_pagada')
-        .eq('usuario_id', user.id)
-        .maybeSingle()
-
-      if (a1) {
-        const row = a1 as unknown as {
-          id: string
-          meses_desbloqueados: number
-          nivel: string | null
-          carrera: string | null
-          inscripcion_pagada: boolean
-        }
-        alumnoId           = row.id
-        mesesDesbloqueados = row.meses_desbloqueados ?? 0
-        alumnoNivel        = row.nivel ?? null
-        alumnoCarrera      = row.carrera ?? null
-        inscripcionPagada  = row.inscripcion_pagada ?? false
-      }
-    }
-
-    // Sin alumno → respuesta vacía (no 404)
-    if (!alumnoId) {
-      return NextResponse.json({
-        materias: [],
-        resumen: {
-          total_materias_plan:     0,
-          materias_acreditadas:    0,
-          materias_no_acreditadas: 0,
-          materias_pendientes:     0,
-        },
-      })
-    }
-
-    // ── Calificaciones registradas ────────────────────────────────────────────
-    const { data: califs } = await supabase
+    const { data: califs, error: califsError } = await supabase
       .from('calificaciones')
-      .select('materia_id, acreditado')
-      .eq('alumno_id', alumnoId)
+      .select(SELECT_CALIFICACIONES_BOLETIN)
+      .eq('alumno_id', alumno.id)
 
-    const califMap = new Map<string, boolean>()
-    for (const c of (califs ?? [])) {
-      const row = c as { materia_id: string; acreditado: boolean }
-      califMap.set(row.materia_id, row.acreditado)
+    if (califsError) {
+      console.error('[api/alumno/calificaciones] query error:', califsError)
+      return NextResponse.json({ error: 'Error interno del servidor' }, { status: 500 })
     }
 
-    // ── Materias del plan via meses_contenido ─────────────────────────────────
-    // SIN filtro de `activa`: esto es el HISTORIAL de calificaciones. Retirar un
-    // mes no puede borrar del boletín una materia que el alumno ya cursó.
-    const { data: meses } = await supabase
-      .from('meses_contenido')
-      .select('numero_mes, materias(id, nombre, nivel, carrera)')
-      .order('numero_mes')
-
-    type MesRow = {
-      numero_mes: number
-      materias: { id: string; nombre: string; nivel: string; carrera: string | null } | null
-    }
-
-    // Bug 1+2: solo materias del nivel del alumno; si pagó excluye demo automáticamente
-    const mesesFiltrados = ((meses ?? []) as unknown as MesRow[]).filter((mc) => {
-      const matNivel = mc.materias?.nivel
-      if (!matNivel) return false
-      if (!inscripcionPagada) return matNivel === 'demo'
-      if (matNivel !== alumnoNivel) return false
-      // Y por CARRERA. Todas las de licenciatura comparten `nivel`, así que sin
-      // esto el boletín mezclaba las materias de los otros programas del
-      // cliente. Mismo criterio que `cargarContextoAcceso()`. Ver Bug 59.
-      if (alumnoNivel === 'licenciatura' && alumnoCarrera) {
-        return mc.materias?.carrera === alumnoCarrera
-      }
-      return true
-    })
-
-    const resultado: {
-      materia_id:     string
-      codigo:         string
-      nombre_materia: string
-      mes_numero:     number
-      estado:         'Acreditada' | 'No acreditada' | 'Pendiente'
-    }[] = []
-
-    for (const mes of mesesFiltrados) {
-      const mat = mes.materias
-      if (!mat) continue
-
-      if (califMap.has(mat.id)) {
-        // Bug 3: acreditadas siempre visibles, sin importar numero_mes
-        resultado.push({
-          materia_id:     mat.id,
-          codigo:         '',
-          nombre_materia: mat.nombre,
-          mes_numero:     mes.numero_mes,
-          estado:         califMap.get(mat.id) ? 'Acreditada' : 'No acreditada',
-        })
-      } else if (mes.numero_mes <= mesesDesbloqueados) {
-        resultado.push({
-          materia_id:     mat.id,
-          codigo:         '',
-          nombre_materia: mat.nombre,
-          mes_numero:     mes.numero_mes,
-          estado:         'Pendiente',
-        })
-      }
-    }
-
-    const acreditadas   = resultado.filter(r => r.estado === 'Acreditada').length
-    const noAcreditadas = resultado.filter(r => r.estado === 'No acreditada').length
-    const pendientes    = resultado.filter(r => r.estado === 'Pendiente').length
+    const filas = armarBoletin(alumno, catalogo, normalizarCalificaciones(califs), acreditadas)
 
     return NextResponse.json({
-      materias: resultado,
-      resumen: {
-        total_materias_plan:     resultado.length,
-        materias_acreditadas:    acreditadas,
-        materias_no_acreditadas: noAcreditadas,
-        materias_pendientes:     pendientes,
-      },
+      materias: filas.map(f => ({
+        materia_id:     f.materia.id,
+        codigo:         '',
+        nombre_materia: f.materia.nombre,
+        mes_numero:     f.mes_numero,
+        estado:         f.estado,
+      })),
+      resumen: resumirBoletin(filas),
     })
   } catch (err) {
     console.error('[api/alumno/calificaciones] error:', err)
