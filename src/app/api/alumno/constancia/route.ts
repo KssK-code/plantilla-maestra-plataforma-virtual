@@ -3,6 +3,26 @@ import { createClient } from '@/lib/supabase/server'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { CONFIG } from '@/lib/config'
 import { getMesesByModalidad, getDefaultModalidadId } from '@/lib/modalidades'
+import { cargarAlumnoAcceso, cargarContextoAcceso } from '@/lib/acceso-materias'
+import {
+  SELECT_CALIFICACIONES_BOLETIN,
+  armarBoletin,
+  normalizarCalificaciones,
+} from '@/lib/boletin'
+
+/**
+ * Prefijo del código de cada materia en la constancia. En licenciatura son las
+ * siglas del slug de la carrera: 'GEN' no distinguía entre dos programas del
+ * mismo cliente.
+ */
+function prefijoCodigo(nivel: string | null, carrera: string | null): string {
+  if (nivel === 'preparatoria') return 'PREP'
+  if (nivel === 'secundaria')   return 'SECU'
+  if (nivel === 'demo')         return 'TUT'
+  return carrera
+    ? carrera.split('-').map(x => x[0]).join('').toUpperCase().slice(0, 4)
+    : 'GEN'
+}
 
 export async function GET() {
   try {
@@ -18,98 +38,76 @@ export async function GET() {
       .single()
 
     // ── Alumno (schema nuevo: alumnos.id = user.id) ───────────────────────────
+    // Dos lecturas de `alumnos` a propósito: la ficha (matrícula, fecha) es de
+    // esta ruta; el acceso (nivel, carrera con reintento si el esquema no la
+    // tiene, meses, modalidad) viene por `cargarAlumnoAcceso`, la misma vía que
+    // todos los gates.
     const { data: alumno } = await supabase
       .from('alumnos')
-      .select('matricula, nivel, carrera, modalidad, meses_desbloqueados, inscripcion_pagada, created_at')
+      .select('matricula, modalidad, meses_desbloqueados, created_at')
       .eq('id', user.id)
       .single()
 
-    if (!alumno) return NextResponse.json({ error: 'Alumno no encontrado' }, { status: 404 })
+    const acceso = await cargarAlumnoAcceso(supabase, user.id)
+
+    if (!alumno || !acceso) {
+      return NextResponse.json({ error: 'Alumno no encontrado' }, { status: 404 })
+    }
 
     const nombre_completo = [usuario?.nombre, usuario?.apellidos]
       .filter(Boolean)
       .join(' ') || 'Alumno'
 
-    const duracionMeses = getMesesByModalidad(alumno.modalidad)
-    const alumnoNivel        = alumno.nivel ?? null
-    const alumnoCarrera      = (alumno as { carrera?: string | null }).carrera ?? null
-    const inscripcionPagada  = alumno.inscripcion_pagada ?? false
+    const duracionMeses      = getMesesByModalidad(alumno.modalidad)
+    const alumnoCarrera      = acceso.carrera ?? null
     const mesesDesbloqueados = alumno.meses_desbloqueados ?? 0
 
-    // ── Calificaciones ────────────────────────────────────────────────────────
-    const { data: califs } = await supabase
+    // ── Materias cursadas: misma regla que el boletín (lib/boletin) ───────────
+    // Antes esta ruta decidía el universo con `inscripcion_pagada` (sin pagar →
+    // solo demo) y los Pendientes con el mes crudo contra los meses pagados, en
+    // un documento que el alumno imprime: con la bandera en false las
+    // acreditadas del plan desaparecían (Bug 138). Ahora: acreditadas/no
+    // acreditadas siempre (es historial, con la materia embebida SIN filtro de
+    // `activa`) y pendientes solo las que la ventana posicional real abre en
+    // Mis Materias; el catálogo ya viene acotado por nivel y, en licenciatura,
+    // por carrera (Bug 59).
+    const { materias: catalogo, acreditadas } = await cargarContextoAcceso(
+      supabase,
+      acceso.id,
+      acceso
+    )
+
+    const { data: califs, error: califsError } = await supabase
       .from('calificaciones')
-      .select('materia_id, acreditado')
-      .eq('alumno_id', user.id)
+      .select(SELECT_CALIFICACIONES_BOLETIN)
+      .eq('alumno_id', acceso.id)
 
-    const califMap = new Map<string, boolean>()
-    for (const c of (califs ?? [])) {
-      const row = c as { materia_id: string; acreditado: boolean }
-      califMap.set(row.materia_id, row.acreditado)
+    if (califsError) {
+      console.error('[api/alumno/constancia] query error:', califsError)
+      return NextResponse.json({ error: 'Error interno del servidor' }, { status: 500 })
     }
 
-    // ── Materias del plan via meses_contenido ─────────────────────────────────
-    // meses_contenido.materia_id → materias.id (many-to-one → materias es objeto único)
-    // Port Bug 46: sin .lte — las acreditadas de meses posteriores al desbloqueo
-    // deben aparecer; el gating de Pendientes se hace en el loop
-    // SIN filtro de `activa`, igual que en calificaciones: la constancia acredita
-    // lo cursado. Un mes retirado no puede desaparecer de un documento emitido.
-    const { data: meses } = await supabase
-      .from('meses_contenido')
-      .select('numero_mes, materias(id, nombre, nivel, carrera)')
-      .order('numero_mes')
+    const filas = armarBoletin(acceso, catalogo, normalizarCalificaciones(califs), acreditadas)
 
-    type MesRow = {
-      numero_mes: number
-      materias: { id: string; nombre: string; nivel: string; carrera: string | null } | null
-    }
-
-    const materias_cursadas: {
-      materia_id: string; codigo: string; nombre_materia: string; mes_numero: number
-      estado: 'Acreditada' | 'No acreditada' | 'Pendiente'
-    }[] = []
-
+    // Código por mes y consecutivo, en el orden canónico de la ventana (antes
+    // el consecutivo dependía del orden en que PostgREST devolviera las filas).
     const contadorPorMes: Record<number, number> = {}
 
-    for (const mes of ((meses ?? []) as unknown as MesRow[])) {
-      const mat = mes.materias
-      if (!mat) continue
-
-      // Port Bug 46: pagado → solo materias del nivel del alumno (excluye demo
-      // automáticamente); sin pagar → solo demo. Mismo criterio que calificaciones.
-      if (inscripcionPagada ? mat.nivel !== alumnoNivel : mat.nivel !== 'demo') continue
-
-      // Y por CARRERA. Todas las de licenciatura comparten `nivel`, así que sin
-      // esto la constancia de un alumno listaba materias de los otros programas
-      // del cliente — en un documento que el alumno imprime. Ver Bug 59.
-      if (inscripcionPagada && alumnoNivel === 'licenciatura' && alumnoCarrera
-          && mat.carrera !== alumnoCarrera) continue
-
-      // Acreditada/No acreditada siempre visibles; Pendiente solo en meses desbloqueados
-      if (!califMap.has(mat.id) && (mes.numero_mes ?? 0) > mesesDesbloqueados) continue
-
-      const mesNum = mes.numero_mes ?? 0
+    const materias_cursadas = filas.map(f => {
+      const mesNum = f.mes_numero
       contadorPorMes[mesNum] = (contadorPorMes[mesNum] ?? 0) + 1
-      const nivelPrefix = mat.nivel === 'preparatoria' ? 'PREP'
-                        : mat.nivel === 'secundaria'   ? 'SECU'
-                        : mat.nivel === 'demo'         ? 'TUT'
-                        // Licenciatura: las siglas del slug de la carrera dicen
-                        // de qué programa es la materia. 'GEN' no distinguía
-                        // entre dos programas del mismo cliente.
-                        : (mat.carrera
-                            ? mat.carrera.split('-').map(x => x[0]).join('').toUpperCase().slice(0, 4)
-                            : 'GEN')
-      const codigoGenerado = `${nivelPrefix}-M${mesNum}-${String(contadorPorMes[mesNum]).padStart(2, '0')}`
-      materias_cursadas.push({
-        materia_id:     mat.id,
-        codigo:         codigoGenerado,
-        nombre_materia: mat.nombre,
+      // Una calificada trae su carrera embebida; una Pendiente de licenciatura
+      // sale del catálogo acotado a la carrera del alumno.
+      const carrera = f.materia.carrera
+        ?? (f.materia.nivel === 'licenciatura' ? alumnoCarrera : null)
+      return {
+        materia_id:     f.materia.id,
+        codigo:         `${prefijoCodigo(f.materia.nivel, carrera)}-M${mesNum}-${String(contadorPorMes[mesNum]).padStart(2, '0')}`,
+        nombre_materia: f.materia.nombre,
         mes_numero:     mesNum,
-        estado:         califMap.has(mat.id)
-          ? (califMap.get(mat.id) ? 'Acreditada' : 'No acreditada')
-          : 'Pendiente',
-      })
-    }
+        estado:         f.estado,
+      }
+    })
 
     const porcentaje_avance = duracionMeses > 0
       ? Math.round((mesesDesbloqueados / duracionMeses) * 100)
@@ -155,7 +153,7 @@ export async function GET() {
       apellidos:           usuario?.apellidos ?? '',
       foto_url:            fotoPerfilUrl,
       matricula:           alumno.matricula   ?? `${CONFIG.nombre}-0000`,
-      nivel:               alumno.nivel       ?? null,
+      nivel:               acceso.nivel       ?? null,
       modalidad:           alumno.modalidad   ?? getDefaultModalidadId(),
       meses_desbloqueados: mesesDesbloqueados,
       duracion_meses:      duracionMeses,
