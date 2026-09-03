@@ -144,7 +144,7 @@ export default function ConfiguracionPage() {
       <div className="flex items-start gap-3 px-4 py-3 rounded-xl" style={{ background: 'rgba(21,101,192,0.08)', border: '1px solid rgba(21,101,192,0.2)' }}>
         <Info className="w-4 h-4 flex-shrink-0 mt-0.5" style={{ color: 'var(--color-acento)' }} />
         <p className="text-xs leading-relaxed" style={{ color: '#94A3B8' }}>
-          Para modificar estos datos, edita el archivo <code className="font-mono text-xs px-1 rounded" style={{ background: 'rgba(21,101,192,0.15)', color: 'var(--color-acento)' }}>src/lib/config.ts</code> y redeploya la plataforma. Contacta al administrador del sistema si necesitas ayuda.
+          Estos datos son de <strong>solo lectura</strong> desde el panel. Si necesitas actualizar el nombre, los datos de contacto o los colores de tu escuela, <strong>contacta a soporte</strong> y lo aplicamos por ti.
         </p>
       </div>
 
