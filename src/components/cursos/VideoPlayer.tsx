@@ -30,7 +30,7 @@ export function VideoPlayer({ url, titulo }: { url: string; titulo: string }) {
         target="_blank"
         rel="noopener noreferrer"
         className="flex items-center gap-2 rounded-xl px-4 py-3 text-sm font-medium"
-        style={{ background: '#F1F5F9', border: '1px solid #E2E8F0', color: 'var(--color-acento)' }}
+        style={{ background: '#F1F5F9', border: '1px solid #E2E8F0', color: 'var(--color-primario)' }}
       >
         <ExternalLink className="w-4 h-4 flex-shrink-0" />
         Abrir video en una pestaña nueva
