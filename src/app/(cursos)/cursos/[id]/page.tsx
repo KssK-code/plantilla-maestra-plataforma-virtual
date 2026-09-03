@@ -227,7 +227,7 @@ export default function VisorCursoPage() {
           </p>
           <span
             className="inline-block mt-2 px-3 py-1.5 rounded-lg text-xs font-semibold"
-            style={{ background: 'var(--color-acento)', color: '#fff' }}
+            style={{ background: 'var(--color-acento)', color: 'var(--color-texto-sobre-acento)' }}
           >
             {examen.mejor !== null ? 'Volver a intentar' : 'Presentar examen'}
           </span>
@@ -396,7 +396,7 @@ export default function VisorCursoPage() {
                     className="flex items-center justify-center gap-2 rounded-xl px-5 py-3 text-sm font-semibold w-full sm:w-auto disabled:opacity-60"
                     style={activa.completada
                       ? { background: 'rgba(16,185,129,0.12)', color: '#10B981', border: '1px solid rgba(16,185,129,0.4)' }
-                      : { background: 'var(--color-acento)', color: '#fff' }}
+                      : { background: 'var(--color-acento)', color: 'var(--color-texto-sobre-acento)' }}
                   >
                     {activa.completada ? <><Check className="w-4 h-4" /> Completada</> : <>Marcar como completada</>}
                   </button>

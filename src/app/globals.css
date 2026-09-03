@@ -73,6 +73,17 @@ body {
 .aurora-2 { animation: aurora-float 17s ease-in-out infinite reverse; animation-delay: -5s; }
 .aurora-3 { animation: aurora-float 21s ease-in-out infinite; animation-delay: -9s; }
 
+/* Anclas del nav bajo el header fijo.
+   La barra superior de la landing es `position: fixed` y mide 68px. Sin este
+   margen, al navegar a una sección por su ancla el navegador deja su borde
+   superior en el borde del viewport y la barra le tapa el encabezado: se
+   aterriza en la sección correcta sin ver su título. */
+section[id] { scroll-margin-top: 84px; }
+
+@media (prefers-reduced-motion: no-preference) {
+  html { scroll-behavior: smooth; }
+}
+
 /* Scroll progress */
 .scroll-progress {
   position: fixed; top: 0; left: 0; height: 3px; z-index: 100;

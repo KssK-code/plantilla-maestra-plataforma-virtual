@@ -219,7 +219,7 @@ Esto REVOCA acceso que el alumno ya tenia: ` +
                   onClick={() => asignar(a.id, a.nombre_completo)}
                   disabled={ocupadoId === a.id}
                   className="flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-semibold flex-shrink-0 disabled:opacity-50"
-                  style={{ background: 'var(--color-acento)', color: '#fff' }}
+                  style={{ background: 'var(--color-acento)', color: 'var(--color-texto-sobre-acento)' }}
                 >
                   <UserPlus className="w-3.5 h-3.5" />
                   Asignar
@@ -292,7 +292,7 @@ Esto REVOCA acceso que el alumno ya tenia: ` +
                     disabled={ocupadoId === i.inscripcion_id || i.estado !== 'activa'}
                     title={i.estado !== 'activa' ? `Inscripción ${i.estado}: reactívala para abrir meses` : 'Abrir el siguiente mes'}
                     className="px-3 py-1.5 rounded-lg text-xs font-bold disabled:opacity-40"
-                    style={{ background: 'var(--color-acento)', color: '#fff' }}
+                    style={{ background: 'var(--color-acento)', color: 'var(--color-texto-sobre-acento)' }}
                   >
                     + Abrir mes
                   </button>
