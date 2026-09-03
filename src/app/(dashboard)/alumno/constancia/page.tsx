@@ -96,7 +96,7 @@ export default function ConstanciaPage() {
       <div style={{ display: 'flex', flexDirection: 'column', gap: 20, alignItems: 'center', width: '100%', maxWidth: 780, margin: '0 auto' }}>
 
         {/* ── Botones de acción ── */}
-        <div style={{ display: 'flex', gap: 12, alignSelf: 'flex-start', flexWrap: 'wrap', width: '100%' }}>
+        <div id="constancia-acciones" style={{ display: 'flex', gap: 12, alignSelf: 'flex-start', flexWrap: 'wrap', width: '100%' }}>
           <button
             onClick={() => window.print()}
             style={{
@@ -397,7 +397,30 @@ export default function ConstanciaPage() {
 
       {/* Estilos de impresión: no usar body > * (Next.js envuelve la app en divs; ocultaba todo el árbol y dejaba PDF en blanco) */}
       <style>{`
+        /* El cliente recibía la constancia en HORIZONTAL, repartida en DOS hojas
+           y con el encabezado y el pie del navegador impresos encima
+           (TICKET-2026-09-03-35).
+
+           Antes no había ninguna regla @page, así que el navegador aplicaba su
+           tamaño por defecto —Letter apaisado, 792x612 pt— y sus propios
+           márgenes, que son los que dibujan "Mi Portal de Estudios", la fecha y
+           la URL. Declarar @page con margin 0 elimina esa cabecera y ese pie:
+           es la única forma de suprimirlos desde CSS. El margen real del
+           documento lo pone el padding del contenedor, para que el contenido no
+           quede pegado al filo de la hoja. */
+        @page {
+          size: letter portrait;
+          margin: 0;
+        }
+
         @media print {
+          html, body {
+            width: 216mm !important;
+            margin: 0 !important;
+            padding: 0 !important;
+            background: #fff !important;
+          }
+
           body * {
             visibility: hidden !important;
           }
@@ -405,17 +428,58 @@ export default function ConstanciaPage() {
           #constancia-print * {
             visibility: visible !important;
           }
+
           #constancia-print {
             position: absolute !important;
             left: 0 !important;
             top: 0 !important;
-            width: 100% !important;
-            max-width: 100% !important;
+            width: 216mm !important;
+            max-width: 216mm !important;
+            padding: 10mm 8mm !important;
+            box-sizing: border-box !important;
             box-shadow: none !important;
             border-radius: 0 !important;
             background: #fff !important;
             -webkit-print-color-adjust: exact !important;
             print-color-adjust: exact !important;
+            /* Comprime el documento para que entre COMPLETO en una hoja.
+               Calibrado midiendo el PDF real: con 0.75 y la tabla compacta de
+               abajo caben hasta ~22 materias cursadas en una sola página, que
+               cubre de sobra un plan de Secundaria o Preparatoria (12) y el
+               avance típico de una licenciatura. Por encima de eso el
+               documento pasa a una segunda hoja de forma limpia, que es
+               preferible a recortarlo: 32 filas no caben en carta sin dejar el
+               texto ilegible. */
+            zoom: 0.75 !important;
+            page-break-inside: avoid !important;
+            break-inside: avoid !important;
+          }
+
+          /* Tabla compacta: es el bloque que crece con el avance del alumno y
+             el que decide si el documento cabe o no en una hoja. */
+          #constancia-print table { font-size: 11px !important; }
+          #constancia-print thead th { padding: 6px 12px !important; }
+          #constancia-print tbody td { padding: 6px 12px !important; font-size: 11px !important; }
+          #constancia-print h1 { font-size: 26px !important; margin-bottom: 14px !important; }
+          #constancia-print p { line-height: 1.55 !important; }
+
+          /* Nada dentro debe partirse a mitad entre dos hojas. */
+          #constancia-print table,
+          #constancia-print tr,
+          #constancia-print img {
+            page-break-inside: avoid !important;
+            break-inside: avoid !important;
+          }
+
+          /* La firma ocupaba 110 px de alto y era el bloque que más empujaba
+             el contenido hacia la segunda hoja. */
+          #constancia-print img[alt="Firma"] {
+            height: 78px !important;
+          }
+
+          /* Los botones de Imprimir y Descargar no van en el documento. */
+          #constancia-acciones {
+            display: none !important;
           }
         }
       `}</style>
