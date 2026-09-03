@@ -105,7 +105,7 @@ export function ModulosEditor({ cursoId, modulos, onChanged, onError }: ModulosE
           type="submit"
           disabled={creando || !nuevoNombre.trim()}
           className="flex items-center gap-1.5 px-4 py-2.5 rounded-xl text-sm font-semibold disabled:opacity-50"
-          style={{ background: 'var(--color-acento)', color: '#fff' }}
+          style={{ background: 'var(--color-acento)', color: 'var(--color-texto-sobre-acento)' }}
         >
           <Plus className="w-4 h-4" />
           Agregar módulo

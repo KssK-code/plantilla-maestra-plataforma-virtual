@@ -636,17 +636,28 @@ export function LandingClient({ catalogo }: { catalogo: CursoCatalogo[] }) {
                     </div>
 
                     <div className="mt-auto pt-4" style={{ borderTop: '1px solid #F1F5F9' }}>
-                      {c.precio_mensualidad > 0 && (
-                        <p className="text-sm font-bold" style={{ color: C.navy }}>
-                          {precioMXN(c.precio_mensualidad)}
-                          <span className="font-normal text-xs" style={{ color: '#94A3B8' }}> / mes</span>
-                        </p>
-                      )}
-                      {c.precio_inscripcion > 0 && (
-                        <p className="text-xs mt-0.5" style={{ color: '#94A3B8' }}>
-                          Inscripción {precioMXN(c.precio_inscripcion)}
-                        </p>
-                      )}
+                      {/* Un curso sin mensualidad se cobra de una vez: decir
+                          «Inscripción $X» lo haría parecer un anticipo. */}
+                      {c.precio_mensualidad > 0 ? (
+                        <>
+                          <p className="text-sm font-bold" style={{ color: C.navy }}>
+                            {precioMXN(c.precio_mensualidad)}
+                            <span className="font-normal text-xs" style={{ color: '#94A3B8' }}> / mes</span>
+                          </p>
+                          {c.precio_inscripcion > 0 && (
+                            <p className="text-xs mt-0.5" style={{ color: '#94A3B8' }}>
+                              Inscripción {precioMXN(c.precio_inscripcion)}
+                            </p>
+                          )}
+                        </>
+                      ) : c.precio_inscripcion > 0 ? (
+                        <>
+                          <p className="text-sm font-bold" style={{ color: C.navy }}>
+                            {precioMXN(c.precio_inscripcion)}
+                          </p>
+                          <p className="text-xs mt-0.5" style={{ color: '#94A3B8' }}>Pago único</p>
+                        </>
+                      ) : null}
                       <p className="text-xs font-semibold mt-2" style={{ color: C.royal }}>Ver temario →</p>
                     </div>
                   </Link>

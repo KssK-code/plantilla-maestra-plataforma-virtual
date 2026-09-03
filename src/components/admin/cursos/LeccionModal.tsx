@@ -296,7 +296,7 @@ export function LeccionModal({ open, cursoId, moduloId, leccion, onClose, onSave
             onClick={handleGuardar}
             disabled={guardando || !titulo.trim()}
             className="px-5 py-2 rounded-xl text-sm font-semibold disabled:opacity-50"
-            style={{ background: 'var(--color-acento)', color: '#fff' }}
+            style={{ background: 'var(--color-acento)', color: 'var(--color-texto-sobre-acento)' }}
           >
             {guardando ? 'Guardando…' : 'Guardar lección'}
           </button>

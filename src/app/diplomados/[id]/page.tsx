@@ -53,47 +53,60 @@ export default async function DiplomadoPublicoPage({ params }: Props) {
   const etiqueta = curso.tipo === 'diplomado' ? 'Diplomado' : 'Curso'
 
   return (
-    <main className="min-h-screen" style={{ background: '#F8FAFF' }}>
+    <main className="min-h-screen" style={{ background: 'var(--color-fondo)' }}>
       <div className="max-w-3xl mx-auto px-4 sm:px-8 py-10 sm:py-16">
 
-        <Link href="/#diplomados" className="text-sm font-semibold" style={{ color: '#3B5BDB' }}>
+        <Link href="/#diplomados" className="text-sm font-semibold" style={{ color: 'var(--color-primario)' }}>
           ← Volver al catálogo
         </Link>
 
-        <div className="mt-6 rounded-2xl bg-white p-6 sm:p-10" style={{ border: '1px solid #E2E8F0' }}>
-          <span className="text-[10px] font-bold tracking-widest uppercase" style={{ color: '#3B5BDB' }}>
+        <div className="mt-6 rounded-2xl bg-white p-6 sm:p-10" style={{ border: '1px solid var(--color-borde)' }}>
+          <span className="text-[10px] font-bold tracking-widest uppercase" style={{ color: 'var(--color-primario)' }}>
             {etiqueta}
           </span>
-          <h1 className="text-2xl sm:text-4xl font-bold leading-tight mt-2" style={{ color: '#0F172A' }}>
+          <h1 className="text-2xl sm:text-4xl font-bold leading-tight mt-2" style={{ color: 'var(--color-primario)' }}>
             {curso.nombre}
           </h1>
 
           {curso.descripcion && (
-            <p className="text-sm sm:text-base leading-relaxed mt-4 whitespace-pre-wrap" style={{ color: '#475569' }}>
+            <p className="text-sm sm:text-base leading-relaxed mt-4 whitespace-pre-wrap" style={{ color: 'var(--color-texto)' }}>
               {curso.descripcion}
             </p>
           )}
 
           {/* Datos duros. Se omite lo que sea NULL en vez de pintar "—". */}
-          <div className="flex flex-wrap gap-x-6 gap-y-2 mt-6 text-sm" style={{ color: '#64748B' }}>
-            {curso.horas !== null && <span><strong style={{ color: '#0F172A' }}>{curso.horas}</strong> horas</span>}
+          <div className="flex flex-wrap gap-x-6 gap-y-2 mt-6 text-sm" style={{ color: 'var(--color-texto-secundario)' }}>
+            {curso.horas !== null && <span><strong style={{ color: 'var(--color-primario)' }}>{curso.horas}</strong> horas</span>}
             {curso.duracion_meses !== null && (
-              <span><strong style={{ color: '#0F172A' }}>{curso.duracion_meses}</strong> {curso.duracion_meses === 1 ? 'mes' : 'meses'}</span>
+              <span><strong style={{ color: 'var(--color-primario)' }}>{curso.duracion_meses}</strong> {curso.duracion_meses === 1 ? 'mes' : 'meses'}</span>
             )}
           </div>
 
+          {/* ⚠️ Un curso SIN mensualidad se cobra de una sola vez. Etiquetarlo
+              «Inscripción única de $X» se lee como un anticipo al que seguirán
+              pagos, que es justo lo contrario. Se distinguen los dos casos. */}
           {(curso.precio_mensualidad > 0 || curso.precio_inscripcion > 0) && (
-            <div className="mt-6 rounded-xl p-4" style={{ background: '#F8FAFF', border: '1px solid #E8F0FF' }}>
-              {curso.precio_mensualidad > 0 && (
-                <p className="text-xl font-bold" style={{ color: '#0F172A' }}>
-                  {precioMXN(curso.precio_mensualidad)}
-                  <span className="text-sm font-normal" style={{ color: '#64748B' }}> / mes</span>
-                </p>
-              )}
-              {curso.precio_inscripcion > 0 && (
-                <p className="text-sm mt-1" style={{ color: '#64748B' }}>
-                  Inscripción única de {precioMXN(curso.precio_inscripcion)}
-                </p>
+            <div className="mt-6 rounded-xl p-4"
+              style={{ background: 'var(--color-fondo)', border: '1px solid var(--color-borde)' }}>
+              {curso.precio_mensualidad > 0 ? (
+                <>
+                  <p className="text-xl font-bold" style={{ color: 'var(--color-primario)' }}>
+                    {precioMXN(curso.precio_mensualidad)}
+                    <span className="text-sm font-normal" style={{ color: 'var(--color-texto-secundario)' }}> / mes</span>
+                  </p>
+                  {curso.precio_inscripcion > 0 && (
+                    <p className="text-sm mt-1" style={{ color: 'var(--color-texto-secundario)' }}>
+                      Inscripción de {precioMXN(curso.precio_inscripcion)}
+                    </p>
+                  )}
+                </>
+              ) : (
+                <>
+                  <p className="text-xl font-bold" style={{ color: 'var(--color-primario)' }}>
+                    {precioMXN(curso.precio_inscripcion)}
+                  </p>
+                  <p className="text-sm mt-1" style={{ color: 'var(--color-texto-secundario)' }}>Pago único</p>
+                </>
               )}
             </div>
           )}
@@ -101,11 +114,11 @@ export default async function DiplomadoPublicoPage({ params }: Props) {
           {/* TEMARIO: solo títulos de módulo. Nada de lecciones ni del examen. */}
           {curso.temario.length > 0 && (
             <div className="mt-8">
-              <h2 className="text-lg font-bold mb-3" style={{ color: '#0F172A' }}>Temario</h2>
+              <h2 className="text-lg font-bold mb-3" style={{ color: 'var(--color-primario)' }}>Temario</h2>
               <ol className="space-y-2">
                 {curso.temario.map((titulo, i) => (
-                  <li key={i} className="flex gap-3 text-sm" style={{ color: '#475569' }}>
-                    <span className="font-bold tabular-nums flex-shrink-0" style={{ color: '#94A3B8' }}>
+                  <li key={i} className="flex gap-3 text-sm" style={{ color: 'var(--color-texto)' }}>
+                    <span className="font-bold tabular-nums flex-shrink-0" style={{ color: 'var(--color-texto-secundario)' }}>
                       {String(i + 1).padStart(2, '0')}
                     </span>
                     <span>{titulo}</span>
@@ -121,11 +134,11 @@ export default async function DiplomadoPublicoPage({ params }: Props) {
             target="_blank"
             rel="noopener noreferrer"
             className="mt-10 w-full flex items-center justify-center gap-2 rounded-xl px-6 py-4 text-base font-bold"
-            style={{ background: '#25D366', color: '#fff' }}
+            style={{ background: '#0F7A41', color: '#fff' }}
           >
             Pedir informes por WhatsApp
           </a>
-          <p className="text-xs text-center mt-3" style={{ color: '#94A3B8' }}>
+          <p className="text-xs text-center mt-3" style={{ color: 'var(--color-texto-secundario)' }}>
             Te contactamos para resolver dudas y darte de alta.
           </p>
         </div>
