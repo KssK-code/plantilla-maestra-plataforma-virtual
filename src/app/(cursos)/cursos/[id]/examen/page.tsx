@@ -192,7 +192,7 @@ export default function ExamenCursoPage() {
                 <p className="text-4xl sm:text-5xl font-bold" style={{ color: 'var(--color-primario)' }}>
                   {resultado.aciertos}<span className="text-2xl" style={{ color: '#94A3B8' }}>/{resultado.total}</span>
                 </p>
-                <p className="text-lg font-semibold mt-1" style={{ color: 'var(--color-acento)' }}>
+                <p className="text-lg font-semibold mt-1" style={{ color: 'var(--color-primario)' }}>
                   {Math.round(resultado.porcentaje)}%
                 </p>
               </div>
@@ -225,7 +225,7 @@ export default function ExamenCursoPage() {
                   style={
                     sinIntentos
                       ? { background: 'rgba(27,48,104,0.08)', color: '#94A3B8', cursor: 'not-allowed' }
-                      : { background: 'var(--color-acento)', color: '#fff' }
+                      : { background: 'var(--color-acento)', color: 'var(--color-texto-sobre-acento)' }
                   }
                 >
                   <RotateCcw className="w-4 h-4" />
@@ -370,7 +370,7 @@ export default function ExamenCursoPage() {
                 onClick={() => (faltantes > 0 ? setConfirmar(true) : enviar())}
                 disabled={enviando}
                 className="w-full rounded-xl px-5 py-3.5 text-sm font-semibold disabled:opacity-60"
-                style={{ background: 'var(--color-acento)', color: '#fff' }}
+                style={{ background: 'var(--color-acento)', color: 'var(--color-texto-sobre-acento)' }}
               >
                 {enviando ? <span className="flex items-center justify-center gap-2"><Loader2 className="w-4 h-4 animate-spin" /> Enviando…</span> : 'Enviar examen'}
               </button>
@@ -400,7 +400,7 @@ export default function ExamenCursoPage() {
               <button
                 onClick={enviar}
                 className="rounded-xl px-4 py-2.5 text-sm font-semibold flex-1"
-                style={{ background: 'var(--color-acento)', color: '#fff' }}
+                style={{ background: 'var(--color-acento)', color: 'var(--color-texto-sobre-acento)' }}
               >
                 Enviar así
               </button>
