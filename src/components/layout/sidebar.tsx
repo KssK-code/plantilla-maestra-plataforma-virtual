@@ -358,7 +358,13 @@ function MobileBottomNav({ items, isActive }: { items: NavItem[]; isActive: (h: 
             key={`mobile-${item.href}-${item.label}`}
             href={item.href}
             className="flex flex-col items-center justify-center gap-0.5 flex-1 py-1 rounded-lg transition-all"
-            style={{ color: active ? 'var(--color-sidebar-activo-texto, var(--color-acento))' : 'rgba(255,255,255,0.45)' }}
+            /* Aquí NO hay pastilla: el texto va directo sobre `--color-primario`,
+               así que el color correcto es el del REALCE, no el que se pinta
+               encima del realce. Con `--color-sidebar-activo-texto` un cliente
+               cuyo realce y fondo de menú sean del mismo tono deja el item
+               seleccionado en 1:1 contra el fondo: invisible justo el que hay
+               que ver. Fallback a `--color-acento`, el valor efectivo previo. */
+            style={{ color: active ? 'var(--color-sidebar-activo, var(--color-acento))' : 'rgba(255,255,255,0.45)' }}
           >
             {item.emoji
               ? <span className="text-lg leading-none">{item.emoji}</span>
