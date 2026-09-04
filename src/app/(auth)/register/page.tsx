@@ -251,7 +251,7 @@ export default function RegisterPage() {
     try {
       const supabase = createClient()
 
-      const { error: signUpError } = await supabase.auth.signUp({
+      const { data: signUpData, error: signUpError } = await supabase.auth.signUp({
         email: email.trim(),
         password,
         options: {
@@ -263,12 +263,33 @@ export default function RegisterPage() {
         },
       })
 
+      // Los mensajes de Supabase llegan en inglés y en jerga de API. Pintados
+      // crudos, un prospecto que reintenta tras un fallo acaba leyendo
+      // "email rate limit exceeded" y se va sin entender nada ni saber que
+      // puede pedir el alta por WhatsApp.
       if (signUpError) {
-        if (signUpError.message.toLowerCase().includes('already')) {
+        const msg = signUpError.message.toLowerCase()
+        if (msg.includes('already')) {
           setError('Ya existe una cuenta con ese correo. Inicia sesión.')
+        } else if (msg.includes('rate limit') || msg.includes('too many')) {
+          setError('Hemos enviado demasiados correos en la última hora. Espera unos minutos y vuelve a intentarlo, o escríbenos por WhatsApp y te damos de alta nosotros.')
+        } else if (msg.includes('password')) {
+          setError('La contraseña no cumple los requisitos mínimos. Usa al menos 8 caracteres.')
+        } else if (msg.includes('invalid') && msg.includes('email')) {
+          setError('El correo electrónico no parece válido. Revísalo e intenta de nuevo.')
         } else {
-          setError(signUpError.message)
+          setError('No pudimos crear tu cuenta en este momento. Vuelve a intentarlo o escríbenos por WhatsApp.')
         }
+        return
+      }
+
+      // Con "Confirm email" encendido en Supabase, signUp() devuelve usuario
+      // pero NO sesión. Sin sesión no hay cookie, y /api/auth/register-complete
+      // responde 401, que el formulario pintaba como un escueto "No autorizado".
+      // ⚠️ Esto NO desbloquea el registro: para eso hay que apagar "Confirm
+      // email" y poner el Site URL real en el panel de Supabase.
+      if (!signUpData?.session) {
+        setError('Te enviamos un correo de confirmación a ' + email.trim() + '. Revísalo (y la carpeta de spam) para activar tu cuenta. Si no te llega en unos minutos, escríbenos por WhatsApp y te damos de alta nosotros.')
         return
       }
 
