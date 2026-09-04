@@ -500,7 +500,10 @@ export default function AlumnoDashboard() {
       })()}
 
       {/* ── Logros / Badges ───────────────────────────────────────────────── */}
-      <div className="rounded-2xl p-5 sm:p-6"
+      {/* `id` + `scroll-mt` para el item 'Logros' del menú lateral: apunta a
+          /alumno#logros y baja hasta aquí. Antes apuntaba a /alumno a secas, así
+          que no llevaba a ningún lado y además se resaltaba junto con 'Inicio'. */}
+      <div id="logros" className="rounded-2xl p-5 sm:p-6 scroll-mt-20"
         style={{ background: '#fff', border: '1px solid var(--color-borde)', boxShadow: '0 1px 8px rgba(27,58,87,0.06)' }}>
         <BadgesGrid logros={logros} lang="es" />
       </div>

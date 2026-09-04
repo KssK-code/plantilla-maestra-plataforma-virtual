@@ -80,6 +80,7 @@ function LeftPanel() {
             width={72}
             height={72}
             style={{ borderRadius: 12, objectFit: 'contain', display: 'block' }}
+          priority
           />
         </div>
         <p className="mt-4 text-sm font-semibold" style={{ color: 'rgba(255,255,255,0.7)', letterSpacing: '0.05em' }}>
@@ -188,7 +189,7 @@ export default function LoginPage() {
         {/* Mobile-only logo */}
         <div className="flex flex-col items-center mb-8 md:hidden">
           <Image src={CONFIG.logo} alt={CONFIG.nombre} width={64} height={64}
-            style={{ borderRadius: 12, objectFit: 'contain', border: '1px solid #E2E8F0' }} />
+            style={{ borderRadius: 12, objectFit: 'contain', border: '1px solid #E2E8F0' }} priority />
           <p className="mt-2 text-xs font-semibold" style={{ color: 'var(--color-texto-secundario)', letterSpacing: '0.05em' }}>
             {CONFIG.nombreCompleto.toUpperCase()}
           </p>

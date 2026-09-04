@@ -46,7 +46,7 @@ const NAV_ITEMS: Record<UserRole, NavItem[]> = {
     { label: 'Inicio',         href: '/alumno',                emoji: '🏠', icon: Home          },
     { label: 'Mis Materias',   href: '/alumno/materias',       emoji: '📚', icon: BookOpen      },
     { label: 'Calificaciones', href: '/alumno/calificaciones', emoji: '📊', icon: BarChart3     },
-    { label: 'Logros',         href: '/alumno',                emoji: '🏆', icon: Trophy        },
+    { label: 'Logros',         href: '/alumno#logros',         emoji: '🏆', icon: Trophy        },
     { label: 'Constancia',     href: '/alumno/constancia',     emoji: '📜', icon: ClipboardList },
     { label: 'Mis Documentos', href: '/alumno/documentos',     emoji: '📄', icon: FolderOpen    },
   ],
@@ -164,7 +164,13 @@ export function Sidebar({ role, userName, avatarUrl, nivel, isOpen, onClose }: S
     router.push('/login')
   }
 
+  // Un item con ancla (`/alumno#logros`) NO es un destino propio: lleva a una
+  // sección de una página que ya tiene su propio item en el menú. Si se deja
+  // pasar, `pathname` ignora el hash y el ancla se marca activa a la vez que su
+  // página — que es lo que hacían 'Inicio' y 'Logros', los dos resaltados en
+  // /alumno al mismo tiempo.
   const isActive = (href: string) => {
+    if (href.includes('#')) return false
     if (href === '/admin' || href === '/alumno') return pathname === href
     return pathname.startsWith(href)
   }
@@ -217,6 +223,7 @@ export function Sidebar({ role, userName, avatarUrl, nivel, isOpen, onClose }: S
             width={180}
             height={56}
             style={{ height: 44, width: 'auto', objectFit: 'contain' }}
+          priority
           />
           <button onClick={onClose} className="md:hidden p-1 rounded-lg"
             style={{ color: 'rgba(255,255,255,0.5)' }}>
@@ -352,7 +359,13 @@ function MobileBottomNav({ items, isActive }: { items: NavItem[]; isActive: (h: 
             key={`mobile-${item.href}-${item.label}`}
             href={item.href}
             className="flex flex-col items-center justify-center gap-0.5 flex-1 py-1 rounded-lg transition-all"
-            style={{ color: active ? 'var(--color-sidebar-activo-texto, var(--color-acento))' : 'rgba(255,255,255,0.45)' }}
+            /* Aquí NO hay pastilla: el texto va directo sobre `--color-primario`,
+               así que el color correcto es el del REALCE, no el que se pinta
+               encima del realce. Con `--color-sidebar-activo-texto` un cliente
+               cuyo realce y fondo de menú sean del mismo tono deja el item
+               seleccionado en 1:1 contra el fondo: invisible justo el que hay
+               que ver. Fallback a `--color-acento`, el valor efectivo previo. */
+            style={{ color: active ? 'var(--color-sidebar-activo, var(--color-acento))' : 'rgba(255,255,255,0.45)' }}
           >
             {item.emoji
               ? <span className="text-lg leading-none">{item.emoji}</span>
