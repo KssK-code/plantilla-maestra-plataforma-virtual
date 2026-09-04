@@ -149,7 +149,7 @@ function LeftPanel() {
           border: '1px solid rgba(255,255,255,0.25)',
         }}>
           <Image src={CONFIG.logo} alt={CONFIG.nombre} width={68} height={68}
-            style={{ borderRadius: 12, objectFit: 'contain', display: 'block' }} />
+            style={{ borderRadius: 12, objectFit: 'contain', display: 'block' }} priority />
         </div>
         <p className="mt-4 text-xs font-semibold" style={{ color: 'rgba(255,255,255,0.7)', letterSpacing: '0.06em' }}>
           {CONFIG.nombreCompleto.toUpperCase()}
@@ -335,7 +335,7 @@ export default function RegisterPage() {
         {/* Mobile-only logo */}
         <div className="flex flex-col items-center mb-6 md:hidden">
           <Image src={CONFIG.logo} alt={CONFIG.nombre} width={60} height={60}
-            style={{ borderRadius: 12, objectFit: 'contain', border: '1px solid #E2E8F0' }} />
+            style={{ borderRadius: 12, objectFit: 'contain', border: '1px solid #E2E8F0' }} priority />
           <p className="mt-2 text-xs font-semibold" style={{ color: 'var(--color-texto-secundario)', letterSpacing: '0.05em' }}>
             {CONFIG.nombreCompleto.toUpperCase()}
           </p>

@@ -223,6 +223,7 @@ export function Sidebar({ role, userName, avatarUrl, nivel, isOpen, onClose }: S
             width={180}
             height={56}
             style={{ height: 44, width: 'auto', objectFit: 'contain' }}
+          priority
           />
           <button onClick={onClose} className="md:hidden p-1 rounded-lg"
             style={{ color: 'rgba(255,255,255,0.5)' }}>
