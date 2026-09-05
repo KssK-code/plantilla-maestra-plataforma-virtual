@@ -39,7 +39,13 @@ export async function updateSession(request: NextRequest) {
   // link que le mandaron por WhatsApp. Sin esto el middleware lo mandaría a
   // /login — el mismo gotcha que tuvo /api/health, donde una ruta que debía ser
   // pública devolvía el HTML de la pantalla de login.
-  const publicRoutes = ['/', '/login', '/register', '/forgot-password', '/reset-password', '/aviso-de-privacidad', '/terminos-y-condiciones', '/diplomados']
+  // `/api/catalogo-publico` es público a propósito: sirve el mismo catálogo que
+  // ya se ve sin sesión en `/diplomados`, y lo consume el FORMULARIO DE REGISTRO
+  // —donde por definición todavía no hay usuario— para poblar el selector de
+  // cursos. Sin esta entrada el middleware responde 401 y el selector nunca se
+  // dibuja. La lista blanca de campos la impone `listarCatalogoPublico()`; aquí
+  // no se expone nada nuevo.
+  const publicRoutes = ['/', '/login', '/register', '/forgot-password', '/reset-password', '/aviso-de-privacidad', '/terminos-y-condiciones', '/diplomados', '/api/catalogo-publico']
   const isPublicRoute = publicRoutes.some(route =>
     route === '/'
       ? request.nextUrl.pathname === '/'

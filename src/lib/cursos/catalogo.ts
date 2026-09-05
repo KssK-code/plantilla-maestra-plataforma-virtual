@@ -40,19 +40,36 @@ export interface CursoCatalogoPublico {
   precio_mensualidad: number
 }
 
-/** Cursos publicados, para el catálogo. Solo `estado='publicado'`. */
+/**
+ * Cursos publicados, para el catálogo. Solo `estado='publicado'`.
+ *
+ * ⚠️ NUNCA LANZA. Esta función la llama `src/app/page.tsx`, o sea la LANDING, y
+ * la landing tiene que compilar y servirse aunque la base no responda. Con el
+ * catálogo encendido por defecto, un fallo aquí tumbaba el prerender de `/` y
+ * de `/diplomados` y el build entero fallaba con "Missing Supabase env vars" —
+ * exactamente lo que pasa en un cliente recién clonado, antes de que alguien le
+ * ponga sus credenciales. Se devuelve `[]` y la sección del catálogo
+ * simplemente no se dibuja.
+ */
 export async function listarCatalogoPublico(): Promise<CursoCatalogoPublico[]> {
-  const admin = createAdminClient()
-  const { data, error } = await admin
-    .from('cursos')
-    .select(CAMPOS_CATALOGO)
-    .eq('estado', 'publicado')
-    .order('orden', { ascending: true })
-    .order('nombre', { ascending: true })
+  let data: Record<string, unknown>[] | null = null
+  try {
+    const admin = createAdminClient()   // lanza si faltan las env vars
+    const res = await admin
+      .from('cursos')
+      .select(CAMPOS_CATALOGO)
+      .eq('estado', 'publicado')
+      .order('orden', { ascending: true })
+      .order('nombre', { ascending: true })
 
-  if (error) {
-    console.error('[listarCatalogoPublico]', error)
-    return []  // falla cerrado: sin catálogo antes que con datos a medias
+    if (res.error) {
+      console.error('[listarCatalogoPublico]', res.error)
+      return []  // falla cerrado: sin catálogo antes que con datos a medias
+    }
+    data = res.data as Record<string, unknown>[] | null
+  } catch (e) {
+    console.error('[listarCatalogoPublico] sin acceso a la base:', e)
+    return []
   }
 
   return (data ?? []).map(c => ({

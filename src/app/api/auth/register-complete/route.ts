@@ -76,7 +76,35 @@ export async function POST(request: Request) {
       )
     }
 
+    if (nivel === 'diplomado' && !(typeof body.diplomado_id === 'string' && body.diplomado_id)) {
+      return Response.json(
+        { error: 'Selecciona el curso o diplomado al que quieres inscribirte.' },
+        { status: 400 },
+      )
+    }
+
     const admin = createAdminClient()
+
+    // ── Curso o diplomado elegido en el registro ─────────────────────────────
+    // ⚠️ NO se confía del cliente el id que manda: se valida contra los cursos
+    // realmente PUBLICADOS. Un POST a mano con el UUID de un curso en borrador
+    // no debe inscribir a nadie.
+    let diplomadoId: string | null = null
+    if (nivel === 'diplomado' && typeof body.diplomado_id === 'string' && body.diplomado_id) {
+      const { data: publicado } = await admin
+        .from('cursos')
+        .select('id')
+        .eq('id', body.diplomado_id)
+        .eq('estado', 'publicado')
+        .maybeSingle()
+      if (!publicado) {
+        return Response.json(
+          { error: 'El curso seleccionado ya no está disponible. Elige otro.' },
+          { status: 400 },
+        )
+      }
+      diplomadoId = body.diplomado_id
+    }
 
     // ── 1. Crear / actualizar fila en public.usuarios ──────────────────────────
     const { error: usuarioError } = await admin
@@ -122,6 +150,28 @@ export async function POST(request: Request) {
       }
       console.error('[register-complete] alumnos insert error:', alumnoError)
       return Response.json({ error: alumnoError.message }, { status: 500 })
+    }
+
+    // Inscripción al curso elegido. Va DESPUÉS del alta del alumno porque
+    // curso_inscripciones referencia alumnos(id).
+    //
+    // ⚠️ `meses_desbloqueados` queda en 0 a propósito: el alumno se registra,
+    // pero NO ve contenido hasta que el admin le abra el primer mes desde el
+    // panel. Así el registro público capta al prospecto sin regalar el curso, y
+    // el cobro sigue siendo de la escuela, que abre el mes cuando cobra.
+    if (diplomadoId) {
+      const { error: inscripcionError } = await admin
+        .from('curso_inscripciones')
+        .insert({
+          curso_id:            diplomadoId,
+          alumno_id:           user.id,
+          meses_desbloqueados: 0,
+        })
+      // No es fatal: el alumno ya existe y el admin puede inscribirlo a mano.
+      // Tumbar el registro por esto dejaría una cuenta de Auth huérfana.
+      if (inscripcionError && inscripcionError.code !== '23505') {
+        console.error('[register-complete] curso_inscripciones insert error:', inscripcionError)
+      }
     }
 
     // Leer la matrícula asignada por el trigger
