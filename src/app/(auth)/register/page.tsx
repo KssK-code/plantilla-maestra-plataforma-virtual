@@ -216,6 +216,23 @@ export default function RegisterPage() {
   const ofertasIngreso = getOfertasIngreso()
   const pidioCurso     = Boolean(cursoIngreso)
 
+  // Catálogo de cursos y diplomados publicados, para que el prospecto pueda
+  // inscribirse directo a uno y no solo a un plan de Sec/Prepa/Lic. Se pide al
+  // servidor y no a Supabase: este componente es 'use client' y ningún
+  // componente cliente lee las tablas curso_*.
+  const [diplomados,  setDiplomados]  = useState<{ id: string; nombre: string; tipo: string }[]>([])
+  const [diplomadoId, setDiplomadoId] = useState('')
+  const esDiplomado = nivel === 'diplomado'
+
+  useEffect(() => {
+    let vivo = true
+    fetch('/api/catalogo-publico')
+      .then(r => r.ok ? r.json() : [])
+      .then(d => { if (vivo && Array.isArray(d)) setDiplomados(d) })
+      .catch(() => {})   // sin catálogo, el registro sigue funcionando igual
+    return () => { vivo = false }
+  }, [])
+
   // Al cambiar de nivel se limpian plan y carrera: las modalidades de
   // licenciatura (6/9) no son las del programa (3/6), y una carrera arrastrada
   // desde una selección previa dejaría al alumno con un dato que no le toca.
@@ -240,6 +257,9 @@ export default function RegisterPage() {
     // El plan deja de ser obligatorio SI el alumno se lleva un curso de
     // ingreso: son productos distintos y hay quien solo quiere el curso. Lo que
     // no se permite es quedarse sin ninguno de los dos.
+    if (esDiplomado && !diplomadoId) {
+      setError('Selecciona el curso al que quieres inscribirte.'); return
+    }
     if (!soloCursos && !nivel && !pidioCurso) {
       setError('Selecciona tu nivel educativo o un curso de preparación.'); return
     }
@@ -285,6 +305,7 @@ export default function RegisterPage() {
           es_sindicalizado: false,
           sindicato:        null,
           curso_solicitado: cursoIngreso || null,
+          diplomado_id:     esDiplomado ? diplomadoId : null,
         }),
       })
       const data = await res.json()
@@ -458,9 +479,27 @@ export default function RegisterPage() {
                     <option value="secundaria">Secundaria</option>
                     <option value="preparatoria">Preparatoria</option>
                     {licenciaturasActivas() && <option value="licenciatura">Licenciatura</option>}
+                    {/* Solo si la escuela tiene cursos publicados: si no, la
+                        opción llevaría a un selector vacío. */}
+                    {diplomados.length > 0 && <option value="diplomado">Curso o diplomado</option>}
                   </select>
                 </div>
                 <div>
+                  {/* Un curso no tiene modalidad: su ritmo lo fija el propio
+                      curso. En su lugar se pregunta CUÁL. */}
+                  {esDiplomado ? (
+                    <>
+                      <Label text="¿Cuál?" required />
+                      <select value={diplomadoId} onChange={e => setDiplomadoId(e.target.value)}
+                        style={selectStyle} onFocus={onFocus} onBlur={onBlur}>
+                        <option value="">Selecciona…</option>
+                        {diplomados.map(d => (
+                          <option key={d.id} value={d.id}>{d.nombre}</option>
+                        ))}
+                      </select>
+                    </>
+                  ) : (
+                  <>
                   <Label text="Modalidad" required={!pidioCurso} />
                   {/* Licenciatura tiene su propia tabla de planes (6/9 meses).
                       Con la lista del programa (3/6) el alumno elegía un plan
@@ -473,6 +512,8 @@ export default function RegisterPage() {
                       <option key={m.id} value={m.id}>{m.label}</option>
                     ))}
                   </select>
+                  </>
+                  )}
                 </div>
                 {esLicenciatura && (
                   <div>

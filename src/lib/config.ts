@@ -122,11 +122,23 @@ export const CONFIG = {
     certificacion_preparatoria: 5900,
     cct:                        '',
 
-    // === CATÁLOGO DE DIPLOMADOS (línea Solo-Cursos, B5) ===
-    // ⚠️ DEFAULT false A PROPÓSITO. Esta plantilla sirve a 144 clientes de
-    // secundaria/preparatoria cuya landing no debe cambiar ni un pixel. B7 lo
-    // enciende solo para los clientes Solo-Cursos.
-    mostrarCatalogoCursos:      false,
+    // === CATÁLOGO DE CURSOS Y DIPLOMADOS ===
+    // DEFAULT true. Antes venía en `false` "para no cambiar la landing de los
+    // clientes de secundaria/preparatoria", pero ese resguardo era innecesario:
+    // la sección está gateada por `catalogo.length > 0`, así que una escuela sin
+    // cursos publicados no ve ni un pixel de diferencia. Lo único que cambia con
+    // el flag encendido es que `src/app/page.tsx` consulta la tabla `cursos` en
+    // el build.
+    //
+    // Lo que sí provocaba el `false` era deuda: la escuela creaba su curso desde
+    // el panel, lo publicaba, y no aparecía en ninguna parte del sitio. El
+    // cliente daba por hecho que estaba a la venta y no lo estaba. Pasó al menos
+    // dos veces (SICOVIP y Luis Saenz Arroyo, TICKET-2026-09-04-38) y las dos
+    // veces se descubrió porque el cliente reclamó, no por una revisión.
+    //
+    // Apagarlo sigue siendo válido para una escuela que quiera vender sus cursos
+    // solo por fuera del sitio.
+    mostrarCatalogoCursos:      true,
     catalogoTitulo:             'Nuestros diplomados',
     // Texto NEUTRO: igual que en el diploma (B4), el default NO dice "validez
     // oficial", "SEP" ni "RVOE". Eso solo lo agrega quien acredite su registro.
